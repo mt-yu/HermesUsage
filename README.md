@@ -127,6 +127,8 @@ python scripts/build_site.py               # 重建静态站点 site/（前端�
 
 python scripts/sync_sources.py --check     # 官方文档有没有改版（出处漂移检测）
 python scripts/sync_sources.py             # 同步官方文档快照
+python scripts/drift_watch.py --dry-run    # 漂移哨兵：有漂移就（可选）自动开 GitHub issue
+python scripts/check_links_external.py     # 91 条官方外链存活检测（ok/blocked/broken/network，不进 CI）
 
 python scripts/journal.py log              # 我这段时间做了什么（含 git 历史）
 python scripts/journal.py commit --kind session --title "完成 L01" --scope L01
@@ -153,7 +155,9 @@ python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8
 ```
 
 站点能力：按阶段浏览 32 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
-8 小节目录跳转、代码块一键复制、`src:…` 出处徽标悬停显示官方版本与快照哈希。
+练习打勾（与课程完成分开记）、学习地图与常见错误合集两个聚合页、学习报告导出（markdown）、
+课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、
+`src:…` 出处徽标悬停显示官方版本与快照哈希（共 91 条官方来源）。
 
 部署（Docker / Netlify / Vercel / GitHub Pages）：见 [docs/deploy.md](docs/deploy.md)。
 

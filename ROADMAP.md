@@ -186,22 +186,37 @@ Python 测试 45 → 59 条。
 
 ### v1.4 · 内容可考证的最后一块（约一天）
 
-- [ ] `sources/registry.yaml` 补登记两页（官方文档确实有：`user-guide/features/browser.md`、
-      `user-guide/features/web-search.md`）→ `sync_sources.py` → 更新 L21 的 `sources:` 并复核表述
-      （L21 现在借的是 `tools-reference`，不够精确）
-- [ ] L44 的「官方文档表述（非本机实测）」段落：本机复现，或在文中给出「为什么不复现 + 复现命令」
-- [ ] 新增「常见错误合集」：构建期聚合 32 课的「常见坑」表格 → 站点 `/pitfalls.html`
+- [x] `sources/registry.yaml` 补登记两页（`browser` / `web-search`）→ `sync_sources.py`（89 → 91 条）
+      → L21 的 6 处陈述换成精确引用，并按快照校准了 3 句（例：web-search 其实有 keyless 免费额度池）
+- [x] L44 的 API Server 段：用**隔离的临时 `HERMES_HOME`** 本机复现（真实横幅 / `/health` / `/v1/models` / 401，
+      进程与临时目录已清理），并如实标注官方文档写 `[API Server]`、实跑是 `[Api_Server] (model: …)`
+- [x] 新增「常见错误合集」：`tutorial_core.pitfall_rows()` 构建期聚合 32 课的 **253 行**坑表 → `/pitfalls.html`
+      （每行带回原课的 `[[Lxx]]` 链接；新页在根目录，链接映射必须带 `lessons/` 前缀，已有回归测试）
 
-**验收**：`sync_sources.py --check` 无漂移且出处从 89 条增加到 91 条；`verify.py` 全绿；
-`/pitfalls.html` 的条目数 == 各课坑表行数之和，每行带课号链接。
+**验收**（已全部通过）：`sync_sources.py --check` 无漂移、出处 89 → **91** 条；`verify.py` 0 错 0 警；
+`/pitfalls.html` 数据行 **253**（HTML 与解析层双路对账），263 个课号链接全部带 `lessons/` 前缀（0 处遗漏），
+进 sitemap（41 条）；构建产物 41 → **42 页 / 58 文件**。完成于 2026-09-16，tag `v1.4-content`。
+
+顺带修掉一条**登记错误**（外链检测脚本发现）：`prompt-cache` 原先与 `tips` 指向同一个 `guides/tips.md`，
+即「提示缓存」借的是 Tips 页。已改为 `developer-guide/context-compression-and-caching.md`
+（官方真正讲 prompt caching 的那一页）。L52 的 12 处缓存陈述本来引的就是 `[[src:compression]]`，内容无误。
 
 ### v1.5 · 自维护自动化（约半天）
 
-- [ ] journal 自动归档：`hermes cron` 启用 `scripts/journal.py autocommit`（脚本已有，只是没启用）
-- [ ] 官方文档漂移哨兵：定时 `sync_sources.py --check`，发现漂移自动开 GitHub issue
-- [ ] 外链存活检测 `scripts/check_links.py --external`（对 89 条官方 URL 低频探测，不进 CI 以免被限流）
+- [x] journal 自动归档：cron 任务 `c2e058a277da`「HermesUsage 自动归档」已注册且 **active**（每小时，最近一次 16:00 ok）
+      —— 但**网关没跑时不会自动触发**，需要人工决策，见下方「需要人工决策」
+- [x] 官方文档漂移哨兵：`scripts/drift_watch.py`（跑 `--check` → 有漂移就开/跳过 issue；令牌取自 `GITHUB_TOKEN`
+      或 Git Credential Manager；`--dry-run` 保证不触网不开 issue，已有测试钉死）
+- [x] 外链存活检测 `scripts/check_links_external.py`（四分类 ok/blocked/broken/network，`--retries` 默认 2；
+      **不进 CI**，只手动/定时跑）
 
-**验收**：`hermes cron list` 显示任务为启用；手动制造一次文档漂移能自动开出 issue 并把链接打出来。
+**验收**（已通过）：`hermes cron list` 显示任务 active；`drift_watch.py --dry-run` 不触网、不开 issue，
+实测**全量 91 条官方外链全部 200**（并做了负向对照：造 404 → `broken`、造坏域名 → `network`，
+证明检测器真会报错）。新增单元测试 40 条。完成于 2026-09-16，tag `v1.5-auto`。
+
+**已知限制**：本机域名走 Clash fake-IP，TLS 会间歇性抽风（实测同一域名可能连败十几次后自愈），
+所以 `network` 结果**不能单次当真**，脚本默认重试 2 次且 `network` 不参与退出码；
+这一层用状态码分不出「被墙」与「网络抖动」，是四分类的固有边界。
 
 ### v2.0 · 让「学过」变成可交付（按需启动）
 
@@ -214,3 +229,12 @@ Python 测试 45 → 59 条。
 
 - Docker / Netlify / Vercel 三条部署路径**未在真实环境验证**（本机无 docker、无那两家账号）
 - `site/` 产物目前没有 SEO 元信息（v1.2 的目标）
+
+## 需要人工决策（不自动做）
+
+- **要不要让定时任务真的跑起来？** 「HermesUsage 自动归档」（每小时）与漂移哨兵都依赖网关常驻：
+  `hermes gateway install`（注册为开机自启服务）或每次手动 `hermes gateway start`。
+  这会在你的机器上装一个常驻服务，属于该由人拍板的事，所以没有自动做。
+  现状：任务已 active，但网关没跑时不会触发（`hermes cron list` 会明确提示）。
+- **要不要把 `docs/deploy.md` 里标着「未验证」的三条（Docker / Netlify / Vercel）真跑一遍？**
+  需要先装 docker 或注册相应账号，同样留给你决定。
