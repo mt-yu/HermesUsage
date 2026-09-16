@@ -135,7 +135,10 @@ def check_frontmatter(ls: dict) -> None:
         if not isinstance(fm[listy], list):
             err("R1", rel, f"{listy} 应为列表，实际：{type(fm[listy]).__name__}")
     if not isinstance(fm.get("updated"), str) or not re.match(r"^\d{4}-\d{2}-\d{2}$", str(fm.get("updated"))):
-        err("R1", rel, f"updated 应为 YYYY-MM-DD，实际：{fm.get('updated')}")
+        # PyYAML 会把裸写的 2026-09-16 解析成 datetime.date —— 两类都接受，但格式必须对
+        upd = fm.get("updated")
+        if not (hasattr(upd, "isoformat") and re.match(r"^\d{4}-\d{2}-\d{2}$", upd.isoformat())):
+            err("R1", rel, f"updated 应为 YYYY-MM-DD，实际：{upd}")
     # 文件名与 id 一致性
     if not ls["path"].name.startswith(f"{fm['id']}-"):
         err("R5", rel, f"文件名应以 {fm['id']}- 开头", f"重命名为 {fm['id']}-<slug>.md")
@@ -182,11 +185,21 @@ def check_sources(ls: dict, citations: dict[str, dict]) -> None:
         warn("R4", rel, "「出处」小节里没有出现任何 http 链接", "至少列出官方 URL，方便读者核对")
 
 
-def check_cross_refs(ls: dict, ids: set[str]) -> None:
+def check_cross_refs(ls: dict, ids: set[str], planned: set[str]) -> None:
+    """交叉引用要么指向已存在的课程，要么指向 ROADMAP 里已声明的计划课程。
+
+    允许“前向引用”是刻意的：教程分阶段写作时，阶段 0 会引用阶段 1 的课。
+    ROADMAP 是这些课的声明处，所以“悬空 id”仍然能被抓到 —— 只是判定依据
+    从“文件存在”放宽成“ROADMAP 里有名有姓”。
+    """
     for target in set(XREF_RE.findall(ls["text"])):
-        if target not in ids:
-            err("R6", ls["rel"], f"交叉引用 [[{target}]] 指向不存在的课程",
-                "确认课程 id，或先创建该课程")
+        if target in ids:
+            continue
+        if target in planned:
+            warn("R6", ls["rel"], f"交叉引用 [[{target}]] 指向 ROADMAP 中尚未编写的课程")
+            continue
+        err("R6", ls["rel"], f"交叉引用 [[{target}]] 既不存在也没在 ROADMAP.md 里声明",
+            "确认课程 id；要么先写它，要么在 ROADMAP.md 里登记")
 
 
 def check_links(ls: dict) -> None:
@@ -247,7 +260,7 @@ def build_index_preview(lessons: list[dict]) -> str:
     sys.path.insert(0, str(REPO / "scripts"))
     import build_index  # noqa: E402
 
-    return build_index.render(lessons)
+    return build_index.render(build_index.rows_from_lessons(lessons))
 
 
 # --------------------------------------------------------------------------- 主流程
@@ -261,12 +274,13 @@ def main() -> int:
     citations = load_citations()
     lessons = load_lessons()
     ids = {str(ls["fm"].get("id", "")) for ls in lessons}
+    planned = set(re.findall(r"\bL\d{2,}\b", ROADMAP.read_text(encoding="utf-8"))) if ROADMAP.exists() else set()
 
     for ls in lessons:
         check_frontmatter(ls)
         check_sections(ls)
         check_sources(ls, citations)
-        check_cross_refs(ls, ids)
+        check_cross_refs(ls, ids, planned)
         check_links(ls)
     check_global(lessons, citations)
 

@@ -46,6 +46,31 @@ STAGE_TITLES = {
 }
 
 
+def rows_from_lessons(lessons: list[dict]) -> list[dict]:
+    """把 verify.py 解析出的课程字典（含 'fm'）归一化成 render() 需要的行。
+
+    两个模块共用渲染逻辑，就必须共用行结构；否则索引会出现“verify 算出来的文本”
+    和“build_index 写出来的文本”不一致的假阳性。
+    """
+    rows = []
+    for ls in lessons:
+        fm = ls.get("fm", {})
+        rows.append(
+            {
+                "id": str(fm.get("id", "")),
+                "title": str(fm.get("title", "")),
+                "stage": int(fm.get("stage", 0)),
+                "level": str(fm.get("level", "")),
+                "minutes": int(fm.get("minutes", 0)),
+                "tags": list(fm.get("tags") or []),
+                "sources": list(fm.get("sources") or []),
+                "rel": ls["rel"].as_posix() if hasattr(ls["rel"], "as_posix") else str(ls["rel"]),
+            }
+        )
+    rows.sort(key=lambda r: (r["stage"], r["id"]))
+    return rows
+
+
 def load_index_rows() -> list[dict]:
     rows: list[dict] = []
     for path in sorted(LESSONS_DIR.rglob("*.md")):

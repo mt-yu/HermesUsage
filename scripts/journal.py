@@ -144,51 +144,98 @@ def session_digest(hours: int = 72, limit: int = 12) -> tuple[str, dict]:
 
 def write_entry(kind: str, title: str, scope: str, summary: str, learned: str,
                 extra: str = "", do_commit: bool = False, message: str | None = None) -> Path:
+    """写一条 journal 记录；do_commit 时额外把它提交成一个独立提交。
+
+    两段式提交（这是关键设计）
+    --------------------------
+    记录里要写“这次工作的提交号”，可是提交号在提交之前不存在。用 --amend 回填
+    会让 SHA 再次变化，形成追不上的循环。所以：
+
+      提交 1 = 工作提交（不含 journal 文件）   -> 得到真实 SHA
+      journal 文件里写 提交 1 的 SHA
+      提交 2 = 只包含 journal 文件与索引       -> 历史干净、引用准确
+
+    语义也更对：一条 journal 说的是“它前面那个工作提交干了什么”。
+    """
     JOURNAL.mkdir(exist_ok=True)
     stamp = now()
     day = stamp.strftime("%Y-%m-%d")
-    seq = next_seq(day)
-    path = JOURNAL / f"{day}-{seq:02d}-{slugify(title)}.md"
+    path = JOURNAL / f"{day}-{next_seq(day):02d}-{slugify(title)}.md"
+    rel = path.relative_to(REPO)
 
-    body = TEMPLATE.read_text(encoding="utf-8") if TEMPLATE.exists() else "---\ntitle: {t}\n---\n"
+    work_sha = ""
+    if do_commit:
+        # 先提交工作内容，把新的 journal 文件排除在外
+        run(["git", "add", "-A"])
+        run(["git", "reset", "-q", "--", str(rel)])
+        msg = message or f"{kind}: {title}"
+        res = run(["git", "commit", "-m", msg, "-m",
+                   f"scope: {scope or '—'}\njournal: {path.name}\n\n由 scripts/journal.py 归档。"])
+        if res.returncode == 0:
+            work_sha = run(["git", "rev-parse", "--short", "HEAD"]).stdout.strip()
+        else:
+            head = run(["git", "rev-parse", "--short", "HEAD"]).stdout.strip()
+            if "nothing to commit" in (res.stdout + res.stderr):
+                work_sha = head
+                print(f"  · 没有新的工作改动，记录指向当前提交 {head}")
+            else:
+                print("  [!] git commit 失败：")
+                print("      " + (res.stderr or res.stdout).strip().replace("\n", "\n      "))
+                print("      常见原因：未配置 git user.name/user.email。")
+                return path
+
+    body = render_entry(title, kind, scope, summary, learned, extra, day, work_sha)
+    path.write_text(body, encoding="utf-8", newline="\n")
+    append_index(path, kind, scope, title, work_sha)
+    print(f"journal 记录：{rel}")
+
+    if do_commit:
+        run(["git", "add", str(rel), str(INDEX.relative_to(REPO))])
+        res = run(["git", "commit", "-m", f"journal: {title}",
+                   "-m", f"范围: {scope or '—'}\n描述工作提交: {work_sha or '—'}"])
+        if res.returncode == 0:
+            print("已提交：")
+            print(run(["git", "log", "--oneline", "-3"]).stdout)
+        else:
+            print("  [!] journal 提交失败：" + (res.stderr or res.stdout).strip())
+    return path
+
+
+def render_entry(title: str, kind: str, scope: str, summary: str, learned: str,
+                 extra: str, day: str, work_sha: str) -> str:
+    body = TEMPLATE.read_text(encoding="utf-8") if TEMPLATE.exists() else DEFAULT_ENTRY
     body = body.replace("2026-01-01", day)
     body = body.replace("一句话说明本次会话干了什么", title)
     body = body.replace("kind: session", f"kind: {kind}")
     body = body.replace("scope: L00", f"scope: {scope or '—'}")
+    body = body.replace("commit: (由 scripts/journal.py 自动回填)",
+                        f"commit: {work_sha or '(工作区无改动)'}")
     if summary:
-        # 替换「实际做了什么」小节内容
         body = re.sub(r"(## 实际做了什么\n\n)(?:.*?)(\n## )", rf"\1{summary}\n\2", body, flags=re.S)
     if learned:
         body = re.sub(r"(> 什么踩坑了、什么反直觉、哪条命令救了我。\n\n)(?:.*?)(\n## )",
                       rf"\1{learned}\n\2", body, flags=re.S)
     if extra:
         body = body.replace("## 下一步", f"{extra}\n\n## 下一步")
+    return body
 
-    sha_line = ""
-    if do_commit:
-        run(["git", "add", "-A"])
-        msg = message or f"{kind}: {title}"
-        res = run(["git", "commit", "-m", msg, "-m",
-                   f"scope: {scope or '—'}\njournal: {path.name}\n\n由 scripts/journal.py 自动归档。"])
-        if res.returncode == 0:
-            head = run(["git", "rev-parse", "--short", "HEAD"]).stdout.strip()
-            sha_line = head
-        else:
-            print("  [!] git commit 失败：")
-            print("      " + (res.stderr or res.stdout).strip().replace("\n", "\n      "))
-            print("      常见原因：未配置 git user.name/user.email，或没有改动可提交。")
 
-    body = body.replace("commit: (由 scripts/journal.py 自动回填)",
-                        f"commit: {sha_line or '(未提交)'}")
+DEFAULT_ENTRY = """---
+date: 2026-01-01
+kind: session
+scope: L00
+title: 一句话说明本次会话干了什么
+commit: (由 scripts/journal.py 自动回填)
+---
 
-    path.write_text(body, encoding="utf-8", newline="\n")
-    append_index(path, kind, scope, title, sha_line)
-    if sha_line:
-        # 把 journal 文件本身补进刚才那个提交
-        run(["git", "add", str(path.relative_to(REPO))])
-        run(["git", "commit", "--amend", "--no-edit"])
-    print(f"journal 记录：{path.relative_to(REPO)}")
-    return path
+# 2026-01-01 · 一句话说明本次会话干了什么
+
+## 实际做了什么
+
+## 学到的东西
+
+## 下一步
+"""
 
 
 def append_index(path: Path, kind: str, scope: str, title: str, sha: str) -> None:

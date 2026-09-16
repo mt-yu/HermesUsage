@@ -1,0 +1,29 @@
+# Hermes Agent 初学者教程
+
+> 一份可考证、可自维护、可回滚的 Hermes Agent 教程系统。每条事实性陈述都带 [[src:id]] 出处标记，可在 sources/citations.yaml 反查到官方文档 URL、版本与内容哈希。
+
+课程总数：4 课（入门 4 课 / 进阶 0 课），合计约 55 分钟。
+
+## 怎么读这份索引（给 AI 维护者）
+
+- 想知道“这个仓库有什么内容”：读本文件即可，不需要遍历目录。
+- 想新增一课：复制 templates/lesson.md，改 frontmatter，然后跑
+  `python scripts/build_index.py && python scripts/verify.py`。
+- 想核对某条陈述的出处：`sources/cache/<src-id>.md` 是官方文档快照。
+- 想知道自己该改哪里：读 `.hermes.md`（项目宪章）与 `ROADMAP.md`（路线图）。
+
+## 阶段 0 · 认识 Hermes（先建立正确的心智模型）
+
+- [L00 Hermes 是什么：三个心智模型](lessons/00-orient/L00-what-is-hermes.md) — [入门] 10 分钟 · 标签：心智模型、agent-loop、自我改进、多外壳 · 出处 3 条
+- [L01 五分钟装好并说第一句话](lessons/00-orient/L01-first-conversation.md) — [入门] 15 分钟 · 标签：安装、provider、第一次对话、验收 · 出处 3 条
+- [L02 一次对话里到底发生了什么](lessons/00-orient/L02-what-happens-in-a-turn.md) — [入门] 15 分钟 · 标签：agent-loop、消息格式、prompt-caching、上下文压缩 · 出处 3 条
+- [L03 文件地图：哪个文件管什么](lessons/00-orient/L03-file-map.md) — [入门] 15 分钟 · 标签：SOUL.md、MEMORY.md、USER.md、config.yaml · 出处 3 条
+
+## 支撑文件
+
+- [README.md](README.md) — 人类入口：5 分钟上手 + 学习路线图
+- [ROADMAP.md](ROADMAP.md) — 阶段与进度（带勾选清单）
+- [.hermes.md](.hermes.md) — 项目宪章：写作规范、质量门禁、git 工作流（Hermes 自动注入）
+- [CONTRIBUTING.md](CONTRIBUTING.md) — 人和 AI 的贡献流程
+- [sources/README.md](sources/README.md) — 出处体系如何自证
+- [progress/checklist.md](progress/checklist.md) — 学习者进度清单
