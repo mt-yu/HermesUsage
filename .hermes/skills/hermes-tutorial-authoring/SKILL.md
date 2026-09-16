@@ -131,5 +131,9 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
 - **不要占位**：写不完的课不要建文件，在 `ROADMAP.md` 里标 `⬜` 待建即可。
 - **`site/` 是产物，不是源码**：要么改 `lessons/`，要么改 `web/`；
   手改 `site/` 会在下次构建时丢失。
+- **练习（`- [ ]`）只许在末尾追加**：站点按课内位置给练习编号（`data-ex`）来存读者的打勾，
+  在中间插删或重排会让读者已做的勾错位到别的题上（静默错，不报错）。
+- **练习一律写 `- [ ]`，不要用 `- [x]`**：站点会用读者的本地存储覆盖初始勾选状态，
+  预勾等于给读者一个会被抹掉的假状态。
 - 官方文档页面的**路径与 llms.txt 里的 URL 一一对应**，但 `index.md` 的 URL 是目录本身
   （`/docs/user-guide/messaging` 而不是 `.../messaging/index`）——`sync_sources.py` 已处理。
