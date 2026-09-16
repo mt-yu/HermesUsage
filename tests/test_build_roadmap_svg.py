@@ -138,6 +138,21 @@ class TestCheckMode(unittest.TestCase):
                 self.assertEqual(br.main(), 1)
             self.assertEqual(stale.read_text(encoding="utf-8"), "<svg>旧图</svg>")
 
+    def test_printed_size_is_bytes_not_characters(self):
+        """回归：曾经报的是 len(str)（字符数）。中文在 UTF-8 里 3 字节，
+        于是「20803 字节」比真实文件小了 2 KB —— 报尺寸必须 encode 之后算。"""
+        import io
+        from contextlib import redirect_stdout
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "roadmap.svg"
+            buf = io.StringIO()
+            with mock.patch.object(br, "OUT", target), \
+                 mock.patch.object(sys, "argv", ["build_roadmap_svg.py"]), \
+                 redirect_stdout(buf):
+                self.assertEqual(br.main(), 0)
+            reported = int(re.search(r"(\d+) 字节", buf.getvalue()).group(1))
+            self.assertEqual(reported, target.stat().st_size)
+
     def test_stdout_mode_does_not_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "roadmap.svg"

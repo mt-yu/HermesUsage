@@ -376,8 +376,15 @@ def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(content, encoding="utf-8", newline="\n")
     lessons = core.load_lessons(REPO)
-    print(f"写入 {OUT.relative_to(REPO)}：{len(lessons)} 课 / "
-          f"{len(core.group_by_stage(lessons))} 个阶段 / {len(content)} 字节")
+    # 注意：len(str) 是**字符数**，中文在 UTF-8 里占 3 字节 —— 报字节要 encode
+    size = len(content.encode("utf-8"))
+    # OUT 未必在仓库内（测试与自定义输出会指到别处），relative_to 会抛 ValueError
+    try:
+        shown = OUT.relative_to(REPO)
+    except ValueError:
+        shown = OUT
+    print(f"写入 {shown}：{len(lessons)} 课 / "
+          f"{len(core.group_by_stage(lessons))} 个阶段 / {size} 字节")
     return 0
 
 

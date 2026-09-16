@@ -129,7 +129,7 @@ python scripts/progress.py next   # 下一课学什么
 - [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
 - [x] journal 自动归档 —— 已完成，见 v1.5；cron 任务 `c2e058a277da` 每小时跑，**实测 17:00 真的自动提交了一条**（前提是网关在跑，见「需要人工决策」）
 - [x] 用 SVG 替换 README 的 ASCII 路线图 —— 已完成：`scripts/build_roadmap_svg.py` 从课程 frontmatter 生成
-  `docs/roadmap.svg`（1200×1518 / 20.8 KB / 纯标准库 / 字节可重现），已接进 `check.py`（第 6 项）与 19 条单测。
+  `docs/roadmap.svg`（1200×1518 / 22859 字节 / 纯标准库 / 字节可重现），已接进 `check.py`（第 6 项）与 19 条单测。
   **不装 Graphviz**：手绘感用确定性几何实现，零新增依赖
 
 ## 站点（前端）
