@@ -1,0 +1,66 @@
+name: docker
+
+# 这条工作流的存在意义：把 docs/deploy.md 里那条「Docker 配置未在真实环境验证」
+# 变成「每次 push 都真的构建镜像、真的起容器、真的按路径访问」。
+# 作者本机没有 Docker（装它需要 WSL2 + 重启），所以验证放在这里做。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-serve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建镜像（构建阶段会跑内容门禁 verify.py，坏内容出不了镜像）
+        run: docker build -t hermes-usage-site:ci .
+
+      - name: 起容器并等它可用
+        run: |
+          docker run -d --name hu-site -p 8080:80 hermes-usage-site:ci
+          code=""
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ || true)
+            echo "第 $i 次探测：HTTP $code"
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::容器 30 秒内没起来"
+            docker logs hu-site
+            exit 1
+          fi
+
+      - name: 按真实路径抽查（课程页 / 离线版 / CSS / JS / 数据）
+        run: |
+          set -e
+          curl -fsS http://127.0.0.1:8080/lessons/L15-skills.html -o /tmp/l15.html
+          grep -q "你将学会" /tmp/l15.html          # 每课必有的一节（.hermes.md R1）
+          curl -fsS -o /dev/null http://127.0.0.1:8080/offline.html
+          curl -fsS -o /dev/null http://127.0.0.1:8080/pitfalls.html
+          curl -fsS -o /dev/null http://127.0.0.1:8080/assets/app.css
+          curl -fsS -o /dev/null http://127.0.0.1:8080/assets/app.js
+          curl -fsS -o /dev/null http://127.0.0.1:8080/data/index.json
+          echo "课程页 / 离线版 / 坑表页 / CSS / JS / 数据 —— 全部 200"
+
+      - name: 中文不乱码（HTML 响应必须带 charset=utf-8）
+        run: |
+          set -e
+          ct=$(curl -fsSI http://127.0.0.1:8080/lessons/L15-skills.html | tr -d '\r' | grep -i '^content-type:' || true)
+          echo "Content-Type: $ct"
+          echo "$ct" | grep -iq 'charset=utf-8' || {
+            echo "::error::响应没带 charset=utf-8，中文可能乱码（检查 deploy/nginx.conf 的 charset）"
+            exit 1
+          }
+
+      - name: 容器日志（无论成败都留一份，便于排障）
+        if: always()
+        run: docker logs hu-site 2>&1 | tail -40 || true
+
+      - name: 收尾
+        if: always()
+        run: docker rm -f hu-site || true
