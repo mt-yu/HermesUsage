@@ -1,0 +1,21 @@
+# 忽略：本地学习状态、Python 缓存、编辑器
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 学习者本地状态（每台机器不同，不进 git）
+progress/.state.json
+progress/.scratch/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 临时产物
+build/
+dist/
+*.tmp

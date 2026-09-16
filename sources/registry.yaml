@@ -1,0 +1,118 @@
+# 来源登记表 —— 教程里每一条事实的“可考证出处”
+#
+# 规则（见 .hermes.md）：
+#   1. 课程正文里任何事实性陈述都必须带引用标记 [[src:<id>]]，且 <id> 必须在本表登记。
+#   2. 本表的 key 尽量短、语义化、全项目唯一；新增时按模块就近插入。
+#   3. 值 = 官方文档仓库 website/docs/ 下的相对路径（.md/.mdx）。
+#   4. 实际的 URL / 版本 / 内容哈希由 scripts/sync_sources.py 从 docs 源码计算，
+#      人工只维护“id → 文档路径”这一层映射，避免手工抄错。
+#
+# 校验：python scripts/sync_sources.py --check   （发现官方文档漂移）
+#       python scripts/verify.py                 （发现课程里悬空的引用 id）
+
+getting-started:
+  quickstart: getting-started/quickstart.md
+  installation: getting-started/installation.md
+  learning-path: getting-started/learning-path.md
+  updating: getting-started/updating.md
+  platform-support: getting-started/platform-support.md
+
+surfaces:
+  cli: user-guide/cli.md
+  tui: user-guide/tui.md
+  desktop: user-guide/desktop.md
+  web-dashboard: user-guide/features/web-dashboard.md
+  acp: user-guide/features/acp.md
+  api-server: user-guide/features/api-server.md
+
+config:
+  configuration: user-guide/configuration.md
+  configuring-models: user-guide/configuring-models.md
+  env-vars: reference/environment-variables.md
+  local-models: user-guide/local-models.md
+  providers: integrations/providers.md
+  nous-portal: integrations/nous-portal.md
+  fallback-providers: user-guide/features/fallback-providers.md
+  credential-pools: user-guide/features/credential-pools.md
+  provider-routing: user-guide/features/provider-routing.md
+  profiles: user-guide/profiles.md
+  which-file: user-guide/which-file-does-what.md
+
+core:
+  feat-overview: user-guide/features/overview.md
+  tools: user-guide/features/tools.md
+  tools-reference: reference/tools-reference.md
+  toolsets-reference: reference/toolsets-reference.md
+  skills: user-guide/features/skills.md
+  curator: user-guide/features/curator.md
+  memory: user-guide/features/memory.md
+  memory-providers: user-guide/features/memory-providers.md
+  context-files: user-guide/features/context-files.md
+  context-references: user-guide/features/context-references.md
+  personality: user-guide/features/personality.md
+  sessions: user-guide/sessions.md
+  slash-commands: reference/slash-commands.md
+  cli-commands: reference/cli-commands.md
+  deliverable-mode: user-guide/features/deliverable-mode.md
+
+automation:
+  cron: user-guide/features/cron.md
+  delegation: user-guide/features/delegation.md
+  goals: user-guide/features/goals.md
+  loops: user-guide/features/loops.md
+  hooks: user-guide/features/hooks.md
+  webhooks: user-guide/messaging/webhooks.md
+  heartbeat: user-guide/features/heartbeat.md
+  kanban: user-guide/features/kanban.md
+  bot-mode: user-guide/bot-mode.md
+  batch-processing: user-guide/features/batch-processing.md
+  code-execution: user-guide/features/code-execution.md
+
+extend:
+  creating-skills: developer-guide/creating-skills.md
+  plugins-guide: developer-guide/plugins/index.md
+  plugins: user-guide/features/plugins.md
+  mcp: user-guide/features/mcp.md
+  mcp-config: reference/mcp-config-reference.md
+  desktop-plugin-sdk: developer-guide/desktop-plugin-sdk.md
+  adding-tools: developer-guide/adding-tools.md
+  middleware: developer-guide/middleware.md
+  skins: user-guide/features/skins.md
+  pets: user-guide/features/pets.md
+  lsp: user-guide/features/lsp.md
+  programmatic: developer-guide/programmatic-integration.md
+
+ops:
+  security: user-guide/security.md
+  checkpoints: user-guide/checkpoints-and-rollback.md
+  secrets: user-guide/secrets/index.md
+  credential-vault: user-guide/features/credential-vault.md
+  gateway-messaging: user-guide/messaging/index.md
+  faq: reference/faq.md
+  cli-symbols: reference/cli-symbols.md
+  skills-catalog: reference/skills-catalog.md
+  optional-skills-catalog: reference/optional-skills-catalog.md
+
+internals:
+  arch: developer-guide/architecture.md
+  agent-loop: developer-guide/agent-loop.md
+  prompt-assembly: developer-guide/prompt-assembly.md
+  compression: developer-guide/context-compression-and-caching.md
+  tools-runtime: developer-guide/tools-runtime.md
+  session-storage: developer-guide/session-storage.md
+  prompt-cache: guides/tips.md
+
+practice:
+  tips: guides/tips.md
+  work-with-skills: guides/work-with-skills.md
+  delegation-patterns: guides/delegation-patterns.md
+  automate-with-cron: guides/automate-with-cron.md
+  cron-script-only: guides/cron-script-only.md
+  python-library: guides/python-library.md
+  secure-work-machine: guides/secure-hermes-on-a-work-machine.md
+  troubleshooting-quality: guides/troubleshooting-agent-quality.md
+  use-mcp-with-hermes: guides/use-mcp-with-hermes.md
+  use-voice-mode-with-hermes: guides/use-voice-mode-with-hermes.md
+  pipe-script-output: guides/pipe-script-output.md
+  webhook-github-pr-review: guides/webhook-github-pr-review.md
+  automation-blueprints: guides/automation-blueprints.md

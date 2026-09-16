@@ -1,0 +1,23 @@
+# 全仓库统一 LF + UTF-8，避免 Windows 上的 CRLF/BOM 噪音污染 diff。
+# 教程是中文内容，编码一致性是硬要求（见 .hermes.md 的质量门禁）。
+* text=auto eol=lf
+
+*.md   text eol=lf working-tree-encoding=UTF-8
+*.py   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.txt  text eol=lf
+*.html text eol=lf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.db  binary
+
+# git 统计：sources/cache 是自动同步的官方文档快照，不算进语言统计
+sources/cache/** linguist-vendored
+sources/citations.yaml linguist-generated
+llms.txt linguist-generated

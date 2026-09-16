@@ -1,0 +1,64 @@
+# 许可与来源声明
+
+本仓库有两个许可层，因为它是“原创教程 + 官方文档快照”的混合体。
+
+## 1. 原创内容 —— CC BY 4.0
+
+除非另有说明，以下内容由本仓库贡献者创作，采用
+**Creative Commons Attribution 4.0 International (CC BY 4.0)** 许可：
+
+- `lessons/`（全部课程正文）
+- `README.md`、`ROADMAP.md`、`CONTRIBUTING.md`、`.hermes.md`、`progress/`
+- `templates/`、`journal/`
+
+你可以自由复制、改写、再分发，**唯一要求是标注来源**（给出本仓库链接即可）。
+
+## 2. 代码 —— MIT
+
+以下内容采用 MIT 许可：
+
+- `scripts/`（全部 Python 脚本）
+- `llms.txt`（生成物）
+
+```
+MIT License
+
+Copyright (c) 2026 HermesUsage contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## 3. 引用的官方文档 —— 上溯到原许可
+
+`sources/cache/` 与 `sources/citations.yaml` 是
+[NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) 官方文档的
+**原文快照**（MIT License），由 `scripts/sync_sources.py` 自动同步：
+
+- 快照基线：`hermes v0.21.3`，文档提交 `05fac10a758c41c321a1904430b6b3d79ecc4d7e`（2026-09-15）
+- 每条快照的原始路径、公开 URL、sha256 记录在 `sources/citations.yaml`
+- `.gitattributes` 把它们标记为 `linguist-vendored`，不参与本仓库的代码统计
+
+这些文件**不是本仓库的原创内容**，只用于让课程里的每一句引用都能离线核对。
+版权归原作者，许可随 `hermes-agent` 仓库（MIT）。
+
+## 4. 免责
+
+Hermes Agent 迭代很快。本仓库的出处快照带有版本与哈希，能用
+`python scripts/sync_sources.py --check` 检测官方文档是否已经漂移。
+发现漂移请提 issue 或直接按 `CONTRIBUTING.md` 的流程更新。
