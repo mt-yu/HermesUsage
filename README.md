@@ -2,9 +2,11 @@
 
 > 从「装好了但不知道干什么」到「知道自己在指挥什么」的**可考证、可自维护、可回滚**教程系统。
 
-[![课程](https://img.shields.io/badge/课程-10_课_(阶段0--1)-blue)](#学习路线图)
+[![站点](https://img.shields.io/badge/站点-在线-blue)](https://mt-yu.github.io/HermesUsage/)
+[![ci](https://github.com/mt-yu/HermesUsage/actions/workflows/ci.yml/badge.svg)](https://github.com/mt-yu/HermesUsage/actions/workflows/ci.yml)
+[![课程](https://img.shields.io/badge/课程-32_课_(阶段0--5+毕业项目)-blue)](#学习路线图)
 [![出处](https://img.shields.io/badge/出处-89_条官方来源-green)](sources/README.md)
-[![门禁](https://img.shields.io/badge/质量门禁-verify.py-orange)](scripts/verify.py)
+[![门禁](https://img.shields.io/badge/质量门禁-check.py-orange)](scripts/check.py)
 
 ---
 

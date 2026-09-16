@@ -4235,3 +4235,18 @@ git tag -a v1.1-web -m "教程站：可交互前端 + 快速部署"
    - 未能验证的一项：本机自动化浏览器（CDP 配置档）对 `clipboard-write` 一律拒绝
      （`NotAllowedError: Write permission denied`），因此「点击复制 → 剪贴板真的拿到内容」
      在本机无法证明，只能证明按钮状态机与兜底路径都按预期走。
+
+8. **公开发布（2026-09-16）**：仓库 `https://github.com/mt-yu/HermesUsage`（公开），
+   站点 `https://mt-yu.github.io/HermesUsage/`。仓库创建与 Pages 开启是用 GitHub API
+   （`POST /user/repos`、`POST /repos/{owner}/{repo}/pages -d '{"build_type":"workflow"}'`）完成的，
+   令牌取自 Git Credential Manager（`git credential fill`，作用域 `repo` + `workflow`）。
+   `site.json` 的 `repo_url` 已填上 —— 规范页里指向脚本/目录的链接因此从「退化成纯文字」
+   变成指向 GitHub 的真链接。
+9. **CI 第一次跑就抓到一个跨平台真 bug（与站点无关，是仓库既有问题）**：
+   `sync_sources.py` 按上游文档的 **CRLF** 字节算 sha256，而 `.gitattributes` 声明 `*.md` 为
+   `eol=lf`，git 里存的是 LF —— 于是 Windows 本机门禁全绿，Linux/CI 上 5 条快照的
+   R10 哈希必然对不上（第一次 push 时 `ci` 与 `pages` 双双 failure）。
+   修法：**统一按 LF 落盘并算哈希**（`raw.replace(b"\r\n", b"\n")`），`citations.yaml`
+   也以 `newline="\n"` 写；并在 R10 里加一条 CRLF 断言，让这个坑在 Windows 上就能被抓住。
+   教训：本地全绿的哈希类门禁，必须同时验证「git 会 checkout 出来的字节」——
+   `git ls-files --eol` 与 `git cat-file blob HEAD:<path>` 是判据，工作区文件本身不是。
