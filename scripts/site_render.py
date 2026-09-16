@@ -199,17 +199,23 @@ def build_toc_html(toc: list[dict]) -> str:
     return "".join(out)
 
 
-def render_markdown(body: str) -> tuple[str, list[dict]]:
+def render_markdown(body: str, prefix: str = "s") -> tuple[str, list[dict]]:
     """Markdown 正文 → (带 id 的 HTML, 目录)。
 
     每次调用新建 Markdown 实例：扩展对象带内部状态（脚注编号、标题计数），
     复用同一个实例会让第 2 课的目录从 s5 开始 —— 这种 bug 极难肉眼发现。
+
+    `prefix` 透传给 `add_heading_ids`（**原样拼在编号前**，不会自动补 `s`）。
+    默认 `"s"` 是单页正文的形态（一课一个 HTML，页内不会撞 id）；**单文件离线版
+    必须传带课号的前缀**（`"L15-s"` → `L15-s1`），因为 32 课要被拼进同一份文档：
+    都用 `s1/s2…` 的话，文档里会出现 32 组重复 id，浏览器与 `#s1` 式锚点只认
+    第一个 —— 于是「点第 20 课的目录项跳到第 1 课」，而页面看起来完全正常。
     """
     import markdown  # 延迟导入：只在真正渲染时才要求装了 Markdown
 
     md = markdown.Markdown(extensions=["extra", "sane_lists"])
     html = md.convert(preprocess_tasklist(strip_template_comments(body)))
-    return add_heading_ids(html)
+    return add_heading_ids(html, prefix)
 
 
 def linkify_citations(fragment: str, citations: dict[str, dict], where: str) -> str:

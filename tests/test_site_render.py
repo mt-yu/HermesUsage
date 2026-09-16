@@ -79,6 +79,58 @@ class TestHeadingIdsAndToc(unittest.TestCase):
         self.assertEqual(R.build_toc_html([]), "")
 
 
+class TestRenderMarkdownPrefix(unittest.TestCase):
+    """v2.0：`render_markdown(body, prefix)` 让标题 id 带前缀。
+
+    为什么需要它：单文件离线版把 32 课拼进**同一份 HTML**。默认前缀 `"s"` 下
+    每课都从 `s1` 重新开始，同一份文档里就会出现 32 组重复 id —— 浏览器与
+    `#s1` 式锚点只认第一个，读者点第 20 课的目录项会跳到第 1 课，而页面渲染
+    得好好的，肉眼巡检 32 遍也未必看得出来。
+
+    所以这里断言两件事：默认行为**一个字都不能变**（现有 42 个页面全靠它），
+    以及传了前缀时每个标题 id 都真的带上了前缀。
+    """
+
+    MD = "# 标题不进目录\n\n## 你将学会\n\n正文\n\n### 子节\n\n## 出处\n"
+
+    def test_default_prefix_keeps_old_behaviour(self):
+        html, toc = R.render_markdown(self.MD)
+        self.assertIn('<h2 id="s1">你将学会</h2>', html)
+        self.assertIn('<h3 id="s2">子节</h3>', html)
+        self.assertIn('<h2 id="s3">出处</h2>', html)
+        self.assertEqual([t["id"] for t in toc], ["s1", "s2", "s3"])
+
+    def test_prefix_is_concatenated_verbatim_before_the_counter(self):
+        """`prefix` 是**原样**拼在编号前的，调用方怎么传决定了 id 长什么样。
+
+        单文件离线版要的是 `L15-s1` 这种「课号 + 站内那套 `s<序号>`」的形态
+        （一眼看出这是 L15 的第 2 节、且与课程页的 `s1/s2…` 对得上），所以它传
+        `f"{id}-s"`；只传 `f"{id}-"` 会得到 `L15-1` —— 同样唯一，但少了后面的
+        对号关系。两种写法都在这里钉住，免得以后有人以为 prefix 会自动补 `s`。
+        """
+        html, toc = R.render_markdown(self.MD, prefix="L15-")
+        self.assertIn('<h2 id="L15-1">你将学会</h2>', html)
+        self.assertEqual([t["id"] for t in toc], ["L15-1", "L15-2", "L15-3"])
+
+        html, toc = R.render_markdown(self.MD, prefix="L15-s")
+        self.assertIn('<h2 id="L15-s1">你将学会</h2>', html)
+        self.assertIn('<h3 id="L15-s2">子节</h3>', html)
+        self.assertIn('<h2 id="L15-s3">出处</h2>', html)
+        self.assertEqual([t["id"] for t in toc], ["L15-s1", "L15-s2", "L15-s3"])
+        self.assertNotIn('id="s1"', html)          # 默认前缀没被顺手带上
+
+    def test_two_lessons_stop_colliding_when_each_gets_its_own_prefix(self):
+        """同一份 HTML 里拼两课时，不传前缀必然撞 id；传课号前缀就不会。"""
+        first, _ = R.render_markdown(self.MD)
+        second, _ = R.render_markdown(self.MD)
+        collided = set(re.findall(r'<h[23] id="([^"]+)"', first + second))
+        self.assertLess(len(collided), 6)          # s1/s2/s3 各只出现一次 → id 撞车
+
+        a, _ = R.render_markdown(self.MD, prefix="L15-")
+        b, _ = R.render_markdown(self.MD, prefix="L16-")
+        self.assertEqual(len(set(re.findall(r'<h[23] id="([^"]+)"', a + b))), 6)
+
+
 CITES = {
     "quickstart": {
         "title": "Quickstart",

@@ -47,6 +47,14 @@ DEFAULT_CONFIG: dict = {
     "base_url": "",
 }
 
+# 不进 sitemap 的产物页面（值是页面在站点内的相对路径）：
+#   - 404.html：错误兜底页，收录它等于把「页面不存在」摆进搜索结果；
+#   - offline.html：单文件离线版，正文与 32 个课程页完全重复，收录它只会让
+#     搜索引擎在两份一样的正文里挑一份。
+# 做成显式常量而不是在 check_seo 里写 `- 1`：下一个「不该被收录的页面」出现时，
+# 只需在这里加一项，对账逻辑与测试都跟着走。
+EXCLUDED_FROM_SITEMAP = frozenset({"404.html", "offline.html"})
+
 
 # --------------------------------------------------------------------------- 配置与数据
 
@@ -291,6 +299,7 @@ def render_home(groups: list[dict], lessons: list[dict], cfg: dict, link_for, ba
         '<button class="btn" id="export-progress">导出进度 JSON</button>'
         '<button class="btn" id="import-progress">导入进度 JSON</button>'
         '<button class="btn export-report" type="button">导出学习报告</button>'
+        '<a class="btn" href="offline.html" download>下载离线版（单文件）</a>'
         '<input type="file" id="import-file" accept="application/json,.json" hidden>'
         '</p>',
         '<p class="muted pc-out" id="pc-out" hidden></p>',
@@ -416,6 +425,119 @@ def render_pitfalls_page(groups: list[dict], lessons: list[dict], citations: dic
     return html, R.build_toc_html(toc)
 
 
+def render_offline_html(lessons: list[dict], groups: list[dict], citations: dict, cfg: dict) -> str:
+    """单文件离线版 `offline.html`：整套课程压进**一个**自包含 HTML。
+
+    它与站点其它页面的取舍**相反**，所以刻意不复用 layout 模板：
+
+    1. **零外部依赖**：`web/assets/app.css` 逐字内联，不引 `<script>`、不引字体
+       与图片。读者把这个文件拷到 U 盘、当附件发出去，双击就能读。
+    2. **零 JS 交互**：练习方框在这里就只是方框（没有 `localStorage` 可存、
+       没有表单可提交），搜索靠浏览器自己的 Ctrl+F。所以这一页是「渲染一次、
+       之后完全静态」—— 不做进度条、不做主题切换，那些都要脚本来兜。
+    3. **所有课程链接都是页内锚点 `#L15`**：课程页里那份映射是「同级页面」
+       （`L15-skills.html`），照抄到这儿就是 32 条死链 —— 单文件旁边没有
+       `lessons/` 目录，而且这种错连 `check_links` 都抓不到（锚点不是文件链接）。
+       这是 pitfalls 页那个「必须带 `lessons/` 前缀」的坑的镜像，所以映射显式写成
+       `{id: f"#{id}"}`，一眼能看出它与 build() 里那份不同。
+    4. **标题 id 带课号前缀**（`render_markdown(body, prefix=f"{id}-")`）：32 课
+       拼在一份文档里，默认的 `s1/s2…` 会重复 32 次，目录与锚点全指到第一课。
+
+    出处徽标（`[[src:id]]` → `<a class="cite">`）照常连绝对 URL：离线时点不开，
+    但「哪一版官方文档、哈希是多少」这段考据信息必须留在读者手里 —— 那正是本站
+    的卖点，删掉它比留一个点不开的链接更亏。
+    """
+    css = (WEB / "assets" / "app.css").read_text(encoding="utf-8")
+    baseline = core.source_baseline(REPO)
+    total_min = sum(l["minutes"] for l in lessons)
+    hours = total_min // 60
+    # 页内锚点映射：见上面第 3 条。课程页与合集页各有一份不同的映射，别混用。
+    offline_of = {l["id"]: f"#{l['id']}" for l in lessons}
+
+    out: list[str] = [
+        "<!doctype html>",
+        '<html lang="zh-CN">',
+        "<head>",
+        '<meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        f"<title>{R.escape(cfg['title'])} · 离线单文件版</title>",
+        '<meta name="description" content="'
+        + R.escape(f"整套 {len(lessons)} 课压成一个自包含 HTML：无脚本、无外部资源，双击就能读。")
+        + '">',
+        # 样式表逐字内联：这一页是给人拷走的，任何 <link> 都会让它在断网时走形。
+        f"<style>{css}</style>",
+        "</head>",
+        "<body>",
+        '<a class="skip-link" href="#main">跳到正文</a>',
+        # 站点里「正文居中 + 74ch 行宽」是靠 .layout 的三栏网格做到的，而离线版
+        # 没有侧栏也没有右侧目录。这里只补一行内联样式把同一份 measure 居中，
+        # 不去改 app.css（那是站点三栏布局与响应式的基准）。
+        '<div class="content" style="margin:0 auto;padding:24px 20px 60px">',
+        '<header class="card">',
+        f'<h1>{R.escape(cfg["title"])} · 离线单文件版</h1>',
+        f'<p class="lead">这是整套课程的离线版：{len(lessons)} 课全文与样式都在这一个 HTML '
+        f"文件里（约 {hours} 小时课程量），双击就能读 —— 不需要网络，也不加载任何脚本。</p>",
+        '<p class="muted">想找某个词就按 Ctrl+F（macOS 用 ⌘F）'
+        "在整本里搜：命令、配置键、文件路径都原样保留，搜 <code>hermes cron</code> 这类"
+        '英文串最准。正文里的 <span class="cite">src:…</span> 是出处徽标，鼠标悬停能看到'
+        "它对应的官方文档标题、hermes 版本与快照哈希（离线时点不开，但信息都在）；"
+        "课号（如 <code>L15</code>）是本文件内的跳转。</p>",
+        f'<p class="muted">出处基线：hermes v{R.escape(baseline["version"])}'
+        f' · 文档提交 {R.escape(baseline["commit"])} · {baseline["count"]} 条官方来源。'
+        "在线版带着搜索、进度打勾与学习地图：<a href=\""
+        + R.escape(site_base(cfg))
+        + '">' + R.escape(site_base(cfg)) + "</a></p>",
+        "</header>",
+    ]
+
+    # 目录：按阶段分组，全部指向页内锚点
+    out.append('<nav class="page-toc" id="offline-toc" aria-label="全部课程目录">')
+    out.append('<p class="toc-title">目录 · 点课号跳到该课</p>')
+    for g in groups:
+        out.append(
+            f'<section><h2 class="stage-h">阶段 {g["stage"]} · {R.escape(g["name"])}'
+            f'<span class="muted"> {len(g["lessons"])} 课 · '
+            f'{sum(l["minutes"] for l in g["lessons"])} 分钟</span></h2><ol class="toc-l2">'
+        )
+        for ls in g["lessons"]:
+            out.append(f'<li><a href="#{ls["id"]}">{ls["id"]} {R.escape(ls["title"])}</a></li>')
+        out.append("</ol></section>")
+    out.append("</nav>")
+
+    out.append('<main id="main">')
+    for i, ls in enumerate(lessons):
+        where = f"offline.html#{ls['id']}"
+        # `add_heading_ids` 把 prefix **原样**拼在编号前，所以 `f"{id}-s"` 得到
+        # `L15-s1`：课号 + 站内那套 `s<序号>` 一起留在一份文档里，读者右键查看
+        # 锚点时能一眼看出「这是 L15 的第 2 节」。只传 `f"{id}-"` 会得到 `L15-1`
+        # —— 同样唯一，但与站内课程页的 `s1/s2…` 对不上号。
+        html, _ = R.render_markdown(ls["body"], prefix=f"{ls['id']}-s")
+        html = rewrite_repo_links_absolute(html, ls, cfg)
+        html = R.linkify_citations(html, citations, where)
+        html = R.linkify_xrefs(html, offline_of, where)
+        out.append(f'<article class="lesson offline-lesson" id="{ls["id"]}">')
+        out.append(
+            f'<p class="lesson-meta">{ls["id"]} · 阶段 {ls["stage"]} '
+            f'{R.escape(core.stage_name(ls["stage"]))} · {ls["minutes"]} 分钟 · '
+            f'{R.escape(ls["level"])} · 更新于 {R.escape(ls["updated"])} · '
+            f'源码 <code>{R.escape(ls["rel"])}</code></p>'
+        )
+        out.append(html)
+        out.append(
+            f'<p class="lesson-meta">前置：{R.escape("、".join(ls["prereq"]) or "无")} · '
+            '<a href="#offline-toc">回到目录</a></p>'
+        )
+        out.append("</article>")
+        if i + 1 < len(lessons):
+            out.append("<hr>")
+    out.append("</main>")
+    out.append('<footer class="footer">' + render_footer(cfg) + "</footer>")
+    out.append("</div>")
+    out.append("</body>")
+    out.append("</html>")
+    return "\n".join(out) + "\n"
+
+
 def render_lesson_article(ls: dict, html: str, toc_html: str, prev, nxt, link_for) -> str:
     prereq = "、".join(ls["prereq"]) if ls["prereq"] else "无"
     nav = ['<nav class="prevnext">']
@@ -469,6 +591,50 @@ def rewrite_repo_links(html: str, lesson: dict, cfg: dict) -> str:
                 f"（要么把它加进 site.json 的 repo_docs，要么改掉这个链接）"
             )
         return f'href="../repo/{slug}.html"'
+
+    return re.sub(r'href="([^"]+)"', repl, html)
+
+
+def rewrite_repo_links_absolute(html: str, lesson: dict, cfg: dict) -> str:
+    """离线页里的**相对**链接 → 绝对地址（单文件旁边没有 `lessons/`，也没有 `repo/`）。
+
+    刻意不复用 `rewrite_repo_links`：那个把课程正文里的仓库链接改写成
+    `../repo/<slug>.html`（相对地址，在 `lessons/` 下的课程页里正好可解析）。
+    离线版是一个孤零零的文件，任何相对地址都是死链 —— L03 里那条
+    ``[`.hermes.md`](../../.hermes.md)`` 拷出来就会指向仓库之外，`check_links`
+    也会如实报成 `offline.html → ../../.hermes.md`。
+
+    规则与 `rewrite_repo_doc_links` 一致，只是把「站点内地址」换成绝对地址：
+
+    - 目标是已登记的仓库文档（`site.json` 的 `repo_docs`）→ 站点上的那一页；
+    - 其余仓库文件 → `repo_url` 的 blob 地址；
+    - 两样都没有 → 去掉 href，只留可读的文字（不留一个点了就 404 的链接）。
+
+    未登记的**仓库之外**路径直接报错：静默留下一个字面量，读者点到的是 404。
+    """
+    whitelist = {R.repo_doc_slug(rel): rel for rel in cfg.get("repo_docs", [])}
+    base = site_base(cfg)
+    repo_url = str(cfg.get("repo_url", "")).rstrip("/")
+
+    def repl(m: re.Match[str]) -> str:
+        href = m.group(1)
+        if href.startswith(("http://", "https://", "mailto:", "data:", "#", "/")):
+            return m.group(0)
+        target, _, frag = href.partition("#")
+        if not target:
+            return m.group(0)
+        resolved = (lesson["path"].parent / target).resolve()
+        try:
+            rel = resolved.relative_to(REPO).as_posix()
+        except ValueError:
+            raise R.SiteError(f"{lesson['rel']}: 相对链接指到仓库之外：{href}")
+        anchor = f"#{frag}" if frag else ""
+        slug = R.repo_doc_slug(rel)
+        if slug in whitelist:
+            return f'href="{R.escape(base + "repo/" + slug + ".html")}{anchor}"'
+        if repo_url:
+            return f'href="{R.escape(repo_url + "/blob/main/" + rel)}{anchor}"'
+        return 'data-repo-path="%s"%s' % (R.escape(rel), anchor)
 
     return re.sub(r'href="([^"]+)"', repl, html)
 
@@ -564,8 +730,9 @@ def render_footer(cfg: dict) -> str:
 def build_sitemap(entries: list[tuple[str, str]]) -> str:
     """[(绝对 URL, lastmod)] → sitemap.xml 文本。
 
-    只列能被搜索引擎收录的页面：404.html 不在其中（它既是错误页，也是给站内
-    跳转兜底的页面，收录它等于把「页面不存在」摆到搜索结果里）。
+    只列能被搜索引擎收录的页面：EXCLUDED_FROM_SITEMAP 里的几个都不在调用方的
+    entries 里（404.html 是错误页兜底，offline.html 是同一批内容的离线形态；
+    收录它们等于把「页面不存在」或一份重复正文摆到搜索结果里）。
     lastmod 用课程 frontmatter 的 updated —— 全站统一写构建当天，等于告诉搜索引擎
     「今天所有页面全变了」，反而谁也不信。
     """
@@ -714,6 +881,12 @@ def build(out: Path, cfg: dict) -> dict:
     (site / "pitfalls.html").write_text(pitfalls_page, encoding="utf-8", newline="\n")
     sitemap_entries.append((base + "pitfalls.html", today))
 
+    # 单文件离线版 /offline.html：整套课程 + 样式压进一个 HTML（零外部依赖、零 JS），
+    # 读者可以从首页下载带走。它**不进 sitemap**（见 EXCLUDED_FROM_SITEMAP）：
+    # 正文与 32 个课程页完全重复，收录它只会让搜索引擎在两份一样的正文里挑一份。
+    offline_page = render_offline_html(lessons, groups, citations, cfg)
+    (site / "offline.html").write_text(offline_page, encoding="utf-8", newline="\n")
+
     # 仓库规范页
     repo_pages = [render_repo_doc(rel, cfg, layout, groups) for rel in cfg.get("repo_docs", [])]
     for slug, page in repo_pages:
@@ -721,7 +894,8 @@ def build(out: Path, cfg: dict) -> dict:
         sitemap_entries.append((base + f"repo/{slug}.html", today))
 
     # sitemap / robots：首页一条 + 每课一条 + 学习地图 + 常见错误合集 + 每个规范页一条。
-    # 404.html 不在其中 —— 它是错误兜底页，不该出现在搜索结果里（check_seo 会盯着这点）。
+    # 不进 sitemap 的是 404.html（错误兜底页）与 offline.html（离线单文件版，正文
+    # 与 32 个课程页重复）—— 名单由 EXCLUDED_FROM_SITEMAP 统一声明，check_seo 按它对账。
     (site / "sitemap.xml").write_text(
         build_sitemap([(base, today)] + sitemap_entries), encoding="utf-8", newline="\n",
     )
@@ -796,12 +970,16 @@ def check_seo(out: Path, cfg: dict) -> list[str]:
         return ["产物里没有 sitemap.xml（搜索引擎发现课程页的唯一入口就没了）"]
     locs = SITEMAP_LOC_RE.findall(sitemap_path.read_text(encoding="utf-8"))
 
-    # 1) 条目数 == 产物页面数 - 404.html
-    pages = sorted(p for p in out.rglob("*.html") if p.name != "404.html")
+    # 1) 条目数 == 产物页面数 - 不进 sitemap 的页面（404 错误页 + 离线单文件版）
+    pages = sorted(
+        p for p in out.rglob("*.html")
+        if p.relative_to(out).as_posix() not in EXCLUDED_FROM_SITEMAP
+    )
+    html_total = len(list(out.rglob("*.html")))
     if len(locs) != len(pages):
         problems.append(
-            f"sitemap 条目数 {len(locs)} != 非 404 页面数 {len(pages)}"
-            f"（产物共 {len(list(out.rglob('*.html')))} 个 .html，应排除 404.html）"
+            f"sitemap 条目数 {len(locs)} != 应收录页面数 {len(pages)}"
+            f"（产物共 {html_total} 个 .html，应排除 {'、'.join(sorted(EXCLUDED_FROM_SITEMAP))}）"
         )
 
     url_to_page: dict[str, Path] = {}
@@ -823,10 +1001,11 @@ def check_seo(out: Path, cfg: dict) -> list[str]:
         if base + lesson["url"] not in locs:
             problems.append(f"sitemap 少了课程页：{lesson['id']} → {base + lesson['url']}")
 
-    # 4) 404.html 不许出现
+    # 4) 不进 sitemap 的页面（404.html / offline.html）不许出现
+    excluded_urls = {base + name for name in EXCLUDED_FROM_SITEMAP}
     for loc in locs:
-        if loc.endswith("404.html"):
-            problems.append(f"404.html 不该出现在 sitemap 里：{loc}")
+        if loc in excluded_urls:
+            problems.append(f"{loc.rsplit('/', 1)[-1]} 不该出现在 sitemap 里：{loc}")
 
     # 5) 每个 sitemap 页面：恰好 5 个 og: 标签 + 有 canonical；反向也要查（页面漏进 sitemap）
     for loc, page in url_to_page.items():

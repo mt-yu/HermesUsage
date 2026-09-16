@@ -42,9 +42,11 @@ class TestBuildOutput(unittest.TestCase):
         self.assertEqual(self.stats["lessons"], n_lessons)
         self.assertEqual(lesson_pages, n_lessons)                # 每课一页
         self.assertEqual(repo_pages, len(cfg["repo_docs"]))      # 每个 repo_doc 一页
-        for rel in ("index.html", "map.html", "pitfalls.html", "404.html"):
+        # 站点根目录的页面：首页 / 学习地图 / 常见错误合集 / 离线单文件版 / 404
+        root_expected = ("index.html", "map.html", "pitfalls.html", "offline.html", "404.html")
+        for rel in root_expected:
             self.assertTrue((self.out / rel).is_file(), f"缺 {rel}")
-        self.assertEqual(root_pages, 4)                          # 首页 / 地图 / 合集 / 404
+        self.assertEqual(root_pages, len(root_expected))
         self.assertEqual(self.stats["pages"], lesson_pages + repo_pages + root_pages)
 
         # 文件数也是组成式：页面 + 非页面文件（sitemap/robots/.nojekyll/data/*.json/assets/*）
@@ -170,8 +172,12 @@ class TestMapPage(unittest.TestCase):
     def test_map_page_is_in_the_sitemap(self):
         locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
         self.assertIn(self.base + "map.html", locs)
-        # 组成式：sitemap 条目数 == 产物 .html 数 - 1（404 不收录）
-        self.assertEqual(len(locs), len(list(self.out.rglob("*.html"))) - 1)
+        # 组成式：sitemap 条目数 == 产物 .html 数 - 不进 sitemap 的页面数
+        # （404.html 是错误页、offline.html 是同一批内容的离线形态，都不收录）
+        self.assertEqual(
+            len(locs),
+            len(list(self.out.rglob("*.html"))) - len(build_site.EXCLUDED_FROM_SITEMAP),
+        )
 
     def test_map_page_has_canonical_and_five_og_tags(self):
         self.assertEqual(CANONICAL_RE.findall(self.page), [self.base + "map.html"])
@@ -307,9 +313,12 @@ class TestPitfallsPage(unittest.TestCase):
     def test_page_is_in_the_sitemap(self):
         locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
         self.assertIn(self.base + "pitfalls.html", locs)
-        # 组成式：sitemap = 课程页 + 规范页 + 首页/地图/合集（404 不收录）
+        # 组成式：sitemap = 课程页 + 规范页 + 首页/地图/合集（离线版与 404 不收录）
         self.assertEqual(len(locs), len(self.lessons) + len(self.cfg["repo_docs"]) + 3)
-        self.assertEqual(len(locs), len(list(self.out.rglob("*.html"))) - 1)
+        self.assertEqual(
+            len(locs),
+            len(list(self.out.rglob("*.html"))) - len(build_site.EXCLUDED_FROM_SITEMAP),
+        )
 
     def test_page_has_canonical_and_five_og_tags(self):
         self.assertEqual(CANONICAL_RE.findall(self.page), [self.base + "pitfalls.html"])
@@ -465,11 +474,17 @@ class TestSiteReachability(unittest.TestCase):
 
     # --- sitemap -----------------------------------------------------------
 
-    def test_sitemap_lists_every_html_page_except_404(self):
-        html_pages = [p for p in self.out.rglob("*.html") if p.name != "404.html"]
-        self.assertEqual(len(self.locs), len(html_pages))
-        self.assertEqual(len(self.locs), len(list(self.out.rglob("*.html"))) - 1)
-        self.assertFalse([loc for loc in self.locs if loc.endswith("404.html")], self.locs)
+    def test_sitemap_lists_every_html_page_except_the_excluded_ones(self):
+        # 组成式：产物里的 .html 减掉明确不进 sitemap 的那几个（错误页 + 离线单文件版）
+        excluded = build_site.EXCLUDED_FROM_SITEMAP
+        listed = [
+            p for p in self.out.rglob("*.html")
+            if p.relative_to(self.out).as_posix() not in excluded
+        ]
+        self.assertEqual(len(self.locs), len(listed))
+        self.assertEqual(len(self.locs), len(list(self.out.rglob("*.html"))) - len(excluded))
+        for name in excluded:
+            self.assertFalse([loc for loc in self.locs if loc.endswith(name)], self.locs)
 
     def test_sitemap_covers_every_lesson(self):
         for lesson in core.load_lessons(REPO):
@@ -579,6 +594,185 @@ class TestSiteReachability(unittest.TestCase):
             build_site.build_robots(self.cfg),
             f"User-agent: *\nAllow: /\n\nSitemap: {self.base}sitemap.xml\n",
         )
+
+
+OFFLINE_ARTICLE_RE = re.compile(r'<article class="lesson offline-lesson" id="(L\d+)"')
+OFFLINE_ID_RE = re.compile(r'\sid="([^"]+)"')
+OFFLINE_TOC_RE = re.compile(r'<nav class="page-toc"[^>]*id="offline-toc"[^>]*>(.*?)</nav>', re.S)
+STYLE_BLOCK_RE = re.compile(r"<style>(.*?)</style>", re.S)
+XREF_ANCHOR_RE = re.compile(r'<a class="xref" href="([^"]+)"')
+HREF_RE = re.compile(r'href="([^"]+)"')
+
+
+class TestOfflineSingleFile(unittest.TestCase):
+    """v2.0 单文件离线版 `/offline.html`：整套课程压进一个 HTML，双击就能读。
+
+    这一页的形态与站点其它页面**相反**：零外部依赖、零 JS、所有课程链接都是页内
+    锚点。三处最容易静默坏掉的地方，这里逐个焊死：
+
+    1. **标题 id 前缀**：32 课拼进同一份文档，`render_markdown` 默认给 `s1/s2…`，
+       不传课号前缀就会在同一份文件里出现 32 组重复 id。浏览器只认第一个匹配，
+       于是「点第 20 课的目录项跳到第 1 课」—— 而页面本身渲染得好好的，
+       `check_links` 也抓不到（锚点不是文件链接）。所以这里直接数 `id=`。
+    2. **课程链接必须是 `#L15`，不是 `lessons/L15-skills.html`**：单文件旁边没有
+       `lessons/` 目录，课程页那份「同级页面」映射照抄过来就是 32 条死链。
+       这与 pitfalls 页那个「必须带 `lessons/` 前缀」的坑是同一件事的镜像，
+       也是本项目里已经踩过一次的错法。
+    3. **零外部/相对资源**：出现任何 `<script>` / `<link rel="stylesheet">` /
+       `src="…"` / 相对 href，这个文件就不再是「拷到 U 盘、双击可读」的了。
+
+    另外把「体积」也钉住：离线版的卖点就是能当附件发出去。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        cls.base = cls.cfg["base_url"]
+        build_site.build(cls.out, cls.cfg)
+        cls.path = cls.out / "offline.html"
+        cls.html = cls.path.read_text(encoding="utf-8")
+        cls.lessons = core.load_lessons(REPO)
+        cls.ids = [l["id"] for l in cls.lessons]
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    # --- 结构与目录 ---------------------------------------------------------
+
+    def test_page_exists_with_one_article_per_lesson(self):
+        self.assertTrue(self.path.is_file())
+        self.assertGreater(self.path.stat().st_size, 0)
+        self.assertEqual(self.html.count('class="lesson offline-lesson"'), len(self.lessons))
+        articles = OFFLINE_ARTICLE_RE.findall(self.html)
+        self.assertEqual(len(articles), len(self.lessons))
+        self.assertEqual(articles, self.ids)          # 顺序 = 学习顺序，不重不漏
+
+    def test_toc_groups_lessons_by_stage_and_links_in_page_anchors(self):
+        m = OFFLINE_TOC_RE.search(self.html)
+        self.assertIsNotNone(m, "离线版缺少 id=offline-toc 的目录")
+        toc = m.group(1)
+        self.assertEqual(re.findall(r'<a href="#(L\d+)">', toc), self.ids)
+        for lid in self.ids:
+            self.assertIn(f'<a href="#{lid}">', toc, lid)
+        # 目录按阶段分组：组数 == 阶段数（每个阶段一个 <ol class="toc-l2">）
+        self.assertEqual(len(re.findall(r'<ol class="toc-l2">', toc)),
+                         len(core.group_by_stage(self.lessons)))
+
+    def test_header_says_what_this_file_is_and_how_to_search(self):
+        head = self.html[: self.html.index('id="offline-toc"')]
+        for needle in ("离线", "Ctrl+F", f"{len(self.lessons)} 课", "src:"):
+            self.assertIn(needle, head, needle)
+        # 出处徽标悬停能看到版本与哈希这条事实，要在说明里讲清楚
+        self.assertIn("哈希", head)
+
+    # --- 自包含（本任务的核心断言）------------------------------------------
+
+    def test_no_external_or_relative_resource_references(self):
+        for needle in ('<link rel="stylesheet"', "<link ", "<script", 'src="', 'href="../'):
+            self.assertNotIn(needle, self.html, f"离线版不该出现 {needle}")
+        for tag in ("<img", "<iframe", "<video", "<audio"):
+            self.assertNotIn(tag, self.html, tag)
+        # 每一个 href 要么是站外绝对地址，要么是页内锚点；没有第三种可能
+        hrefs = HREF_RE.findall(self.html)
+        self.assertTrue(hrefs)
+        for href in hrefs:
+            self.assertTrue(href.startswith(("https://", "#")), href)
+
+    def test_stylesheet_is_inlined_verbatim(self):
+        css = (REPO / "web" / "assets" / "app.css").read_text(encoding="utf-8")
+        blocks = STYLE_BLOCK_RE.findall(self.html)
+        self.assertEqual(len(blocks), 1, "离线版应该恰好内联一份样式表")
+        self.assertEqual(blocks[0], css)              # 逐字内联，不是精简/改写版
+        self.assertEqual(len(blocks[0].encode("utf-8")), len(css.encode("utf-8")))
+        self.assertGreater(len(blocks[0]), 5_000)
+
+    def test_file_is_small_enough_to_attach(self):
+        size = len(self.html.encode("utf-8"))
+        self.assertLess(size, 2 * 1024 * 1024, "离线版超过 2MB 就不再适合当附件发了")
+        # 下限也要有：比 32 课 markdown 原文 + 样式表总和大，说明正文真的都在里面
+        floor = sum(len(l["body"].encode("utf-8")) for l in self.lessons) + \
+            (REPO / "web" / "assets" / "app.css").stat().st_size
+        self.assertGreater(size, floor)
+
+    # --- 那个坑：同文档 id 不许重复 -----------------------------------------
+
+    def test_every_id_in_the_document_is_unique(self):
+        found = OFFLINE_ID_RE.findall(self.html)
+        self.assertTrue(found)
+        duplicates = sorted({v for v in found if found.count(v) > 1})
+        self.assertEqual(duplicates, [], f"同一份文档里 id 重复：{duplicates}")
+        for lid in self.ids:
+            self.assertIn(lid, found, lid)
+
+    def test_heading_ids_carry_the_lesson_prefix(self):
+        heading_ids = re.findall(r'<h[23] id="([^"]+)"', self.html)
+        self.assertTrue(heading_ids)
+        for hid in heading_ids:
+            self.assertRegex(hid, r"^L\d{2}-s\d+$")
+        self.assertNotIn('id="s1"', self.html)        # 默认前缀在单文件里必然撞车
+
+    def test_lesson_cross_references_stay_inside_the_file(self):
+        hrefs = XREF_ANCHOR_RE.findall(self.html)
+        self.assertTrue(hrefs, "32 课正文里应该有 [[Lxx]] → 页内锚点")
+        allowed = {f"#{lid}" for lid in self.ids}
+        for href in hrefs:
+            self.assertIn(href, allowed, f"离线版的课号必须指向页内锚点：{href}")
+        for href in HREF_RE.findall(self.html):
+            self.assertNotIn("lessons/", href, "单文件旁边没有 lessons/ 目录，这种链接是死链")
+
+    def test_citation_badges_keep_absolute_provenance(self):
+        cites = re.findall(r'<a class="cite" href="([^"]+)"', self.html)
+        self.assertTrue(cites)
+        for href in cites:
+            self.assertTrue(href.startswith("https://hermes-agent.nousresearch.com/docs/"), href)
+        self.assertIn("hermes v", self.html)          # title 里有版本
+        self.assertRegex(self.html, r"快照 sha256 [0-9a-f]{12}")
+        # 与 32 个课程页对账：正文里有几个徽标，离线版就该有几个（不多不少）
+        page_total = sum(
+            len(re.findall(r'<a class="cite"',
+                           main_region((self.out / "lessons" / l["page"]).read_text(encoding="utf-8"))))
+            for l in self.lessons
+        )
+        self.assertEqual(len(cites), page_total)
+
+    # --- sitemap / 链接自检 -------------------------------------------------
+
+    def test_offline_page_and_404_are_excluded_from_the_sitemap(self):
+        locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
+        self.assertEqual(build_site.EXCLUDED_FROM_SITEMAP, {"404.html", "offline.html"})
+        self.assertNotIn(self.base + "offline.html", locs)
+        self.assertNotIn(self.base + "404.html", locs)
+        self.assertEqual(
+            len(locs),
+            len(list(self.out.rglob("*.html"))) - len(build_site.EXCLUDED_FROM_SITEMAP),
+        )
+
+    def test_no_broken_links_from_this_page(self):
+        self.assertEqual(
+            [p for p in build_site.check_links(self.out) if p.startswith("offline.html")], []
+        )
+
+    def test_home_offers_the_single_file_download(self):
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertIn('<a class="btn" href="offline.html" download>下载离线版（单文件）</a>', home)
+        card = re.search(r'<section class="card progress-card"[^>]*>(.*?)</section>', home, re.S)
+        self.assertIsNotNone(card)
+        self.assertIn('href="offline.html"', card.group(1), "下载入口要落在进度卡的按钮组里")
+
+    def test_lesson_bodies_contain_no_resource_markup_today(self):
+        """把上面那条「零外部资源」断言的**前提**钉住。
+
+        离线版是 32 课正文的拼接，所以「文件里没有 `<script` / `src="`」这条断言
+        其实同时在断言**课程正文**里没有这些字样。今天确实没有；哪天有人在围栏
+        代码里写 `<script>` 示例（阶段 4 讲插件时很容易），这条会先红，失败信息
+        直接指向那一课 —— 而不是让离线版无声地不再自包含。
+        """
+        for lesson in self.lessons:
+            for needle in ("<script", 'src="', 'href="../', '<link rel="stylesheet"'):
+                self.assertNotIn(needle, lesson["body"], f"{lesson['id']} 正文含 {needle}")
 
 
 if __name__ == "__main__":
