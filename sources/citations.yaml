@@ -736,15 +736,15 @@
   retrieved_at: '2026-09-16'
   local: sources/cache/prompt-assembly.md
 - id: prompt-cache
-  title: Tips & Best Practices
-  url: https://hermes-agent.nousresearch.com/docs/guides/tips
-  source_path: website/docs/guides/tips.md
+  title: Context Compression and Caching
+  url: https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching
+  source_path: website/docs/developer-guide/context-compression-and-caching.md
   source_repo: https://github.com/NousResearch/hermes-agent
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: b7683de966bf717d38d7e79d906f22355b245e4118091cbc15f512f99d125726
-  bytes: 13005
+  sha256: a089637ba2a0ed5466cc52aef6bc0b0188742f97a26da99a598efabf911f542b
+  bytes: 34983
   retrieved_at: '2026-09-16'
   local: sources/cache/prompt-cache.md
 - id: provider-routing

@@ -102,7 +102,7 @@ internals:
   compression: developer-guide/context-compression-and-caching.md
   tools-runtime: developer-guide/tools-runtime.md
   session-storage: developer-guide/session-storage.md
-  prompt-cache: guides/tips.md
+  prompt-cache: developer-guide/context-compression-and-caching.md
 
 practice:
   tips: guides/tips.md
