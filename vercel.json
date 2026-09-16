@@ -1,0 +1,13 @@
+{
+  "buildCommand": "python scripts/build_site.py",
+  "installCommand": "python -m pip install -r requirements.txt",
+  "outputDirectory": "site",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/data/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300" }]
+    }
+  ]
+}

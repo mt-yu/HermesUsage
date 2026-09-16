@@ -1,0 +1,9 @@
+# 一条命令起站：docker compose up -d --build → http://localhost:8080
+services:
+  tutorial:
+    build: .
+    image: hermes-usage-tutorial:local
+    container_name: hermes-usage-tutorial
+    ports:
+      - "8080:80"
+    restart: unless-stopped
