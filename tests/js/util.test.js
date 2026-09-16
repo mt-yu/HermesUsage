@@ -24,3 +24,14 @@ test("clamp 夹在区间内", () => {
   assert.equal(clamp(-1, 0, 3), 0);
   assert.equal(clamp(2, 0, 3), 2);
 });
+
+test("lessonItems 丢掉没有课号的节点（body[data-lesson=''] 是真实存在的坑）", async () => {
+  const { lessonItems } = await import("../../web/assets/lib/util.js");
+  const nodes = [
+    { dataset: { lesson: "L00" } },
+    { dataset: { lesson: "" } },
+    { dataset: {} },
+    { dataset: { lesson: "L15" } },
+  ];
+  assert.deepEqual(lessonItems(nodes).map((n) => n.dataset.lesson), ["L00", "L15"]);
+});

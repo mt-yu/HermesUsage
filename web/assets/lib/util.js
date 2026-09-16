@@ -23,3 +23,10 @@ export function debounce(fn, ms = 120) {
     timer = setTimeout(() => fn(...args), ms);
   };
 }
+
+/* 只挑「真正代表一课」的元素。
+   `<body data-lesson="…">` 也带这个属性：不过滤的话，它的 querySelector('.nav-check')
+   会命中侧栏第一课的圆圈，于是点 L00 会连带写进一条 ""（首页）或 L15（课程页）的幽灵记录。 */
+export function lessonItems(nodes) {
+  return [...nodes].filter((node) => node && node.dataset && node.dataset.lesson);
+}
