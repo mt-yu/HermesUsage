@@ -120,8 +120,8 @@ python scripts/progress.py next   # 下一课学什么
 
 - [x] 把带「官方文档表述（未本机实测）」说明的段落补全 —— 已完成，见 v1.4（L44 的 API Server 段已本机复现）
 - [x] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` —— 已完成，见 v1.4（出处 89 → 91）
-- [ ] **常驻流程（不是待办）**：官方文档漂移后跑 `python scripts/sync_sources.py`，并复核受影响课程的表述；
-  漂移检测已自动化：`python scripts/drift_watch.py`（可开 issue）
+> **常驻流程（不是待办）**：官方文档漂移后跑 `python scripts/sync_sources.py`，并复核受影响课程的表述；
+> 漂移检测已自动化：`python scripts/drift_watch.py`（可开 issue）
 - [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 
 ## 维护待办（系统层）
