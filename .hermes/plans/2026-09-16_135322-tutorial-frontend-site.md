@@ -64,6 +64,7 @@ web/assets/lib/search.js              纯函数：tokenize / search / snippet（
 web/assets/lib/progress.js            纯函数：toggleDone / completion / nextLesson / blocked
 web/assets/lib/storage.js             localStorage 读写 + parseState 校验 + 下载
 web/assets/lib/toc.js                 纯函数：pickActive / headingOffsets
+tests/__init__.py                     让 `unittest discover -s tests -t .` 可用的包标记（必需，计划初稿漏了）
 tests/test_tutorial_core.py           Python 单元测试（数据层）
 tests/test_site_render.py             Python 单元测试（渲染层，含全仓库内容回归）
 tests/test_build_site.py              Python 集成测试（构建到临时目录 + 链接自检）
@@ -2235,7 +2236,7 @@ git commit -m "feat: 教程站样式表（三栏布局/亮暗主题/响应式抽
   "type": "module",
   "description": "HermesUsage 教程站前端。刻意没有 dependencies：浏览器直接加载原生 ES 模块，Node 只用来跑单元测试。",
   "scripts": {
-    "test": "node --test tests/js",
+    "test": "node --test \"tests/js/*.test.js\"",
     "build": "python scripts/build_site.py",
     "serve": "python scripts/serve.py --open"
   }
@@ -2247,7 +2248,7 @@ git commit -m "feat: 教程站样式表（三栏布局/亮暗主题/响应式抽
 **步骤 2：写失败测试 `tests/js/util.test.js`**
 
 ```js
-// tests/js/util.test.js —— 跑法：node --test tests/js
+// tests/js/util.test.js —— 跑法：node --test "tests/js/*.test.js"
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -2278,7 +2279,7 @@ test("clamp 夹在区间内", () => {
 **步骤 3：跑测试，确认失败**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
 期望：报 `Cannot find module .../web/assets/lib/util.js`。
@@ -2316,7 +2317,7 @@ export function debounce(fn, ms = 120) {
 **步骤 5：跑测试，确认变绿**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
 期望：
@@ -2354,7 +2355,7 @@ test("tokenize 把中文切成二字片段", () => {
 });
 
 test("tokenize 保留英文单词并小写化", () => {
-  assert.deepEqual(tokenize("Skills 与 记忆"), ["skills", "记忆"]);
+  assert.deepEqual(tokenize("Skills 与 记忆"), ["skills", "与", "记忆"]);  // 单字中文合法，见上一条测试
 });
 
 test("tokenize 单字中文与数字也保留", () => {
@@ -2408,7 +2409,7 @@ test("snippet 截取命中附近文本", () => {
 **步骤 2：跑测试确认失败**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
 期望：`Cannot find module .../web/assets/lib/search.js`。
@@ -2473,10 +2474,10 @@ export function snippet(doc, terms, width = 80) {
 **步骤 4：跑测试确认变绿**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
-期望：`# tests 10 / # pass 10 / # fail 0`。
+期望：`# tests 14 / # pass 14 / # fail 0`。
 
 **步骤 5：提交**
 
@@ -2546,7 +2547,7 @@ test("blocked 列出没做完的前置", () => {
 **步骤 2：跑测试确认失败**（`Cannot find module .../progress.js`）
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
 **步骤 3：写实现 `web/assets/lib/progress.js`**
@@ -2599,10 +2600,10 @@ export function nextLesson(lessons, state) {
 **步骤 4：跑测试确认变绿**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
-期望：`# tests 16 / # pass 16`。
+期望：`# tests 20 / # pass 20`。
 
 **步骤 5：提交**
 
@@ -2766,10 +2767,10 @@ export function download(filename, text) {
 **步骤 4：跑测试确认变绿**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
-期望：`# tests 23 / # pass 23`。
+期望：`# tests 27 / # pass 27`。
 
 **步骤 5：提交**
 
@@ -2845,10 +2846,10 @@ export function pickActive(offsets, scrollY, margin = 90) {
 **步骤 4：跑测试确认变绿**
 
 ```bash
-node --test tests/js
+node --test "tests/js/*.test.js"
 ```
 
-期望：`# tests 27 / # pass 27`。
+期望：`# tests 31 / # pass 31`。
 
 **步骤 5：提交**
 
@@ -3153,7 +3154,7 @@ test("tokenizeToQuery 输出可被 search 直接消费的片段串", async () =>
 });
 ```
 
-然后 `node --test tests/js` 期望 `# tests 28 / # pass 28`。
+然后 `node --test "tests/js/*.test.js"` 期望仍是 `# tests 31 / # pass 31`（tokenizeToQuery 的断言在 T20 阶段就已加过，这里不要重复添加）。
 
 **手工验收（这一步必须真在浏览器里做，不要跳）：**
 
@@ -3378,7 +3379,7 @@ def main() -> int:
     if not args.skip_node:
         node = shutil.which("node")
         if node:
-            steps.insert(3, ("前端单元测试 node --test", [node, "--test", "tests/js"]))
+            steps.insert(3, ("前端单元测试 node --test", [node, "--test", "tests/js/*.test.js"]))
         else:
             print("[提示] 没找到 node，跳过前端单元测试（python scripts/check.py --skip-node 可显式跳过）")
 
@@ -4176,10 +4177,31 @@ python scripts/check.py                      # 门禁 + Python 单测 + 前端�
 # 分项
 python scripts/verify.py                     # 内容门禁（11 条规则）
 python -m unittest discover -s tests -t . -p "test_*.py" -v
-node --test tests/js
+node --test "tests/js/*.test.js"
 
 # 容器与归档
 docker compose up -d --build                 # 需要 docker（本机没有）
 python scripts/journal.py commit --kind release --title "…" --scope web,site
 git tag -a v1.1-web -m "教程站：可交互前端 + 快速部署"
 ```
+
+---
+
+## 附录 C：实施修订记录（实测回填，2026-09-16）
+
+计划初稿在真实环境里跑过之后，有三处必须修正 —— 后续任务直接按修正后的版本做：
+
+1. **`tests/__init__.py` 是必需的**（初稿漏了）。`unittest discover -s tests -t .`
+   要求起始目录是可导入的包，缺它直接 `ImportError: Start directory is not importable`，
+   一条测试也跑不到。已创建（内容是说明性 docstring），不要删。
+2. **`node --test tests/js` 在本机跑不通**。Node ≥ 22 起，`--test` 的位置参数按
+   glob(7) 解释，**不再展开目录**（实测 Node v24：`Error: Cannot find module ...\tests\js`）。
+   全仓库统一改用带引号的形式：`node --test "tests/js/*.test.js"`。
+   受影响处已全部改好：`package.json` 的 `test` 脚本、T26 `check.py` 的 argv、附录 B。
+3. **前端测试的累计计数以实测为准**：4（util）→ 14（+search 10）→ 20（+progress 6）→
+   27（+storage 7）→ 31（+toc 4）。另外 T20 初稿里 `tokenize("Skills 与 记忆")` 的期望
+   与它相邻那条「单字中文也保留」的测试自相矛盾；实现（保留单字）是对的，
+   已把断言改成 `["skills", "与", "记忆"]`。
+
+另记：数据层实施时，T4 与 T7 的测试从第一跑就是绿的（它们依赖的函数在 T3/T5 已随计划一次写完）。
+这不是问题，但按 TDD 纪律需要知道 —— 只有「测试从没见过红」才需要停下来检查。
