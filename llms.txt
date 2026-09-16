@@ -2,7 +2,7 @@
 
 > 一份可考证、可自维护、可回滚的 Hermes Agent 教程系统。每条事实性陈述都带 [[src:id]] 出处标记，可在 sources/citations.yaml 反查到官方文档 URL、版本与内容哈希。
 
-课程总数：4 课（入门 4 课 / 进阶 0 课），合计约 55 分钟。
+课程总数：10 课（入门 10 课 / 进阶 0 课），合计约 180 分钟。
 
 ## 怎么读这份索引（给 AI 维护者）
 
@@ -18,6 +18,14 @@
 - [L01 五分钟装好并说第一句话](lessons/00-orient/L01-first-conversation.md) — [入门] 15 分钟 · 标签：安装、provider、第一次对话、验收 · 出处 3 条
 - [L02 一次对话里到底发生了什么](lessons/00-orient/L02-what-happens-in-a-turn.md) — [入门] 15 分钟 · 标签：agent-loop、消息格式、prompt-caching、上下文压缩 · 出处 3 条
 - [L03 文件地图：哪个文件管什么](lessons/00-orient/L03-file-map.md) — [入门] 15 分钟 · 标签：SOUL.md、MEMORY.md、USER.md、config.yaml · 出处 3 条
+## 阶段 1 · 会用 Hermes（核心五件事）
+
+- [L10 模型与 Provider：你到底在跟谁说话](lessons/01-core/L10-models-and-providers.md) — [入门] 20 分钟 · 标签：模型、provider、配置、辅助模型 · 出处 3 条
+- [L11 工具与工具集：它到底能做什么](lessons/01-core/L11-tools-and-toolsets.md) — [入门] 20 分钟 · 标签：工具、toolset、权限边界、终端后端 · 出处 3 条
+- [L12 会话与斜杠命令：一次对话的边界](lessons/01-core/L12-sessions-and-slash-commands.md) — [入门] 20 分钟 · 标签：会话、斜杠命令、上下文、state.db · 出处 3 条
+- [L13 记忆系统：它怎么记住你](lessons/01-core/L13-memory.md) — [入门] 20 分钟 · 标签：记忆、MEMORY.md、USER.md、冻结快照 · 出处 3 条
+- [L14 上下文文件：你怎么给它下规矩](lessons/01-core/L14-context-files.md) — [入门] 20 分钟 · 标签：.hermes.md、AGENTS.md、SOUL.md、@引用 · 出处 4 条
+- [L15 技能系统：让它学会你的活法](lessons/01-core/L15-skills.md) — [入门] 25 分钟 · 标签：技能、SKILL.md、渐进式披露、项目技能 · 出处 5 条
 
 ## 支撑文件
 

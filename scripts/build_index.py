@@ -78,7 +78,12 @@ def load_index_rows() -> list[dict]:
         m = FM_RE.match(text)
         if not m:
             continue
-        fm = yaml.safe_load(m.group(1)) or {}
+        try:
+            fm = yaml.safe_load(m.group(1)) or {}
+        except yaml.YAMLError as e:
+            # 坏的 frontmatter 不能把索引生成器带崩：报出文件，让人（或 verify.py）去修
+            print(f"[!] frontmatter 不是合法 YAML，已跳过：{path.relative_to(REPO)} — {e}", file=sys.stderr)
+            continue
         rows.append(
             {
                 "id": str(fm.get("id", "")),

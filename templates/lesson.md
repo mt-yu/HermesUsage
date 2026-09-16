@@ -5,12 +5,14 @@ stage: 0
 level: 入门
 minutes: 10
 prereq: []
-tags: [tag-a, tag-b]
+tags: ["tag-a", "tag-b"]
 sources: [quickstart, feat-overview]
 updated: 2026-01-01
 ---
 
 <!--
+注意：tags 用「带引号」的写法。YAML 的流式序列里，以 @ 或 { 等符号开头的值
+会被当成语法错误（踩过：`@引用` 让整个索引生成器崩掉）。
 ==========================================================================
 课程模板 —— 写新课程就复制这个文件。
 本模板同时是 scripts/verify.py 的校验规范：以下 8 个小节缺一不可。
