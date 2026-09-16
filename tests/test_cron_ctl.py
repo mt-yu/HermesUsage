@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -313,10 +314,16 @@ class TestCli(unittest.TestCase):
                 spawn.assert_not_called()
                 self.assertIn("[dry-run]", out)
 
-    def test_default_home_is_localappdata_hermes(self):
-        with mock.patch.dict(cc.os.environ, {"HERMES_HOME": ""}, clear=False):
+    def test_default_home_follows_platform_convention(self):
+        """断言「规则」而不是本机的字面结果 —— 写死 %LOCALAPPDATA% 会让 Linux 上的 CI 红。"""
+        with mock.patch.dict(cc.os.environ, {}, clear=False):
             cc.os.environ.pop("HERMES_HOME", None)
-            self.assertEqual(cc.hermes_home().name, "hermes")
+            expected = "hermes" if cc.os.name == "nt" else ".hermes"
+            self.assertEqual(cc.hermes_home().name, expected)
+
+    def test_env_var_wins_over_platform_default(self):
+        with mock.patch.dict(cc.os.environ, {"HERMES_HOME": os.path.join("tmp", "xx")}, clear=False):
+            self.assertEqual(cc.hermes_home().name, "xx")
 
 
 if __name__ == "__main__":
