@@ -1,0 +1,3 @@
+# 构建教程站的 Python 依赖（都是纯 Python，无编译）
+PyYAML>=6.0,<7
+Markdown>=3.5,<4

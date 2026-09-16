@@ -19,3 +19,6 @@ Thumbs.db
 build/
 dist/
 *.tmp
+
+# 站点构建产物（由 python scripts/build_site.py 生成，不进 git）
+site/
