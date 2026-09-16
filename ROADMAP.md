@@ -153,13 +153,15 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 
 站点刚公开，但没有任何给搜索引擎和社交平台看的元信息。
 
-- [ ] `build_site.py` 产出 `sitemap.xml`（首页 + 32 课 + 6 规范页）与 `robots.txt`
-- [ ] 每个页面加 `<link rel="canonical">`；课页加 `og:title` / `og:description` / `og:url` / `og:site_name`
-- [ ] 跳转到正文的 skip link（`#main` 已存在），补 `aria-label` 到搜索按钮
-- [ ] 把 4 个 tag 推到远端、给仓库填 Website / Topics、建 `v1.1-web` Release
+- [x] `build_site.py` 产出 `sitemap.xml`（39 条 = 首页 + 32 课 + 6 规范页，404 排除）与 `robots.txt`
+- [x] 每个页面加 `<link rel="canonical">`；每页加 5 个 og 标签（`og:site_name` / `og:type` / `og:title` / `og:description` / `og:url`）
+- [x] 跳转到正文的 skip link（`#main` 已存在），补 `aria-label` 到搜索按钮
+- [x] 把 4 个 tag 推到远端、给仓库填 Website / Topics、建 `v1.1-web` Release（已完成）
 
-**验收**：`python scripts/build_site.py --check` 断言 sitemap 条目数 == 产物页数、每个课页恰好 4 个
-`og:` 标签；`git ls-remote --tags origin` 出现 4 个 tag；线上 `curl -sI .../sitemap.xml` → 200。
+**验收**（已全部通过）：`python scripts/build_site.py --check` 断言 sitemap 条目数 == 产物页数（39 = 40 页 - 404）、
+每个页面恰好 5 个 `og:` 标签且都有 canonical；`git ls-remote --tags origin` 出现 4 个 tag；线上 `curl -sI .../sitemap.xml` → 200。
+完成于 2026-09-16，tag `v1.2-seo`；构建产物 52 → 54 文件（+`sitemap.xml`、+`robots.txt`），
+Python 测试 45 → 59 条。
 
 ### v1.3 · 站点交互补齐（约一天）
 
