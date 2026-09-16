@@ -100,6 +100,32 @@ def preprocess_tasklist(text: str) -> str:
     return _outside_fences(text, lambda s: TASKLIST_RE.sub(repl, s))
 
 
+def count_exercises(body: str) -> int:
+    """数一门课的练习数：**围栏代码块之外**的 `- [ ]` / `- [x]` 行数。
+
+    需要它的理由：读者看到的「这课 5 道题、你做完 3 道」需要一个**总数**，而总数
+    只可能来自正文。数在哪里、怎么数，必须与 `preprocess_tasklist` 完全一致 ——
+    它决定读者看见几个方框，这里决定进度写「3/5」还是「3/6」。两处一旦漂移，
+    页面上没有任何东西会报错，只是数字悄悄变成假的。
+
+    所以这里直接复用同一个 `_outside_fences` 与同一个 `TASKLIST_RE`，而不是
+    另写一遍「扫描行、跳过 ``` 」：围栏的判定规则（含缩进、含 ~~~、含未闭合）
+    只有一份实现，才谈得上「两处口径一致」。
+
+    `[x]` 与 `[ ]` 一视同仁地计数（与编号一致）：这里数的是「有几道题」，
+    不是「做完了几道」—— 已做数由浏览器的练习题状态给出（web/assets/lib/exercises.js）。
+    """
+    total = 0
+
+    def count(segment: str) -> str:
+        nonlocal total
+        total += len(TASKLIST_RE.findall(segment))
+        return segment
+
+    _outside_fences(body, count)
+    return total
+
+
 def _outside_code(fragment: str, transform) -> str:
     """只在代码块之外做替换：`[[src:x]]` 出现在代码里时，读者要看到字面量。"""
     parts: list[str] = []

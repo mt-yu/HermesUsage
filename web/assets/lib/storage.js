@@ -125,8 +125,15 @@ export function saveTheme(theme, storage = globalThis.localStorage) {
   }
 }
 
-export function download(filename, text) {
-  const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+/** 按文件名推断 MIME：报告是 .md，别把它写成 JSON（浏览器只会照存，但类型是错的）。 */
+export function mimeFor(filename) {
+  if (/\.md$/i.test(filename)) return "text/markdown;charset=utf-8";
+  if (/\.txt$/i.test(filename)) return "text/plain;charset=utf-8";
+  return "application/json;charset=utf-8";
+}
+
+export function download(filename, text, mime) {
+  const blob = new Blob([text], { type: mime || mimeFor(filename) });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

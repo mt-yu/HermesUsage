@@ -119,3 +119,11 @@ test("parseExercises 拒绝坏 JSON、非对象顶层与非法 lessons", () => {
   assert.equal(parseExercises('{"lessons": []}').ok, false);
   assert.equal(parseExercises('{"version": 1}').ok, true, "缺 lessons 视为空，与 parseState 一致");
 });
+
+test("mimeFor 按扩展名推断类型（.md 报告不该写成 JSON）", async () => {
+  const { mimeFor } = await import("../../web/assets/lib/storage.js");
+  assert.equal(mimeFor("hermes-usage-report.md"), "text/markdown;charset=utf-8");
+  assert.equal(mimeFor("progress.state.json"), "application/json;charset=utf-8");
+  assert.equal(mimeFor("notes.txt"), "text/plain;charset=utf-8");
+  assert.equal(mimeFor("unknown"), "application/json;charset=utf-8");
+});

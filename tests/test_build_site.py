@@ -352,6 +352,97 @@ class TestPitfallsPage(unittest.TestCase):
         self.assertIn("not-registered", str(ctx.exception))
 
 
+class TestExerciseCountsAndReportButton(unittest.TestCase):
+    """v2.0 学习报告导出的构建期部分：`data/index.json` 里的练习数 + 导出按钮。
+
+    这一节的关键是**双路对账**：`exercises` 走的是构建期数正文（count_exercises），
+    而读者看到的是渲染出来的方框（`<span class="task-box">`）。两条路算的是
+    「同一门课有几道练习」这一件事，只要有一边改变了口径（比如以后有人在围栏里
+    写示例练习题），数字就会分叉 —— 而分叉之后读者的进度会显示成 3/5 却看到 6 个方框。
+    浏览器里看不出这种错，所以在这里把它焊死。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        build_site.build(cls.out, cls.cfg)
+        cls.lessons = core.load_lessons(REPO)
+        cls.index = json.loads((cls.out / "data" / "index.json").read_text(encoding="utf-8"))
+        cls.by_id = {l["id"]: l for l in cls.index["lessons"]}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def boxes_on_page(self, lesson: dict) -> int:
+        """该课页面正文里渲染出的练习方框数（只看 <main>，不含侧栏）。"""
+        html = (self.out / "lessons" / lesson["page"]).read_text(encoding="utf-8")
+        return len(re.findall(r'<span class="task-box"', main_region(html)))
+
+    def test_index_json_has_exercises_for_every_lesson(self):
+        self.assertEqual(len(self.index["lessons"]), len(self.lessons))
+        for lesson in self.lessons:
+            value = self.by_id[lesson["id"]]["exercises"]
+            self.assertIsInstance(value, int, lesson["id"])
+            self.assertGreater(value, 0, lesson["id"])
+
+    def test_L15_has_five_exercises(self):
+        self.assertEqual(self.by_id["L15"]["exercises"], 5)
+
+    def test_L90_has_sixteen_exercises(self):
+        self.assertEqual(self.by_id["L90"]["exercises"], 16)
+
+    def test_index_count_equals_rendered_boxes_for_every_lesson(self):
+        """双路对账：index.json 的数字 == 页面里真实方框的个数（32 课全查）。"""
+        for lesson in self.lessons:
+            self.assertEqual(
+                self.by_id[lesson["id"]]["exercises"], self.boxes_on_page(lesson),
+                f"{lesson['id']}：index.json 与页面方框数不一致",
+            )
+
+    def test_total_exercises_agrees_across_both_paths(self):
+        total_index = sum(l["exercises"] for l in self.index["lessons"])
+        total_pages = sum(self.boxes_on_page(l) for l in self.lessons)
+        self.assertEqual(total_index, total_pages)
+        # 首页/地图页的进度卡要能报「练习 Z/W」：W 就是这里的总数
+        self.assertEqual(total_index, sum(R.count_exercises(l["body"]) for l in self.lessons))
+
+    def test_home_and_map_page_have_the_export_report_button(self):
+        for rel in ("index.html", "map.html"):
+            html = (self.out / rel).read_text(encoding="utf-8")
+            self.assertIn('class="btn export-report" type="button">导出学习报告</button>', html, rel)
+            # 用 class 选择器而不是 id：同一个按钮会出现两处，重复 id 是无效 HTML
+            self.assertEqual(html.count("export-report"), 1, f"{rel} 应该只有一个导出报告按钮")
+            self.assertIn("导出学习报告", main_region(html), rel)
+
+    def test_report_button_does_not_break_the_progress_card_actions(self):
+        """首页原有的三个控件必须一个不少（新按钮是**追加**，不是替换）。"""
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        for needle in ('id="next-lesson"', 'id="export-progress"', 'id="import-progress"',
+                       'id="import-file"', 'class="btn export-report"'):
+            self.assertIn(needle, home)
+        self.assertEqual(home.count('class="pc-actions"'), 1)
+
+    def test_export_report_buttons_live_in_the_progress_card(self):
+        """按钮要落在进度卡里：它是「把这份进度交出去」，不是独立功能。"""
+        for rel in ("index.html", "map.html"):
+            html = (self.out / rel).read_text(encoding="utf-8")
+            card = re.search(r'<section class="card progress-card"[^>]*>(.*?)</section>', html, re.S)
+            self.assertIsNotNone(card, rel)
+            self.assertIn('class="btn export-report"', card.group(1), rel)
+
+    def test_app_js_downloads_the_report(self):
+        """接线留在 app.js：报告文件名与 download 调用都要在产物里。"""
+        app = (self.out / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("hermes-usage-report.md", app)
+        self.assertIn("buildReport", app)
+        report = (self.out / "assets" / "lib" / "report.js").read_text(encoding="utf-8")
+        self.assertIn("export function buildReport", report)
+        self.assertIn("export function summarize", report)
+
+
 class TestSiteReachability(unittest.TestCase):
     """v1.2 站点可达性：canonical / og / sitemap / robots / skip-link。
 

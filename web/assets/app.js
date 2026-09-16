@@ -11,6 +11,7 @@ import {
   loadExercises, saveExercises,
 } from "./lib/storage.js";
 import { isExerciseDone, toggleExercise } from "./lib/exercises.js";
+import { buildReport } from "./lib/report.js";
 import { arrowTarget, cycleIndex } from "./lib/keynav.js";
 import { pickActive, headingOffsets } from "./lib/toc.js";
 
@@ -50,6 +51,7 @@ async function boot() {
     return; // 拿不到索引就只保留静态阅读
   }
   wireProgressButtons();
+  wireReportButtons();
   paint();
 }
 
@@ -152,6 +154,44 @@ function wireProgressButtons() {
       }
       commit(parsed.state);
       if (out) { out.hidden = false; out.textContent = `已导入 ${parsed.imported} 课的完成状态。`; }
+    });
+  }
+}
+
+/* ------------------------------------------------------- 学习报告导出 */
+
+/* 「导出学习报告」按钮：首页与学习地图页各一个，两页用**同一个 class**
+   （`.export-report`）而不是 id —— 同一个 id 出现两次是无效 HTML，而
+   app.js 只可能绑到一个元素上，另一个就变成按了没反应的假按钮。
+
+   为什么是 markdown：导出进度 JSON 是给脚本读的，这份报告是给人看的 ——
+   贴进周报、issue 或交给同事都不需要再加工。文本由 lib/report.js 这个纯函数
+   生成（可 node --test），这里只负责「取值 → 下载」两件事。
+
+   数据取点击那一刻的：进度用内存里的 state（和页面显示的是同一份），
+   练习状态重新从 localStorage 读一次（唯一写入方也在这里，读一次最不容易漂移）。 */
+function wireReportButtons() {
+  const buttons = $$(".export-report");
+  if (!buttons.length) return;
+  // 站点地址：canonical 是部署后的绝对地址；file:// 或没有 canonical 时退回当前地址
+  const canonical = $('link[rel="canonical"]');
+  const siteUrl = (canonical && canonical.getAttribute("href")) || `${location.origin}${location.pathname}`;
+
+  for (const btn of buttons) {
+    btn.addEventListener("click", () => {
+      const text = buildReport({
+        lessons,
+        progress: state,
+        exercises: loadExercises(),
+        generatedAt: new Date().toISOString(),
+        siteUrl,
+      });
+      download("hermes-usage-report.md", text);
+      const out = $("#pc-out");   // 首页有回显区，地图页没有：有就写一行，没有就算了
+      if (out) {
+        out.hidden = false;
+        out.textContent = "学习报告已导出：hermes-usage-report.md（markdown）。";
+      }
     });
   }
 }

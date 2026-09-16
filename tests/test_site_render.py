@@ -135,6 +135,56 @@ class TestRepoDocSlug(unittest.TestCase):
         self.assertEqual(R.repo_doc_slug("templates/lesson.md"), "templates-lesson")
 
 
+class TestCountExercises(unittest.TestCase):
+    """v2.0 `count_exercises`：把「这门课有几道练习」变成一个可断言的数字。
+
+    它和 `preprocess_tasklist` 是最容易悄悄漂移的一对：一个把 `- [ ]` 变成复选框
+    （渲染层），另一个数出练习总数写进 `data/index.json`（构建期的数据层）。
+    两边对「围栏代码块里的示例算不算一题」的判断一旦不一致，读者就会看到
+    「练习 3/5」的进度条对上 6 个方框 —— 这种错在浏览器里一点都看不出来。
+    所以这里除了断言数字，还断言它与真实渲染出的方框数一致。
+    """
+
+    def test_empty_and_exercise_free_body_is_zero(self):
+        self.assertEqual(R.count_exercises(""), 0)
+        self.assertEqual(R.count_exercises("# 标题\n\n正文，这一课没有练习。\n"), 0)
+
+    def test_counts_checked_and_unchecked_alike(self):
+        self.assertEqual(R.count_exercises("- [ ] 一\n- [x] 二\n- [X] 三\n"), 3)
+
+    def test_fenced_code_blocks_do_not_count(self):
+        body = "- [ ] 真题一\n\n```markdown\n- [ ] 示例：怎么写练习清单\n- [x] 示例二\n```\n\n- [ ] 真题二\n"
+        self.assertEqual(R.count_exercises(body), 2)
+
+    def test_other_list_markers_and_prose_do_not_count(self):
+        body = "- 普通条目\n* 星号条目\n1. 有序条目\n\n> - [ ] 引用里的\n\n正文里的 `- [ ]` 是行内代码。\n"
+        self.assertEqual(R.count_exercises(body), 0)
+
+    def test_match_rendered_boxes_one_to_one(self):
+        """同一份正文：数出来的题数 == 渲染出的方框数 == 最大的 data-ex 编号。"""
+        body = "- [ ] 一\n\n```text\n- [ ] 示例，不算一题\n```\n\n- [x] 二\n- [ ] 三\n"
+        out = R.preprocess_tasklist(body)
+        ids = [int(n) for n in re.findall(r'data-ex="(\d+)"', out)]
+        self.assertEqual(len(ids), R.count_exercises(body))
+        self.assertEqual(max(ids), R.count_exercises(body))
+        self.assertEqual(out.count('class="task-box"'), R.count_exercises(body))
+
+    def test_real_lessons_L15_and_L90(self):
+        by_id = {l["id"]: l for l in core.load_lessons(REPO)}
+        self.assertEqual(R.count_exercises(by_id["L15"]["body"]), 5)
+        self.assertEqual(R.count_exercises(by_id["L90"]["body"]), 16)
+
+    def test_every_real_lesson_has_a_plausible_count(self):
+        """32 课全都要有练习；数字还要和正文里的任务行数对得上（防回归到「数了围栏里的」）。"""
+        for lesson in core.load_lessons(REPO):
+            self.assertGreater(R.count_exercises(lesson["body"]), 0, lesson["id"])
+            self.assertLessEqual(
+                R.count_exercises(lesson["body"]),
+                len(R.TASKLIST_RE.findall(lesson["body"])),
+                lesson["id"],
+            )
+
+
 class TestLessonContentIsRenderable(unittest.TestCase):
     """课程正文本该是纯 Markdown：除代码围栏与行内反引号外，不该有裸 HTML 标签。"""
 

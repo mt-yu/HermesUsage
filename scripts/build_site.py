@@ -116,6 +116,10 @@ def index_data(lessons: list[dict]) -> dict:
                 "summary": l["summary"],
                 "updated": l["updated"],
                 "url": l["url"],
+                # 练习总数只有构建期能数（正文在浏览器里已经变成 HTML）：读者要的
+                # 「练习 3/5」里的 5 就是这个数。数法与渲染方框用同一个函数，
+                # 见 site_render.count_exercises 的注释。
+                "exercises": R.count_exercises(l["body"]),
             }
             for l in lessons
         ],
@@ -280,11 +284,13 @@ def render_home(groups: list[dict], lessons: list[dict], cfg: dict, link_for, ba
         f'<span class="muted"> · 全量约 {hours} 小时 · <span id="min-left">{total_min} 分钟</span> 待学</span></p>',
         '<div class="bar"><i id="bar-fill" style="width:0%"></i></div>',
         '<p class="muted pc-note">进度只存在你这台机器的浏览器里（localStorage），不上传任何数据；'
-        '也可以导出 JSON 与 <code>python scripts/progress.py</code> 的本地状态对照。</p>',
+        '也可以导出 JSON 与 <code>python scripts/progress.py</code> 的本地状态对照，'
+        '或导出一份可贴进周报、issue 的 markdown 学习报告。</p>',
         '<p class="pc-actions">'
         '<button class="btn primary" id="next-lesson">我该学哪一课？</button>'
         '<button class="btn" id="export-progress">导出进度 JSON</button>'
         '<button class="btn" id="import-progress">导入进度 JSON</button>'
+        '<button class="btn export-report" type="button">导出学习报告</button>'
         '<input type="file" id="import-file" accept="application/json,.json" hidden>'
         '</p>',
         '<p class="muted pc-out" id="pc-out" hidden></p>',
@@ -323,6 +329,13 @@ def render_map_page(groups: list[dict], lessons: list[dict], cfg: dict, link_for
         f'<p class="pc-line"><b id="done-count">0</b> / {len(lessons)} 课完成'
         f'<span class="muted"> · 全量约 {hours} 小时 · <span id="min-left">{total_min} 分钟</span> 待学</span></p>',
         '<div class="bar"><i id="bar-fill" style="width:0%"></i></div>',
+        # 「导出学习报告」用 **class** 而不是 id：首页与这一页都要有同一个按钮，
+        # 两处写同一个 id 是无效 HTML（浏览器只认第一个），而 app.js 是按
+        # `.export-report` 选择器统一挂事件的（首页那份也用同一个 class）。
+        '<p class="pc-actions">'
+        '<button class="btn export-report" type="button">导出学习报告</button></p>',
+        '<p class="muted pc-note">报告是一份 markdown：每课的完成情况、剩余时长与练习进度，'
+        '内容全部来自本机 localStorage，不上传任何数据。</p>',
         "</section>",
     ]
     out.append(render_lesson_cards(groups, link_for))
