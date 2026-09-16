@@ -1,0 +1,13 @@
+{
+  "title": "Hermes Agent 初学者教程",
+  "tagline": "从「装好了但不知道干什么」到「知道自己在指挥什么」——可考证、可自维护、可回滚。",
+  "repo_url": "",
+  "repo_docs": [
+    ".hermes.md",
+    "CONTRIBUTING.md",
+    "ROADMAP.md",
+    "sources/README.md",
+    "templates/lesson.md",
+    "progress/checklist.md"
+  ]
+}

@@ -236,3 +236,18 @@ def render_template(template: str, values: dict[str, str], where: str) -> str:
     if left:
         raise SiteError(f"{where}: 模板占位符没有被填充：{left.group(1)}")
     return out
+
+
+def search_text(body: str) -> str:
+    """把 Markdown 正文压成检索文本。
+
+    刻意保留代码块内容：这套教程里「hermes cron list」「/rollback <N>」这类命令
+    是最常被搜的东西，把它们排除掉，搜索就废了一半。
+    """
+    text = strip_template_comments(body)
+    text = re.sub(r"^\s*```.*$", " ", text, flags=re.M)          # 去围栏行，留代码
+    text = SRC_RE.sub(r" \1 ", text)                              # 出处 id 也可搜
+    text = XREF_RE.sub(r" \1 ", text)
+    text = re.sub(r"^\s*[-*|>#]+\s*", " ", text, flags=re.M)      # 列表/表格/引用符号
+    text = re.sub(r"[*_`\[\]()]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
