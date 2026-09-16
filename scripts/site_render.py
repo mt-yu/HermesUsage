@@ -138,6 +138,15 @@ def _outside_code(fragment: str, transform) -> str:
     return "".join(parts)
 
 
+def outside_code(fragment: str, transform) -> str:
+    """公开版 `_outside_code`：给链接改写器用。
+
+    为什么需要它：文档里会**讨论** href（例如写在反引号里的 `href="../x"`），
+    那是给人看的文本，不是链接。不区分代码区就会出现「文档写什么、构建报什么」的怪现象。
+    """
+    return _outside_code(fragment, transform)
+
+
 def add_heading_ids(fragment: str, prefix: str = "s") -> tuple[str, list[dict]]:
     """给 h2/h3 编上稳定 id，并返回扁平目录列表。
 

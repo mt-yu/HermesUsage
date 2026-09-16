@@ -777,3 +777,21 @@ class TestOfflineSingleFile(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestLinkRewriterIgnoresCode(unittest.TestCase):
+    """文档里**讨论** href 时（写在反引号/代码块里）不能被当成真链接——否则构建会报假错。"""
+
+    def test_repo_doc_link_rewriter_skips_code(self):
+        import build_site as B, tutorial_core as core
+        lesson = next(l for l in core.load_lessons(REPO) if l["id"] == "L00")
+        html = (
+            '<p>反引号里的 <code>href="../x"</code> 是给人看的</p>'
+            '<pre><code>href="../../y.py"</code></pre>'
+            '<p>真链接：<a href="CONTRIBUTING.md">CONTRIBUTING.md</a></p>'
+        )
+        out = B.rewrite_repo_doc_links(html, ".hermes.md", B.load_config())
+        self.assertIn('href="../x"', out)                     # 代码区原样保留
+        self.assertEqual(out.count('href="../x"'), 1)
+        self.assertIn('href="contributing.html"', out)        # 真链接被改写成规范页
+        # 取链接也必须跳过代码区，否则文档里讨论 href 就会变成假断链
+        self.assertEqual(B.link_targets(html), ["CONTRIBUTING.md"])

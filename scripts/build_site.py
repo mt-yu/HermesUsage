@@ -636,7 +636,7 @@ def rewrite_repo_links_absolute(html: str, lesson: dict, cfg: dict) -> str:
             return f'href="{R.escape(repo_url + "/blob/main/" + rel)}{anchor}"'
         return 'data-repo-path="%s"%s' % (R.escape(rel), anchor)
 
-    return re.sub(r'href="([^"]+)"', repl, html)
+    return R.outside_code(html, lambda seg: re.sub(r'href="([^"]+)"', repl, seg))
 
 
 def rewrite_repo_doc_links(html: str, rel: str, cfg: dict) -> str:
@@ -682,7 +682,7 @@ def rewrite_repo_doc_links(html: str, rel: str, cfg: dict) -> str:
                     ' target="_blank" rel="noopener"')
         return "data-repo-path=\"%s\"" % R.escape(target_rel)
 
-    return re.sub(r'href="([^"]+)"', repl, html)
+    return R.outside_code(html, lambda seg: re.sub(r'href="([^"]+)"', repl, seg))
 
 
 # --------------------------------------------------------------------------- 主流程
@@ -936,6 +936,22 @@ OG_META_RE = re.compile(r'<meta property="(og:[a-z_]+)"')
 CANONICAL_RE = re.compile(r'<link rel="canonical" href="([^"]+)"')
 
 
+def link_targets(html: str) -> list[str]:
+    """取出浏览器真的会去请求的 href/src —— **跳过 `<code>`/`<pre>` 里的示例文本**。
+
+    文档里会讨论 href（例如「离线版不含 src 属性」写在反引号里）。不区分代码区，
+    这类叙述就会被当成断链：实测出现过 `repo/roadmap.html → </code>/<code>href=` 这种假错。
+    """
+    found: list[str] = []
+
+    def collect(seg: str) -> str:
+        found.extend(LINK_ATTR_RE.findall(seg))
+        return seg
+
+    R.outside_code(html, collect)
+    return found
+
+
 def check_links(out: Path) -> list[str]:
     """站内自检：每个 href/src 都要能在产物里找到对应文件。
 
@@ -944,7 +960,7 @@ def check_links(out: Path) -> list[str]:
     """
     problems: list[str] = []
     for page in sorted(out.rglob("*.html")):
-        for raw in LINK_ATTR_RE.findall(page.read_text(encoding="utf-8")):
+        for raw in link_targets(page.read_text(encoding="utf-8")):
             if raw.startswith(("http://", "https://", "mailto:", "data:", "//", "#", "/")):
                 continue
             target = raw.split("#", 1)[0].split("?", 1)[0]
