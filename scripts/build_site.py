@@ -44,6 +44,7 @@ DEFAULT_CONFIG: dict = {
     "tagline": "",
     "repo_url": "",
     "repo_docs": [],
+    "base_url": "",
 }
 
 
@@ -54,6 +55,39 @@ def load_config() -> dict:
     if CONFIG.exists():
         cfg.update(json.loads(CONFIG.read_text(encoding="utf-8")))
     return cfg
+
+
+def site_base(cfg: dict) -> str:
+    """site.json 的 base_url → 归一化后的站点根地址（末尾一定带斜杠）。
+
+    留空直接报错而不是「静默跳过」：canonical / og:url / sitemap 全靠它拼绝对地址，
+    拼错的后果（搜索引擎和分享卡片指向 404 或别人的域名）在浏览器里一点都看不出来。
+    """
+    base = str(cfg.get("base_url", "")).strip()
+    if not base:
+        raise R.SiteError(
+            "site.json 里没填 base_url（站点部署地址），构建停下。"
+            "canonical / og:url / sitemap 要用它拼绝对地址：留空会让它们指向错误地址，"
+            "搜索引擎与社交平台收录的就是错的页面。"
+            "GitHub Pages 的形态是 https://<用户名>.github.io/<仓库名>/"
+        )
+    return base if base.endswith("/") else base + "/"
+
+
+def page_meta(base: str, rel: str, og_type: str, og_title: str, og_desc: str) -> dict[str, str]:
+    """一页的 canonical / og 值。rel 是页面在站点内的相对路径（首页传 ""）。
+
+    首页的 canonical 就是 base_url 本身：写成 base_url + "index.html" 会让
+    「/」和「/index.html」被搜索引擎当成两个页面，各收一份。
+    """
+    url = base + rel
+    return {
+        "canonical": R.escape(url),
+        "og_type": og_type,
+        "og_title": R.escape(og_title),
+        "og_desc": R.escape(og_desc),
+        "og_url": R.escape(url),
+    }
 
 
 def sha256_file(path: Path) -> str:
@@ -360,6 +394,7 @@ def render_repo_doc(rel: str, cfg: dict, layout: str, groups: list[dict]) -> tup
         {
             "title": f"{title} · {cfg['title']}",
             "desc": f"仓库文件 {rel}",
+            **page_meta(site_base(cfg), f"repo/{slug}.html", "article", title, f"仓库文件 {rel}"),
             "prefix": "../",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -381,7 +416,36 @@ def render_footer(cfg: dict) -> str:
     return '<div class="footer-inner">' + "".join(parts) + "</div>"
 
 
+def build_sitemap(entries: list[tuple[str, str]]) -> str:
+    """[(绝对 URL, lastmod)] → sitemap.xml 文本。
+
+    只列能被搜索引擎收录的页面：404.html 不在其中（它既是错误页，也是给站内
+    跳转兜底的页面，收录它等于把「页面不存在」摆到搜索结果里）。
+    lastmod 用课程 frontmatter 的 updated —— 全站统一写构建当天，等于告诉搜索引擎
+    「今天 39 个页面全变了」，反而谁也不信。
+    """
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for loc, lastmod in entries:
+        lines.append(f"  <url><loc>{R.escape(loc)}</loc><lastmod>{lastmod}</lastmod></url>")
+    lines.append("</urlset>")
+    return "\n".join(lines) + "\n"
+
+
+def build_robots(cfg: dict) -> str:
+    """robots.txt：全站可抓，并指明 sitemap 的位置。
+
+    教程站没有任何需要屏蔽的东西（只有课程、数据和一份可下载的 JSON），
+    所以规则是「全放行」——但 sitemap 那一行必须有，否则发现路径就只剩爬链接。
+    """
+    return f"User-agent: *\nAllow: /\n\nSitemap: {site_base(cfg)}sitemap.xml\n"
+
+
 def build(out: Path, cfg: dict) -> dict:
+    base = site_base(cfg)   # base_url 没填就在这里停下，别产出「看着没问题」的站
+    today = datetime.now().strftime("%Y-%m-%d")
     lessons = core.load_lessons(REPO)
     if not lessons:
         raise R.SiteError("lessons/ 下没有课程，先写课再建站")
@@ -401,6 +465,8 @@ def build(out: Path, cfg: dict) -> dict:
     shutil.copytree(WEB / "assets", site / "assets")
     (site / ".nojekyll").write_text("", encoding="utf-8", newline="\n")
 
+    sitemap_entries: list[tuple[str, str]] = []
+
     # 课程页
     for i, ls in enumerate(lessons):
         where = ls["rel"]
@@ -413,6 +479,10 @@ def build(out: Path, cfg: dict) -> dict:
             {
                 "title": f'{ls["id"]} · {ls["title"]} · {cfg["title"]}',
                 "desc": ls["summary"] or ls["title"],
+                **page_meta(
+                    base, ls["url"], "article",
+                    f'「{ls["id"]} · {ls["title"]}」', ls["summary"] or ls["title"],
+                ),
                 "prefix": "../",
                 "site_title": R.escape(cfg["title"]),
                 "lesson_id": ls["id"],
@@ -427,6 +497,7 @@ def build(out: Path, cfg: dict) -> dict:
             where,
         )
         (site / "lessons" / ls["page"]).write_text(page, encoding="utf-8", newline="\n")
+        sitemap_entries.append((base + ls["url"], ls["updated"] or today))
 
     # 首页
     home = R.render_template(
@@ -434,6 +505,7 @@ def build(out: Path, cfg: dict) -> dict:
         {
             "title": cfg["title"],
             "desc": cfg.get("tagline", ""),
+            **page_meta(base, "", "website", cfg["title"], cfg.get("tagline", "")),
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -450,6 +522,14 @@ def build(out: Path, cfg: dict) -> dict:
     repo_pages = [render_repo_doc(rel, cfg, layout, groups) for rel in cfg.get("repo_docs", [])]
     for slug, page in repo_pages:
         (site / "repo" / f"{slug}.html").write_text(page, encoding="utf-8", newline="\n")
+        sitemap_entries.append((base + f"repo/{slug}.html", today))
+
+    # sitemap / robots：首页一条 + 每课一条 + 每个规范页一条。
+    # 404.html 不在其中 —— 它是错误兜底页，不该出现在搜索结果里（check_seo 会盯着这点）。
+    (site / "sitemap.xml").write_text(
+        build_sitemap([(base, today)] + sitemap_entries), encoding="utf-8", newline="\n",
+    )
+    (site / "robots.txt").write_text(build_robots(cfg), encoding="utf-8", newline="\n")
 
     # 数据
     write_json(site / "data" / "index.json", index_data(lessons))
@@ -479,6 +559,11 @@ def build(out: Path, cfg: dict) -> dict:
 
 
 LINK_ATTR_RE = re.compile(r'(?:href|src)="([^"]+)"')
+SITEMAP_LOC_RE = re.compile(r"<loc>([^<]+)</loc>")
+# canonical / og 一律用「标签级」正则来数：规范页的正文里就有 `og:site_name`、
+# 「5 个 og: 标签」这类字样，用 html.count("og:") 会把正文算成元信息。
+OG_META_RE = re.compile(r'<meta property="(og:[a-z_]+)"')
+CANONICAL_RE = re.compile(r'<link rel="canonical" href="([^"]+)"')
 
 
 def check_links(out: Path) -> list[str]:
@@ -500,6 +585,75 @@ def check_links(out: Path) -> list[str]:
     return problems
 
 
+def check_seo(out: Path, cfg: dict) -> list[str]:
+    """可达性自检：sitemap 覆盖、canonical/og 齐不齐、robots 指不指得到 sitemap。
+
+    与 check_links 的分工：断链读者点一下就能发现，而这些「给机器看的」元信息
+    错在浏览器里完全看不见 —— 页面照样渲染，只有搜索引擎和分享卡片会看到那个
+    视角（而且是错的）。所以只能靠断言，静态构建期就要断言。
+    """
+    problems: list[str] = []
+    base = site_base(cfg)
+
+    sitemap_path = out / "sitemap.xml"
+    if not sitemap_path.is_file():
+        return ["产物里没有 sitemap.xml（搜索引擎发现课程页的唯一入口就没了）"]
+    locs = SITEMAP_LOC_RE.findall(sitemap_path.read_text(encoding="utf-8"))
+
+    # 1) 条目数 == 产物页面数 - 404.html
+    pages = sorted(p for p in out.rglob("*.html") if p.name != "404.html")
+    if len(locs) != len(pages):
+        problems.append(
+            f"sitemap 条目数 {len(locs)} != 非 404 页面数 {len(pages)}"
+            f"（产物共 {len(list(out.rglob('*.html')))} 个 .html，应排除 404.html）"
+        )
+
+    url_to_page: dict[str, Path] = {}
+    for p in pages:
+        rel = p.relative_to(out).as_posix()
+        url_to_page[base + ("" if rel == "index.html" else rel)] = p
+
+    # 2) 每个 loc 都是 https 绝对地址、落在 base_url 下、且对应真实页面
+    for loc in locs:
+        if not loc.startswith("https://"):
+            problems.append(f"sitemap 里有非 https 的地址：{loc}")
+        elif not loc.startswith(base):
+            problems.append(f"sitemap 地址不在 base_url（{base}）之下：{loc}")
+        elif loc not in url_to_page:
+            problems.append(f"sitemap 指向产物里不存在的页面：{loc}")
+
+    # 3) 每门课都要在里面
+    for lesson in core.load_lessons(REPO):
+        if base + lesson["url"] not in locs:
+            problems.append(f"sitemap 少了课程页：{lesson['id']} → {base + lesson['url']}")
+
+    # 4) 404.html 不许出现
+    for loc in locs:
+        if loc.endswith("404.html"):
+            problems.append(f"404.html 不该出现在 sitemap 里：{loc}")
+
+    # 5) 每个 sitemap 页面：恰好 5 个 og: 标签 + 有 canonical；反向也要查（页面漏进 sitemap）
+    for loc, page in url_to_page.items():
+        rel = page.relative_to(out).as_posix()
+        if loc not in locs:
+            problems.append(f"sitemap 少了页面：{rel} → {loc}")
+            continue
+        html = page.read_text(encoding="utf-8")
+        og = OG_META_RE.findall(html)
+        if len(og) != 5:
+            problems.append(f"{rel}：og 标签 {len(og)} 个（应为 5 个：{', '.join(sorted(og)) or '无'}）")
+        if not CANONICAL_RE.search(html):
+            problems.append(f'{rel}：缺 <link rel="canonical" href="…">')
+
+    # 6) robots.txt
+    robots = out / "robots.txt"
+    if not robots.is_file():
+        problems.append("产物里没有 robots.txt")
+    elif f"Sitemap: {base}sitemap.xml" not in robots.read_text(encoding="utf-8"):
+        problems.append(f"robots.txt 里没有指向 {base}sitemap.xml 的 Sitemap 行")
+    return problems
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="构建教程静态站点")
     ap.add_argument("--out", default=str(SITE), help="输出目录（默认 site/）")
@@ -513,15 +667,17 @@ def main() -> int:
             with tempfile.TemporaryDirectory() as tmp:
                 stats = build(Path(tmp) / "site", cfg)
                 problems = check_links(Path(tmp) / "site")
+                problems += check_seo(Path(tmp) / "site", cfg)
         else:
             stats = build(Path(args.out), cfg)
             problems = check_links(Path(args.out))
+            problems += check_seo(Path(args.out), cfg)
     except R.SiteError as e:
         print(f"构建失败：{e}", file=sys.stderr)
         return 1
 
     if problems:
-        print(f"站内链接自检失败：{len(problems)} 条")
+        print(f"站点自检失败：{len(problems)} 条（站内链接 / sitemap / canonical / og / robots）")
         for p in problems[:30]:
             print(f"  - {p}")
         return 1

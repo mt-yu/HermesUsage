@@ -2,6 +2,7 @@
   "title": "Hermes Agent 初学者教程",
   "tagline": "从「装好了但不知道干什么」到「知道自己在指挥什么」——可考证、可自维护、可回滚。",
   "repo_url": "https://github.com/mt-yu/HermesUsage",
+  "base_url": "https://mt-yu.github.io/HermesUsage/",
   "repo_docs": [
     ".hermes.md",
     "CONTRIBUTING.md",

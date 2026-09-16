@@ -5,14 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <meta name="description" content="{{desc}}">
+<link rel="canonical" href="{{canonical}}">
+<meta property="og:site_name" content="{{site_title}}">
+<meta property="og:type" content="{{og_type}}">
+<meta property="og:title" content="{{og_title}}">
+<meta property="og:description" content="{{og_desc}}">
+<meta property="og:url" content="{{og_url}}">
 <link rel="stylesheet" href="{{prefix}}assets/app.css">
 <script type="module" src="{{prefix}}assets/app.js"></script>
 </head>
 <body data-prefix="{{prefix}}" data-lesson="{{lesson_id}}">
+<a class="skip-link" href="#main">跳到正文</a>
 <header class="topbar">
   <button class="icon-btn" id="nav-toggle" aria-label="打开课程导航" aria-expanded="false">☰</button>
   <a class="brand" href="{{prefix}}index.html">{{site_title}}</a>
-  <button class="search-btn" id="search-open"><span>搜索课程</span><kbd>Ctrl K</kbd></button>
+  <button class="search-btn" id="search-open" aria-label="搜索课程（Ctrl+K）"><span>搜索课程</span><kbd>Ctrl K</kbd></button>
   <div class="topbar-right">
     <span class="progress-pill" id="progress-pill">0/32</span>
     <button class="icon-btn" id="theme-toggle" aria-label="切换主题">◐</button>
