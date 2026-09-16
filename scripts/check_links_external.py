@@ -119,6 +119,18 @@ def has_broken(summary: dict) -> bool:
     return bool(summary.get("broken"))
 
 
+def healthy(summary: dict) -> bool:
+    """「健康」= 91 条全都验成了 ok。
+
+    broken 是坏链；network 是没查成（连不上/超时，本机代理抖动时很常见）；
+    blocked 是被站点挡住（403/429 之类）—— 三者都不是「没问题」，所以只要出现一个，
+    cron 的 --quiet 就不该闭嘴：**没验成 ≠ 通过**。
+    """
+    return (not has_broken(summary)
+            and not summary.get("network", 0)
+            and not summary.get("blocked", 0))
+
+
 def select(entries: list[dict], only: str | None = None, limit: int | None = None) -> list[dict]:
     """--only 按逗号分隔的 id 过滤（保持用户书写顺序），--limit 取前 N 条。"""
     out = list(entries)
@@ -261,6 +273,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--workers", type=int, default=8, help="并发数（默认 8）")
     ap.add_argument("--retries", type=int, default=2, help="连不上时的重试次数（默认 2，退避 1.5s/3s）")
     ap.add_argument("--json", action="store_true", help="只输出 JSON，便于 cron/脚本消费")
+    ap.add_argument("--quiet", action="store_true",
+                    help="静默：全部可达时不输出任何内容（给 cron 用）；有 broken 或查不通才报")
     args = ap.parse_args(argv)
 
     entries = select(load_citations(), only=args.only, limit=args.limit)
@@ -274,6 +288,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps({"total": len(results), **summary, "results": results},
                          ensure_ascii=False, indent=2))
+    elif args.quiet:
+        # 只有真有问题才说话；健康时一个字都不打，cron 便不会投递噪音
+        if not healthy(summary):
+            print(render(results, summary))
     else:
         print(render(results, summary))
     return 1 if has_broken(summary) else 0

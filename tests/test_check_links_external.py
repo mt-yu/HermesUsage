@@ -138,3 +138,30 @@ class TestFakeStatus(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestHealthy(unittest.TestCase):
+    """--quiet 的静默判据：只有「全部可达」才算健康（没验成 != 通过）。"""
+
+    def _sum(self, **kw):
+        base = {"total": 91, "ok": 91, "blocked": 0, "broken": 0, "network": 0, "broken_ids": []}
+        base.update(kw)
+        return base
+
+    def test_all_ok_is_healthy(self):
+        self.assertTrue(cl.healthy(self._sum()))
+
+    def test_broken_is_not_healthy(self):
+        self.assertFalse(cl.healthy(self._sum(ok=90, broken=1)))
+
+    def test_network_is_not_healthy(self):
+        """连不上是「没查成」，不能算过 —— 否则 cron 会静默吞掉一次没验成的检查。"""
+        self.assertFalse(cl.healthy(self._sum(ok=89, network=2)))
+
+    def test_blocked_is_not_healthy(self):
+        self.assertFalse(cl.healthy(self._sum(ok=90, blocked=1)))
+
+    def test_exit_code_still_only_on_broken(self):
+        """退出码与静默判据刻意不同：blocked/network 不该让 CI 红，但该让人看见。"""
+        self.assertFalse(cl.has_broken(self._sum(blocked=3, network=3)))
+        self.assertTrue(cl.has_broken(self._sum(broken=1)))

@@ -246,10 +246,23 @@ def create_issue(repo: str, token: str, title: str, body: str) -> dict:
 
 # --------------------------------------------------------------------------- 主流程
 
+def no_drift_message(quiet: bool) -> str:
+    """无漂移时该说的话；--quiet 下返回空串。
+
+    cron 的 --no-agent 模式靠「空输出」来保持安静，所以静默必须发生在**返回内容**上，
+    而不是靠调用方记得别 print。
+    """
+    if quiet:
+        return ""
+    return "漂移哨兵：无漂移（sync_sources.py --check 无变化），不开 issue。"
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="文档漂移哨兵：sync_sources --check + GitHub issue")
     ap.add_argument("--dry-run", action="store_true", help="只打印会做什么与 issue 内容，绝不发请求")
     ap.add_argument("--json", action="store_true", help="只输出 JSON")
+    ap.add_argument("--quiet", action="store_true",
+                    help="静默：无漂移时不输出任何内容（给 cron 的 --no-agent 模式用，空输出=不投递）")
     args = ap.parse_args(argv)
 
     rc, out, err = run_check()
@@ -268,7 +281,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
-            print("漂移哨兵：无漂移（sync_sources.py --check 无变化），不开 issue。")
+            msg = no_drift_message(args.quiet)
+            if msg:
+                print(msg)
         return 0
 
     if args.dry_run:

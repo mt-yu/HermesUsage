@@ -229,3 +229,15 @@ class TestIssueFlow(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestQuiet(unittest.TestCase):
+    """--quiet 是给 cron 用的：空输出 = 不投递，所以静默必须落在「返回内容」上。"""
+
+    def test_quiet_returns_empty_string(self):
+        self.assertEqual(dw.no_drift_message(True), "")
+
+    def test_non_quiet_mentions_no_drift(self):
+        msg = dw.no_drift_message(False)
+        self.assertIn("无漂移", msg)
+        self.assertIn("不开 issue", msg)
