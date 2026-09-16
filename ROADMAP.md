@@ -119,6 +119,25 @@ python scripts/progress.py next   # 下一课学什么
 
 ## 维护待办（系统层）
 
-- [ ] 给 `scripts/verify.py` 加 CI（GitHub Actions：verify + sync --check）
+- [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
 - [ ] journal 自动归档：`hermes cron` 定时跑 `scripts/journal.py digest`
 - [ ] 用 Graphviz / 手绘风格 SVG 替换 README 的 ASCII 路线图
+
+## 站点（前端）
+
+课程除了 Markdown 原文，还有一份静态站点。构建与检查：
+
+```bash
+python scripts/build_site.py     # 产出 site/（已 gitignore）
+python scripts/serve.py --open   # 本地预览 http://127.0.0.1:8000/
+python scripts/check.py          # 全量检查，含站点构建自检与站内链接检查
+```
+
+| 能力 | 状态 | 位置 |
+|---|---|---|
+| 按阶段浏览 + 进度打卡 | ✅ | `web/assets/app.js` + `site/index.html` |
+| 全站搜索（中文二字切分） | ✅ | `web/assets/lib/search.js` |
+| `src:` 出处徽标（悬停看版本与哈希） | ✅ | `scripts/site_render.py` |
+| 本地预览 / Docker / Netlify / Vercel / Pages | ✅ | `docs/deploy.md` |
+| 练习打卡（`- [ ]` 可点击并保存） | ⬜ | 现在是只读方框，交互待做 |
+| 学习地图与站点合并（去掉重复的两套渲染） | ⬜ | `scripts/build_map.py` 仍是独立渲染 |

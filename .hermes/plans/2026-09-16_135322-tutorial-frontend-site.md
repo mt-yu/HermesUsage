@@ -4221,3 +4221,17 @@ git tag -a v1.1-web -m "教程站：可交互前端 + 快速部署"
    而 CSS 给 `.palette` 设了 `display: flex` —— 这会盖掉 `hidden` 自带的 `display: none`，
    结果是**一进页面搜索面板就摊在全屏上**。已加一条 `[hidden] { display: none !important; }` 兜住。
    凡是「用 `hidden` 属性做显隐」的元素，CSS 里都不许再声明 display。
+
+7. **浏览器验收（只有真开页面才能发现）抓到两个 bug，都在 `web/assets/app.js`**：
+   - **幽灵进度记录**：`$$("[data-lesson]")` 把 `<body data-lesson="…">` 也选中了，而 `body.querySelector('.nav-check')`
+     命中的是侧栏第一课的圆圈 —— 结果在首页点 L00 会额外写进一条 `done[""]`；课程页曾被
+     `li.querySelector("#mark-done")` 这个守卫「意外救下」（所以症状只在首页出现）。
+     修法：新增纯函数 `lessonItems()`（`web/assets/lib/util.js`）把空 id 的节点过滤掉，
+     两处遍历收口到 `li[data-lesson]`，并补了一条单元测试。教训：选择器命中的是「结构」，
+     不是「语义」—— `[data-lesson]` 这种属性选择器要连带断言「它不是空值」。
+   - **剪贴板只在安全上下文可用**：`navigator.clipboard` 在 https / localhost 之外（例如通过
+     局域网 IP 访问 Docker 部署的站点）是 undefined，弹窗里每个代码块都会「复制失败」。
+     已加 textarea + `execCommand` 兜底。
+   - 未能验证的一项：本机自动化浏览器（CDP 配置档）对 `clipboard-write` 一律拒绝
+     （`NotAllowedError: Write permission denied`），因此「点击复制 → 剪贴板真的拿到内容」
+     在本机无法证明，只能证明按钮状态机与兜底路径都按预期走。

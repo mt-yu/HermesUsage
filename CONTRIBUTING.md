@@ -10,9 +10,9 @@
 $EDITOR lessons/02-core/L21-xxx.md      # 或新建：cp templates/lesson.md lessons/...
 
 # 自检（必须全绿）
-python scripts/build_index.py            # 重建 llms.txt（AI 的导航入口）
-python scripts/build_map.py              # 重建 docs/learning-map.html（学习者的可视化地图）
-python scripts/verify.py                 # 11 条硬规则，0 错误才算完
+python scripts/check.py                  # 全绿才提交；只看内容改动时可用 python scripts/verify.py
+# 新增/删除课程后，先重建索引与地图，再跑 check：
+#   python scripts/build_index.py && python scripts/build_map.py && python scripts/check.py
 
 # 归档并提交（自动写 journal + commit）
 python scripts/journal.py commit --kind docs --title "新增 L21" --scope L21 \
@@ -42,8 +42,8 @@ cp templates/lesson.md lessons/02-core/L21-do-something-real.md
 
 # ③ 写（照模板的 8 小节；frontmatter 九项必填）
 
-# ④ 门禁
-python scripts/build_index.py && python scripts/verify.py
+# ④ 门禁与站点自检
+python scripts/build_index.py && python scripts/check.py
 
 # ⑤ 归档
 python scripts/journal.py commit --kind docs --title "新增 L21 ..." --scope L21
@@ -54,7 +54,7 @@ python scripts/journal.py commit --kind docs --title "新增 L21 ..." --scope L2
 ```bash
 python scripts/sync_sources.py --check   # 先看有没有漂移
 python scripts/sync_sources.py           # 有漂移则刷新快照（会带新 commit 与 sha256）
-python scripts/verify.py                 # 快照哈希与 citations.yaml 必须一致
+python scripts/check.py                  # 快照哈希与 citations.yaml 必须一致（含站点自检）
 ```
 
 **不要手改 `sources/cache/` 里任何一个字节**。那是别人项目的原文，手改会破坏可考证性，
@@ -82,7 +82,7 @@ python scripts/verify.py                 # 快照哈希与 citations.yaml 必须
 
 1. 读 [`.hermes.md`](.hermes.md)（Hermes 会自动注入，其他 agent 请手动读）。
 2. 读本文件 + [`ROADMAP.md`](ROADMAP.md) 找 `⬜` 的工作队列。
-3. `python scripts/verify.py` 确认当前状态健康，再动手。
+3. `python scripts/check.py` 确认当前状态健康，再动手。
 4. 项目技能 [`.hermes/skills/`](.hermes/skills/) 里有两份可加载的操作手册：
    - `hermes-tutorial-authoring` —— 怎么写一课
    - `session-journal` —— 怎么归档一次会话
@@ -92,7 +92,7 @@ python scripts/verify.py                 # 快照哈希与 citations.yaml 必须
 
 ## 6. 提交前自查清单
 
-- [ ] `python scripts/verify.py` 输出“通过”，0 错误
+- [ ] `python scripts/check.py` 输出“全部通过：5 项检查全绿。”（只改内容时可退化为 `verify.py`，但提交前跑一次 check 更稳）
 - [ ] 新增课程已出现在 `llms.txt` 与 `ROADMAP.md`
 - [ ] 所有命令我自己跑过，预期输出是**真实**输出
 - [ ] 出处链接可点开，且与 `sources/cache/` 内容一致

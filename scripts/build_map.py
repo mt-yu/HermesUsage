@@ -11,6 +11,9 @@
 用框架注入的 CSS 变量上色、不要自带背景色/字体/外边距、左对齐不居中。
 （框架会注入 --foreground / --muted-foreground / --accent / --border / --card。）
 
+课程解析不在这里：frontmatter 解析与阶段表统一走 `scripts/tutorial_core.py`
+（它是全仓库唯一的解析入口）。本文件只负责「怎么渲染」。
+
 用法
 ----
   python scripts/build_map.py            # 写 docs/learning-map.html
@@ -22,50 +25,40 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import re
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    sys.exit("需要 PyYAML：python -m pip install pyyaml")
+# 同目录的解析层：显式入栈，脚本被以任何方式启动都能找到 tutorial_core
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import tutorial_core as core  # noqa: E402 —— 必须在 sys.path 调整之后导入
 
 REPO = Path(__file__).resolve().parent.parent
-LESSONS = REPO / "lessons"
 STATE = REPO / "progress" / ".state.json"
 OUT = REPO / "docs" / "learning-map.html"
-FM_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
-
-STAGES = {
-    0: ("认识 Hermes", "先建立正确的心智模型", "入门"),
-    1: ("会用 Hermes", "核心五件事：模型/工具/会话/记忆/技能", "入门"),
-    2: ("日常威力", "把 agent 当主力用", "进阶"),
-    3: ("自动化与多代理", "它在你不在的时候也干活", "进阶"),
-    4: ("扩展与改造", "缺什么自己加", "进阶"),
-    5: ("运维与安全", "敢放在每天在用的机器上", "进阶"),
-    9: ("毕业项目", "自动化一件你真正在做的活", "进阶"),
-}
 
 
 def load_rows() -> list[dict]:
-    rows = []
-    for path in sorted(LESSONS.rglob("*.md")):
-        m = FM_RE.match(path.read_text(encoding="utf-8"))
-        if not m:
-            continue
-        fm = yaml.safe_load(m.group(1)) or {}
-        rows.append(
-            {
-                "id": str(fm.get("id", "")),
-                "title": str(fm.get("title", "")),
-                "stage": int(fm.get("stage", 0)),
-                "level": str(fm.get("level", "")),
-                "minutes": int(fm.get("minutes", 0)),
-                "rel": path.relative_to(REPO).as_posix(),
-                "summary": str(fm.get("summary", "")),
-            }
-        )
+    """把解析层的课程列表压成学习地图需要的字段。
+
+    ⚠️ `summary` 故意写死空串，别改成 `lesson["summary"]`：
+    迁移前这里取的是 frontmatter 的 `summary` 键，而课程的 frontmatter 里
+    根本没有这个键，所以实际取到的永远是空串（地图模板当前也不显示摘要）。
+    解析层的 `summary` 是从正文「**一句话**：…」抽出来的真摘要，直接透传
+    会改变输出字节 —— 那不是本任务（DRY 收口）该带来的变化。
+    """
+    rows = [
+        {
+            "id": lesson["id"],
+            "title": lesson["title"],
+            "stage": lesson["stage"],
+            "level": lesson["level"],
+            "minutes": lesson["minutes"],
+            "rel": lesson["rel"],
+            "summary": "",  # 见 docstring：保持与迁移前一致的空串
+        }
+        for lesson in core.load_lessons(REPO)
+    ]
     rows.sort(key=lambda r: (r["stage"], r["id"]))
     return rows
 
@@ -126,7 +119,10 @@ def render(rows: list[dict], done: set[str]) -> str:
             if current_stage is not None:
                 A("</ul></div>")
             current_stage = r["stage"]
-            name, why, _lvl = STAGES.get(current_stage, (f"阶段 {current_stage}", "", ""))
+            # 阶段名与「为什么」来自唯一解析层（旧的本地 STAGES 三元组里第三项
+            # level 从未被使用，直接不取，输出不变）
+            name = core.stage_name(current_stage)
+            why = core.stage_why(current_stage)
             stage_rows = [x for x in rows if x["stage"] == current_stage]
             s_done = sum(1 for x in stage_rows if x["id"] in done)
             tag = "入门" if current_stage in (0, 1) else "进阶"

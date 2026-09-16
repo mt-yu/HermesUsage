@@ -35,7 +35,7 @@
 | 想让它真的替你干活 | 直接进 [阶段 1 核心五件事](#阶段-1--会用-hermes核心五件事) | 2 小时 |
 | 想自动化 / 做成机器人 | 阶段 0-1 走完再进 [阶段 3 自动化](#阶段-3--自动化与多代理进阶) | 3 小时 |
 | 想给它加新能力（写技能/插件） | [阶段 4 扩展](#阶段-4--扩展与改造进阶) | 3 小时 |
-| 只想知道这仓库咋用 | 跳到 [用这个仓库的 4 条命令](#用这个仓库的-4-条命令) | 1 分钟 |
+| 只想知道这仓库咋用 | 跳到 [用这个仓库的命令](#用这个仓库的命令) | 1 分钟 |
 
 **给急性子的一条忠告**（官方 Quickstart 的原话）：
 > 如果 Hermes 连一次正常对话都完不成，就别急着加功能。先让一次干净的对话跑通，
@@ -112,7 +112,7 @@ Windows 原生的坑见 [Windows 原生指南](https://hermes-agent.nousresearch
 
 ---
 
-## 用这个仓库的 4 条命令
+## 用这个仓库的命令
 
 ```bash
 python scripts/progress.py                 # 我学到哪了？下一课学什么？
@@ -121,6 +121,7 @@ python scripts/progress.py next
 python scripts/verify.py                   # 内容质量门禁（改完课程必跑）
 python scripts/build_index.py              # 重建 llms.txt 索引
 python scripts/build_map.py                # 重建可视化学习地图 docs/learning-map.html
+python scripts/build_site.py               # 重建静态站点 site/（前端改动后必跑）
 
 python scripts/sync_sources.py --check     # 官方文档有没有改版（出处漂移检测）
 python scripts/sync_sources.py             # 同步官方文档快照
@@ -132,6 +133,26 @@ python scripts/journal.py rollback --list  # 想回滚时先看有哪些目标
 
 > 学完一课就打卡 + 归档，是这套教程最推荐的用法 —— 它让“我学过”变成“我留下了痕迹”，
 > 也让任何一次改坏的内容都能精确回滚。规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+---
+
+## 在线看 / 本地看（交互站点）
+
+课程除了 Markdown 原文，还有一份**可搜索、带进度打卡、出处可点开核对**的静态站点：
+
+```bash
+python -m pip install -r requirements.txt   # PyYAML + Markdown，都是纯 Python
+python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8000/
+```
+
+站点能力：按阶段浏览 32 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
+8 小节目录跳转、代码块一键复制、`src:…` 出处徽标悬停显示官方版本与快照哈希。
+
+部署（Docker / Netlify / Vercel / GitHub Pages）：见 [docs/deploy.md](docs/deploy.md)。
+
+```bash
+python scripts/check.py      # 一条命令：内容门禁 + 单元测试 + 站点自检
+```
 
 ---
 
@@ -178,7 +199,10 @@ git log --oneline -- sources/cache/      # 看官方文档是在哪次提交之�
 ```
 lessons/          课程正文（00-orient → 06-capstone）
 sources/          出处体系：registry.yaml(人工) + cache/ + citations.yaml(自动)
-scripts/          门禁、索引、出处同步、归档、进度
+scripts/          门禁、索引、出处同步、归档、进度、站点构建
+web/              站点前端源码（模板 / CSS / 原生 ES 模块；无 npm 依赖）
+tests/            Python 单测（unittest）与前端单测（tests/js，node --test）
+site/             站点构建产物（由 build_site.py 生成，不进 git）
 templates/        课程 / 归档模板（= 校验规范的可读版本）
 journal/          每次对话与阶段的自我总结（倒序索引）
 progress/         学习者打勾清单（个人状态不进 git）

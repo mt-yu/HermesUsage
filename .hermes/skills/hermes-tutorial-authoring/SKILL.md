@@ -102,6 +102,17 @@ python scripts/verify.py         # 全绿才算完
 python scripts/verify.py --fix-hint
 ```
 
+### 5.5 顺带确认站点能重建
+
+课程是站点唯一的内容源，改完课必须确认站点还能编译：
+
+```bash
+python scripts/build_site.py     # 期望：站点自检通过：32 课 / 40 页 / 52 文件
+```
+
+站点源码在 `web/`（模板与前端），产物在 `site/`（gitignore，别手改）。
+出处标记、交叉引用、仓库内相对链接写错时，构建会直接失败并指出是哪一课。
+
 ### 6. 归档并提交
 
 ```bash
@@ -118,5 +129,7 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
 - **Windows 写文件**：Python 里必须 `encoding="utf-8"` + `newline="\n"`，
   否则 BOM/CRLF 触发 R11。
 - **不要占位**：写不完的课不要建文件，在 `ROADMAP.md` 里标 `⬜` 待建即可。
+- **`site/` 是产物，不是源码**：要么改 `lessons/`，要么改 `web/`；
+  手改 `site/` 会在下次构建时丢失。
 - 官方文档页面的**路径与 llms.txt 里的 URL 一一对应**，但 `index.md` 的 URL 是目录本身
   （`/docs/user-guide/messaging` 而不是 `.../messaging/index`）——`sync_sources.py` 已处理。
