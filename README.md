@@ -140,6 +140,11 @@ python scripts/journal.py rollback --list  # 想回滚时先看有哪些目标
 
 课程除了 Markdown 原文，还有一份**可搜索、带进度打卡、出处可点开核对**的静态站点：
 
+**在线看** → <https://mt-yu.github.io/HermesUsage/>（GitHub Pages，每次 push 到 `main` 由
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) 自动重建）
+
+**本地看**：
+
 ```bash
 python -m pip install -r requirements.txt   # PyYAML + Markdown，都是纯 Python
 python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8000/

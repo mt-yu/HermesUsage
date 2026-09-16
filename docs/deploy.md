@@ -65,14 +65,18 @@ vercel --prod # 发布
 
 ## 方式五：GitHub Pages（仓库自带的 Actions）
 
+**线上地址**：<https://mt-yu.github.io/HermesUsage/>（本仓库实际在用）
+
 1. 仓库推到 GitHub，且**默认分支是 `main`**。
-2. 仓库 Settings → Pages → Build and deployment → Source 选 **GitHub Actions**。
+2. Settings → Pages → Build and deployment → Source 选 **GitHub Actions**
+   （命令行等价做法：`POST /repos/<owner>/<repo>/pages -d '{"build_type":"workflow"}'`，需要 `repo` 权限的令牌）。
 3. 之后每次 push 到 `main`，`.github/workflows/pages.yml` 会：
    `pip install -r requirements.txt` → `verify.py` → `build_site.py` → 上传 `site/` → 发布。
 4. 站点地址：`https://<用户名>.github.io/<仓库名>/`。
 
-> 状态：本机**没有 git remote**（`git remote -v` 为空），因此这条路径也**未在生产上验证过**。
-> 首次 push 后请在 Actions 页面确认 `pages` 工作流全绿。
+> 状态：**已验证** —— 2026-09-16 首次发布，`pages` 工作流跑通，线上页面返回 200。
+> 公开站点的前提是仓库公开（或账号支持私有仓库的 Pages）。
+> 注意：站点所有资源路径都是相对的，因此部署在 `/<仓库名>/` 这种子路径下也能正常工作。
 
 ---
 
