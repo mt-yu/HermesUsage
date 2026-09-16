@@ -29,7 +29,7 @@
 ## 阶段 2 · 日常威力（把 agent 当主力用）
 
 - [L20 提问与指挥：把模糊需求变成可验证任务](lessons/02-workflow/L20-craft-requests.md) — [进阶] 20 分钟 · 标签：提问、判据、prompt-size、上下文文件 · 出处 3 条
-- [L21 让它动真格：终端 / 文件 / 浏览器 / 网页](lessons/02-workflow/L21-do-real-work.md) — [进阶] 25 分钟 · 标签：terminal、browser、web_extract、code_execution · 出处 3 条
+- [L21 让它动真格：终端 / 文件 / 浏览器 / 网页](lessons/02-workflow/L21-do-real-work.md) — [进阶] 25 分钟 · 标签：terminal、browser、web_extract、code_execution · 出处 5 条
 - [L22 委派：delegate_task 并行子代理](lessons/02-workflow/L22-delegation.md) — [进阶] 20 分钟 · 标签：delegation、并行、子代理、context 隔离 · 出处 3 条
 - [L23 定时与循环：cron / loops / goals](lessons/02-workflow/L23-cron-loops-goals.md) — [进阶] 25 分钟 · 标签：cron、loop、goal、heartbeat · 出处 5 条
 - [L24 检查点与回滚：干坏事了怎么办](lessons/02-workflow/L24-checkpoints-and-rollback.md) — [进阶] 15 分钟 · 标签：checkpoints、rollback、影子仓库、备份 · 出处 2 条

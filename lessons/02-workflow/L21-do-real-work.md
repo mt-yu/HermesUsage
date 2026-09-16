@@ -6,7 +6,7 @@ level: 进阶
 minutes: 25
 prereq: [L11, L20]
 tags: ["terminal", "browser", "web_extract", "code_execution"]
-sources: [tools, tools-reference, code-execution]
+sources: [tools, tools-reference, browser, web-search, code-execution]
 updated: 2026-09-16
 ---
 
@@ -35,7 +35,7 @@ hermes chat -q "用浏览器工具打开 https://example.com，然后告诉我�
 页面的 h1 标题文字是：Example Domain
 ```
 
-**这不是抓字符串**：它启动了一个真实浏览器、加载了页面、在 DOM 上读出 h1。同一个会话里它还能顺手跑终端命令、改文件 —— 这就是「动真格」的意思。[[src:tools-reference]]
+**这不是抓字符串**：它启动了一个真实浏览器、加载了页面，读的是页面的可访问性树快照（文本形式，交互元素带 `@e1` 这类 ref ID），而不是抓一段 HTML 字符串。同一个会话里它还能顺手跑终端命令、改文件 —— 这就是「动真格」的意思。[[src:browser]]
 
 ## 原理
 
@@ -45,14 +45,14 @@ hermes chat -q "用浏览器工具打开 https://example.com，然后告诉我�
 |---|---|---|---|
 | **终端** | `terminal`、`process` | 跑命令、构建、起后台进程 | 直接改你的系统；在哪个环境执行由终端后端决定 |
 | **文件** | `read_file`、`search_files`、`write_file`、`patch` | 读改代码与配置 | `write_file` 会整文件覆盖；改动前先读 |
-| **浏览器** | `browser_navigate`、`browser_snapshot`、`browser_click`、`browser_type`、`browser_vision` | 需要点击、填表、登录态的页面 | 慢、贵；官方明确建议：**简单信息检索优先用轻量抓取工具** |
-| **网页抓取** | `web_search`、`web_extract` | 搜索 + 抽正文（含 PDF） | 只读；`web_extract` 一次最多 5 个 URL |
+| **浏览器** | `browser_navigate`、`browser_snapshot`、`browser_click`、`browser_type`、`browser_vision` | 需要点击、填表、登录态的页面 | 慢、贵；官方明确建议：**简单信息检索优先用轻量抓取工具** [[src:browser]] |
+| **网页抓取** | `web_search`、`web_extract` | 搜索 + 抽正文（含 PDF） | 只读；`web_extract` 一次最多 5 个 URL [[src:tools-reference]]，超大页面走确定性字符预算截断（不做 LLM 摘要） [[src:web-search]] |
 
 工具清单的权威版本在代码里：`hermes tools list` 与官方 Built-in Tools Reference。当前注册表约 86 个工具，其中浏览器核心 10 个、文件 4 个、终端 2 个、web 2 个。[[src:tools-reference]]
 
 `browser_cdp` 和 `browser_dialog` 属于 CDP 门控工具：只有会话启动时能连上 Chrome DevTools Protocol 端点才会注册（通过 `/browser connect`、`browser.cdp_url` 配置等）。[[src:tools-reference]]
 
-`web_search` / `web_extract` 需要一个搜索后端的凭证（`EXA_API_KEY`、`PARALLEL_API_KEY`、`FIRECRAWL_API_KEY`、`TAVILY_API_KEY`、`PERPLEXITY_API_KEY`、`KEENABLE_API_KEY` 之一）。[[src:tools-reference]]
+`web_search` / `web_extract` 背后是一个可切换的搜索后端：官方 Backends 表把 `EXA_API_KEY`、`PARALLEL_API_KEY`、`FIRECRAWL_API_KEY`、`TAVILY_API_KEY`、`PERPLEXITY_API_KEY`、`KEENABLE_API_KEY` 列为对应厂商的凭证。一张凭证都没有的新装机器也不会全挂 —— 官方说请求会轮询免费额度池（Exa / Parallel / Firecrawl / Keenable），要关掉设 `web.keyless_fallback: false`。[[src:web-search]]
 
 ### 终端后端决定「它在哪动手」
 
@@ -129,7 +129,7 @@ hermes chat -q "用 web_search 搜 'Hermes Agent Nous Research documentation'，
 | `web_extract` 连公网地址都被判内网 | 这是抓取后端的 SSRF 防护在拦，属于环境问题，不是你的 URL 写错了 |
 | 它如实说「没拿到标题」 | 工具真的失败时，它倾向于报失败而不是编一个结果 |
 
-**遇到同一个报错时的替代路径**：用 `web_search` 返回的标题与摘要，或者换 `browser_navigate` 直接开页面。
+**遇到同一个报错时的替代路径**：用 `web_search` 返回的标题与摘要，或者换 `browser_navigate` 直接开页面 —— 官方对这一类「抓不动」的页面的建议正是改用浏览器工具拿实时 DOM。[[src:web-search]]
 
 ### 验证二：确认哪些浏览器工具真的注册了
 
@@ -145,6 +145,7 @@ hermes prompt-size        # Toolsets by size 一节能看到 browser 的 schema 
 ```
 
 如果哪天 `browser_cdp`、`browser_dialog` 不在工具列表里，那不是坏了 —— 它们要有 CDP 端点才注册。[[src:tools-reference]]
+接法在官方 Browser Automation 页：`/browser connect`（或配 `browser.cdp_url`），连上之后所有浏览器工具都在你自己的 Chrome / Brave / Chromium / Edge 实例上操作，而不是另起一个云端浏览器。[[src:browser]]
 
 ### 验证三：看一次「中间结果不进上下文」
 
@@ -181,10 +182,12 @@ hermes chat -q "用 execute_code 分别搜 3 个关键词，每个关键词取�
 - [[L22]] —— 把多件互不依赖的活派给并行子代理，而不是串着做完
 - [[L24]] —— 它动手改文件之前，先把回滚点准备好
 - [[L43]] —— 把外部工具通过 MCP 接进来
-- 想深入：[[src:tools-reference]]（全部内置工具）、[[src:code-execution]]（脚本执行的限额与安全模型）
+- 想深入：[[src:tools-reference]]（全部内置工具）、[[src:code-execution]]（脚本执行的限额与安全模型）、[[src:browser]]（浏览器工具全貌与后端选择）、[[src:web-search]]（搜索后端、缓存与抓取限额）
 
 ## 出处
 
 - [[src:tools]] Tools & Toolsets — https://hermes-agent.nousresearch.com/docs/user-guide/features/tools
 - [[src:tools-reference]] Built-in Tools Reference — https://hermes-agent.nousresearch.com/docs/reference/tools-reference
+- [[src:browser]] Browser Automation — https://hermes-agent.nousresearch.com/docs/user-guide/features/browser
+- [[src:web-search]] Web Search & Extract — https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search
 - [[src:code-execution]] Code Execution — https://hermes-agent.nousresearch.com/docs/user-guide/features/code-execution

@@ -111,6 +111,18 @@
   bytes: 35178
   retrieved_at: '2026-09-16'
   local: sources/cache/bot-mode.md
+- id: browser
+  title: Browser Automation
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/features/browser
+  source_path: website/docs/user-guide/features/browser.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: 38e00d4f98331b80c9c976706eef3fbb348f8ec37b29c01f924b39c01a6eb672
+  bytes: 50620
+  retrieved_at: '2026-09-16'
+  local: sources/cache/browser.md
 - id: checkpoints
   title: Checkpoints and /rollback
   url: https://hermes-agent.nousresearch.com/docs/user-guide/checkpoints-and-rollback
@@ -1023,6 +1035,18 @@
   bytes: 76249
   retrieved_at: '2026-09-16'
   local: sources/cache/web-dashboard.md
+- id: web-search
+  title: Web Search & Extract
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search
+  source_path: website/docs/user-guide/features/web-search.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: db305e096c6427025b2cfb296e0788ea9e68121b116bb4cfcd5992567229ef2f
+  bytes: 22298
+  retrieved_at: '2026-09-16'
+  local: sources/cache/web-search.md
 - id: webhook-github-pr-review
   title: Automated GitHub PR Comments with Webhooks
   url: https://hermes-agent.nousresearch.com/docs/guides/webhook-github-pr-review

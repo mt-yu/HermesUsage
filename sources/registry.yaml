@@ -43,6 +43,8 @@ core:
   tools: user-guide/features/tools.md
   tools-reference: reference/tools-reference.md
   toolsets-reference: reference/toolsets-reference.md
+  browser: user-guide/features/browser.md
+  web-search: user-guide/features/web-search.md
   skills: user-guide/features/skills.md
   curator: user-guide/features/curator.md
   memory: user-guide/features/memory.md

@@ -98,9 +98,43 @@ hermes acp --version      # 本机真实输出：0.21.3
 它让**任何**会说 OpenAI 格式的前端把你的 Hermes 当成一个「模型」来用：
 Open WebUI、LobeChat、LibreChat 等。[[src:api-server]]
 
-> **诚实的标注**：本机没有复现出它的启动横幅（`[API Server] API server listening on …`），
-> 所以上面这段关于启动输出的描述属于**官方文档表述**，不是本机实测。等你真要上它时，
-> 以官方页面与你自己的输出为准。
+启动分两步：先把开关写进 `~/.hermes/.env`，再起网关 —— API Server 是**网关的一个平台**，
+所以命令是 `hermes gateway run`（**没有** `hermes api-server` 这个子命令）。[[src:api-server]]
+
+```bash
+# ~/.hermes/.env
+API_SERVER_ENABLED=true
+API_SERVER_KEY=change-me-local-dev
+```
+
+```bash
+hermes gateway run
+```
+
+本机真实输出（横幅落在网关日志 `$HERMES_HOME/logs/gateway.log`，是 INFO 级；把 stdout
+重定向到文件时只看到 WARNING 级行，所以别只在终端上找它。文档页面把它写作
+`[API Server] …`，实际运行时是下面这个写法，末尾还会带上模型名）：
+
+```
+[Api_Server] API server listening on http://127.0.0.1:8642 (model: hermes-agent)
+```
+
+端点确实起来了 —— 本机实测三条（同一个临时环境里 `curl` 出来的原文）：
+
+```bash
+curl http://127.0.0.1:8642/health
+# {"status": "ok", "platform": "hermes-agent", "version": "0.21.3"}
+
+curl -H "Authorization: Bearer change-me-local-dev" http://127.0.0.1:8642/v1/models
+# {"object": "list", "data": [{"id": "hermes-agent", "object": "model", ...}]}
+
+curl http://127.0.0.1:8642/v1/models      # 不带 Authorization
+# 401 —— API_SERVER_KEY 是必需的，哪怕是绑定在 127.0.0.1 上
+```
+
+> **复现范围**：本机复现用的是**隔离的临时 `HERMES_HOME`**（没有动你自己的 `~/.hermes`），
+> 所以 `/v1/models` 里只有默认 profile 的 `hermes-agent` 一个 id，也没有接真实前端做联调。
+> 端口、模型名、版本号以你自己的输出为准。
 
 ## 亲手验证
 
@@ -147,7 +181,7 @@ hermes acp --check && echo "编辑器可以接了"
 "$HERMES_HOME/hermes-agent/venv/Scripts/python" your_script.py
 
 # 服务：起一个端点，别人连你
-hermes api-server        # 或按其文档启用
+hermes gateway run       # 先按上面的 API_SERVER_ENABLED / API_SERVER_KEY 开好开关
 ```
 
 **判据**：你要的是「我的程序调用 agent」→ 库；「别人的程序调用我的 agent」→ 服务。
