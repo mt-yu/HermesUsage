@@ -128,7 +128,9 @@ python scripts/progress.py next   # 下一课学什么
 
 - [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
 - [x] journal 自动归档 —— 已完成，见 v1.5；cron 任务 `c2e058a277da` 每小时跑，**实测 17:00 真的自动提交了一条**（前提是网关在跑，见「需要人工决策」）
-- [ ] 用 Graphviz / 手绘风格 SVG 替换 README 的 ASCII 路线图（**唯一剩下的待办**：需要选渲染方式，且要保证与 ROADMAP 阶段一致）
+- [x] 用 SVG 替换 README 的 ASCII 路线图 —— 已完成：`scripts/build_roadmap_svg.py` 从课程 frontmatter 生成
+  `docs/roadmap.svg`（1200×1518 / 20.8 KB / 纯标准库 / 字节可重现），已接进 `check.py`（第 6 项）与 19 条单测。
+  **不装 Graphviz**：手绘感用确定性几何实现，零新增依赖
 
 ## 站点（前端）
 
@@ -153,7 +155,7 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 
 ## 下一阶段路线图（v1.2 → v2.0）
 
-现状（2026-09-16 实测）：内容 32 课全部就绪、门禁 11 条 + `check.py` 五项、CI 与 Pages 双绿、
+现状（2026-09-16 实测）：内容 32 课全部就绪、门禁 11 条 + `check.py` 六项、CI 与 Pages 双绿、
 站点已公开。下面各条**都必须能用一条命令验收**，否则不许进这个列表。
 
 ### v1.2 · 让公开站点能被搜到、能被分享（约半天，优先做）

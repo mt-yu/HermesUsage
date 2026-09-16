@@ -7,6 +7,7 @@
   3. Python 单元测试（解析层 / 渲染层 / 构建器）
   4. 前端单元测试（Node 内置测试器；没装 node 就跳过并提示）
   5. 站点构建自检（临时目录构建 + 站内链接全解析）
+  6. 路线图 SVG 同步（docs/roadmap.svg 是否还与课程集合一致）
 
 用法
 ----
@@ -42,6 +43,7 @@ def main() -> int:
     steps: list[tuple[str, list[str]]] = [
         ("内容门禁 verify.py", [PY, "scripts/verify.py", "--quiet"]),
         ("索引同步 build_index.py", [PY, "scripts/build_index.py", "--check"]),
+        ("路线图 SVG 同步 build_roadmap_svg.py", [PY, "scripts/build_roadmap_svg.py", "--check"]),
         ("Python 单元测试", [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-p", "test_*.py"]),
         ("站点构建自检 build_site.py --check", [PY, "scripts/build_site.py", "--check"]),
     ]

@@ -92,7 +92,7 @@ python scripts/check.py                  # 快照哈希与 citations.yaml 必须
 
 ## 6. 提交前自查清单
 
-- [ ] `python scripts/check.py` 输出“全部通过：5 项检查全绿。”（只改内容时可退化为 `verify.py`，但提交前跑一次 check 更稳）
+- [ ] `python scripts/check.py` 输出“全部通过：6 项检查全绿。”（只改内容时可退化为 `verify.py`，但提交前跑一次 check 更稳）
 - [ ] 新增课程已出现在 `llms.txt` 与 `ROADMAP.md`
 - [ ] 所有命令我自己跑过，预期输出是**真实**输出
 - [ ] 出处链接可点开，且与 `sources/cache/` 内容一致
