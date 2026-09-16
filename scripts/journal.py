@@ -299,7 +299,34 @@ def main() -> int:
     l = sub.add_parser("log", help="显示 journal 索引与最近提交")
     l.add_argument("-n", type=int, default=10)
 
+    ac = sub.add_parser("autocommit", help="无人值守归档：有改动才提交（适合 cron）")
+    ac.add_argument("--hours", type=int, default=24, help="会话摘要回溯窗口")
+    ac.add_argument("--title", default="", help="覆盖自动标题")
+
     args = ap.parse_args()
+
+    if args.cmd == "autocommit":
+        # 设计给 cron / hook 调用：静默、幂等、只在真有改动时才落一条记录。
+        # 关键：没有改动时**不输出任何东西**，这样 cron 的 no_agent 模式就不会产生噪音投递。
+        changed = run(["git", "status", "--porcelain"]).stdout.strip()
+        if not changed:
+            return 0
+        files = len([ln for ln in changed.splitlines() if ln.strip()])
+        text, stats = session_digest(args.hours)
+        title = args.title or f"自动归档 {now().strftime('%Y-%m-%d %H:%M')}（{files} 个文件变动）"
+        write_entry(
+            kind="session",
+            title=title,
+            scope="(自动)",
+            summary=f"- 本次自动归档检测到 **{files}** 个文件变动：\n\n"
+                    + "\n".join(f"  - `{ln.strip()}`" for ln in changed.splitlines()[:20])
+                    + "\n\n（由 `python scripts/journal.py autocommit` 生成；无人值守，未做人工总结）",
+            learned="- （自动归档：无人工总结。想补的话直接编辑这条记录并提交）",
+            extra="## 本次 Hermes 会话摘要（来自 state.db）\n\n" + text,
+            do_commit=True,
+            message=f"session: 自动归档 {files} 个文件变动",
+        )
+        return 0
 
     if args.cmd == "digest":
         text, stats = session_digest(args.hours, args.limit)

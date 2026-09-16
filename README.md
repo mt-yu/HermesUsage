@@ -120,6 +120,7 @@ python scripts/progress.py next
 
 python scripts/verify.py                   # 内容质量门禁（改完课程必跑）
 python scripts/build_index.py              # 重建 llms.txt 索引
+python scripts/build_map.py                # 重建可视化学习地图 docs/learning-map.html
 
 python scripts/sync_sources.py --check     # 官方文档有没有改版（出处漂移检测）
 python scripts/sync_sources.py             # 同步官方文档快照

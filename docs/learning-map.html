@@ -1,0 +1,110 @@
+<div class="humap">
+<style>
+.humap { width: 680px; max-width: 100%; color: var(--foreground); font-size: 13px; line-height: 1.5; }
+.humap .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin: 6px 0 14px; }
+.humap .bar > i { display: block; height: 100%; background: var(--accent); }
+.humap .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.humap .head b { font-size: 14px; }
+.humap .muted { color: var(--muted-foreground); }
+.humap .stage { margin: 14px 0 6px; padding: 8px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+.humap .stage > .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.humap .stage .name { font-weight: 600; }
+.humap .stage .why { color: var(--muted-foreground); }
+.humap ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.humap li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; border-top: 1px solid var(--border); }
+.humap li:first-child { border-top: none; }
+.humap .id { flex: 0 0 40px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.humap .t { flex: 1 1 auto; min-width: 0; }
+.humap .min { flex: 0 0 46px; text-align: right; color: var(--muted-foreground); }
+.humap .go { flex: 0 0 72px; text-align: right; }
+.humap button { font: inherit; cursor: pointer; color: var(--foreground);
+  background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+.humap button:hover { border-color: var(--accent); color: var(--accent); }
+.humap .ok { color: var(--accent); }
+.humap .lock { color: var(--muted-foreground); }
+</style>
+<div class="head">
+<b>Hermes 学习地图</b><span class='muted'>0/10 课完成 · 全量约 180 分钟</span>
+</div>
+<div class="bar"><i style="width:0%"></i></div>
+<div class="stage">
+<div class="top">
+<span><span class="name">阶段 0 · 认识 Hermes</span> <span class="why">— 先建立正确的心智模型</span></span>
+<span class="muted">0/4 · 入门</span>
+</div>
+<ul>
+<li>
+<span class="id"><span class="lock">○</span> L00</span>
+<span class="t">Hermes 是什么：三个心智模型</span>
+<span class="min">10min</span>
+<span class="go"><button data-hermes-send="带我学 L00「Hermes 是什么：三个心智模型」：先读 lessons/00-orient/L00-what-is-hermes.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L01</span>
+<span class="t">五分钟装好并说第一句话</span>
+<span class="min">15min</span>
+<span class="go"><button data-hermes-send="带我学 L01「五分钟装好并说第一句话」：先读 lessons/00-orient/L01-first-conversation.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L02</span>
+<span class="t">一次对话里到底发生了什么</span>
+<span class="min">15min</span>
+<span class="go"><button data-hermes-send="带我学 L02「一次对话里到底发生了什么」：先读 lessons/00-orient/L02-what-happens-in-a-turn.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L03</span>
+<span class="t">文件地图：哪个文件管什么</span>
+<span class="min">15min</span>
+<span class="go"><button data-hermes-send="带我学 L03「文件地图：哪个文件管什么」：先读 lessons/00-orient/L03-file-map.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+</ul></div>
+<div class="stage">
+<div class="top">
+<span><span class="name">阶段 1 · 会用 Hermes</span> <span class="why">— 核心五件事：模型/工具/会话/记忆/技能</span></span>
+<span class="muted">0/6 · 入门</span>
+</div>
+<ul>
+<li>
+<span class="id"><span class="lock">○</span> L10</span>
+<span class="t">模型与 Provider：你到底在跟谁说话</span>
+<span class="min">20min</span>
+<span class="go"><button data-hermes-send="带我学 L10「模型与 Provider：你到底在跟谁说话」：先读 lessons/01-core/L10-models-and-providers.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L11</span>
+<span class="t">工具与工具集：它到底能做什么</span>
+<span class="min">20min</span>
+<span class="go"><button data-hermes-send="带我学 L11「工具与工具集：它到底能做什么」：先读 lessons/01-core/L11-tools-and-toolsets.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L12</span>
+<span class="t">会话与斜杠命令：一次对话的边界</span>
+<span class="min">20min</span>
+<span class="go"><button data-hermes-send="带我学 L12「会话与斜杠命令：一次对话的边界」：先读 lessons/01-core/L12-sessions-and-slash-commands.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L13</span>
+<span class="t">记忆系统：它怎么记住你</span>
+<span class="min">20min</span>
+<span class="go"><button data-hermes-send="带我学 L13「记忆系统：它怎么记住你」：先读 lessons/01-core/L13-memory.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L14</span>
+<span class="t">上下文文件：你怎么给它下规矩</span>
+<span class="min">20min</span>
+<span class="go"><button data-hermes-send="带我学 L14「上下文文件：你怎么给它下规矩」：先读 lessons/01-core/L14-context-files.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+<li>
+<span class="id"><span class="lock">○</span> L15</span>
+<span class="t">技能系统：让它学会你的活法</span>
+<span class="min">25min</span>
+<span class="go"><button data-hermes-send="带我学 L15「技能系统：让它学会你的活法」：先读 lessons/01-core/L15-skills.md，然后按课里的「先动手」一步步带我走，每步都等我确认">开始</button></span>
+</li>
+</ul></div>
+<div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+<button data-hermes-send="python scripts/progress.py next">我该学哪一课？</button>
+<button data-hermes-send="python scripts/verify.py 并告诉我这个仓库当前是否健康">检查仓库健康度</button>
+<button data-hermes-send="python scripts/journal.py commit --kind session --title '本次学习会话' --with-session-digest">归档这次学习</button>
+<button data-hermes-send="python scripts/sync_sources.py --check">官方文档有没有改版？</button>
+</div>
+</div>
