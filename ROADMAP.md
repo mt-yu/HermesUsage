@@ -145,9 +145,9 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 | 按阶段浏览 + 进度打卡 | ✅ | `web/assets/app.js` + `site/index.html` |
 | 全站搜索（中文二字切分） | ✅ | `web/assets/lib/search.js` |
 | `src:` 出处徽标（悬停看版本与哈希） | ✅ | `scripts/site_render.py` |
-| 本地预览 / Docker / Netlify / Vercel / Pages | ✅ | `docs/deploy.md` |
-| 练习打卡（`- [ ]` 可点击并保存） | ⬜ | 现在是只读方框，交互待做 |
-| 学习地图与站点合并（去掉重复的两套渲染） | ⬜ | `scripts/build_map.py` 仍是独立渲染 |
+| 本地预览 / Docker（CI 每次真构建+真访问）/ GitHub Pages | ✅ | `docs/deploy.md` |
+| 练习打卡（`- [ ]` 可点击并保存） | ✅ | `web/assets/lib/exercises.js`（v1.3） |
+| 学习地图 | ✅ | 站点 `/map.html`（v1.3）；`docs/learning-map.html` 仍在，作为本地单文件版 |
 
 ---
 
@@ -246,14 +246,26 @@ Python 测试 45 → 59 条。
 
 ### 已知欠账（继续如实标注，不许写成「已验证」）
 
-- Docker / Netlify / Vercel 三条部署路径**未在真实环境验证**（本机无 docker、无那两家账号）
-- `site/` 产物目前没有 SEO 元信息（v1.2 的目标）
+- Docker 路径**已由 CI 验证**（构建镜像 → 起容器 → 按路径 curl → 断言 charset），
+  但「在作者本机 `docker compose up`」从未跑过（本机没装 Docker）—— 这最后一步仍在读者手里
+- Netlify / Vercel 的配置文件已删除：与 Pages 重叠且无法被 `check.py`/CI 验证（理由见 `docs/deploy.md`）
 
-## 需要人工决策（不自动做）
+## 已定案（2026-09-16，原「需要人工决策」）
 
-- **要不要让定时任务真的跑起来？** 「HermesUsage 自动归档」（每小时）与漂移哨兵都依赖网关常驻：
-  `hermes gateway install`（注册为开机自启服务）或每次手动 `hermes gateway start`。
-  这会在你的机器上装一个常驻服务，属于该由人拍板的事，所以没有自动做。
-  现状：任务已 active，但网关没跑时不会触发（`hermes cron list` 会明确提示）。
-- **要不要把 `docs/deploy.md` 里标着「未验证」的三条（Docker / Netlify / Vercel）真跑一遍？**
-  需要先装 docker 或注册相应账号，同样留给你决定。
+- **定时任务：已启用，且加了人工开关。**
+  网关装成 Windows 登录自启项（`hermes gateway install`；本机无管理员权限，
+  Hermes 自动回退到「启动文件夹」方式 —— 实测走的就是这条回退路径）。
+  `hermes cron status` 现在给的是 `✓ Gateway is running — cron jobs will fire automatically`。
+  任务定义收进仓库：`scripts/cron_ctl.py` 的 `JOBS` 表；开关是
+  `python scripts/cron_ctl.py status|on|off|run|install`（详见 `.hermes.md` 第 4 节）。
+  当前 3 个任务：自动归档（每小时）、漂移哨兵（每天 09:00）、外链存活检测（每周一 09:00）——
+  全是「无问题则零输出」，不会变成投递噪音。
+- **部署路径：GitHub Pages 主用 + Docker 交给 CI 验证 + 删除 Netlify/Vercel 配置。**
+  Docker 不再靠散文声称「应该能用」：`.github/workflows/docker.yml` 每次 push 真的
+  `docker build`、起容器、按真实路径 curl 课程页/离线版/坑表页/CSS/JS/数据，并断言
+  `Content-Type: text/html; charset=utf-8`（2026-09-16 首跑通过）。Netlify / Vercel 与 Pages
+  完全重叠、配置只能写在各自后台（无法被 `check.py`/CI 验证），故删除配置文件，
+  在 `docs/deploy.md` 留三行配方与「不提供」的理由。
+
+> 残留的诚实标注：作者本机没有 Docker，「在你自己机器上 `docker compose up`」这最后一步
+> 仍需你亲自跑一次（CI 用的就是同一份 `Dockerfile`）。
