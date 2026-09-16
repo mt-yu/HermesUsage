@@ -189,6 +189,73 @@ def map_rows(lessons: list[dict[str, Any]], done: set[str] | None = None) -> lis
     return rows
 
 
+PITFALL_HEADING_RE = re.compile(r"^#{1,6}\s*常见坑\s*$", re.M)
+SECTION_RE = re.compile(r"^##\s", re.M)
+# 分隔行：|---|---| / |:--|--:|。整行都是横线，没有任何内容。
+SEP_CELL_RE = re.compile(r"^:?-+:?$")
+PITFALL_HEADER = ("现象", "真实原因", "怎么解决")
+
+
+def pitfall_section(body: str) -> str:
+    """取出正文里 `## 常见坑` 小节的原文（到下一个二级标题为止）。
+
+    单独抽出来是因为「小节边界」是这一段最容易出错的地方：
+    用「下一个 ## 」当右边界，才不会把「试一试」「动手练」里的表格也算进来
+    —— 那些表是练习，不是坑。
+    """
+    m = PITFALL_HEADING_RE.search(body or "")
+    if not m:
+        return ""
+    rest = body[m.end():]
+    nxt = SECTION_RE.search(rest)
+    return rest[: nxt.start()] if nxt else rest
+
+
+def _table_cells(line: str) -> list[str]:
+    """一行 markdown 表格 → 单元格列表（按未转义的 `|` 切，`\\|` 不是分隔符）。"""
+    inner = line.strip().strip("|")
+    return [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
+
+
+def _is_separator_row(cells: list[str]) -> bool:
+    return bool(cells) and all(SEP_CELL_RE.match(c) for c in cells)
+
+
+def pitfall_rows(lesson: dict[str, Any]) -> list[dict[str, str]]:
+    """抽取该课 `## 常见坑` 小节里所有 markdown 表格的数据行 → [{symptom, cause, fix}]。
+
+    规则（站点「常见错误合集」页全部 253 行都从这里来，所以每条都要说清）：
+
+    - 只在该小节内找表格；「试一试」等别的小节里的表格不算；
+    - 跳过表头行（紧挨着分隔行的那行）与 `|---|---|` 分隔行 ——
+      否则页面上会凭空多出 32 行「现象/真实原因/怎么解决」；
+    - 单元格数不为 3 的行跳过（两列的行是写坏的表，宁可少一行也不要把
+      半个单元格渲染成表格里的错位格子）；
+    - 单元格**原文保留**（行内代码、`[[src:id]]`、`[[Lxx]]` 都留着）：
+      渲染层要拿它们去连出处与课程页，这里先做一次替换就等于把标记吃掉了。
+
+    没有该小节、或小节里没有表格，返回 []。
+    """
+    raw_rows = [
+        _table_cells(line)
+        for line in pitfall_section(lesson.get("body", "")).split("\n")
+        if line.strip().startswith("|")
+    ]
+    rows: list[dict[str, str]] = []
+    for i, cells in enumerate(raw_rows):
+        if _is_separator_row(cells):
+            continue
+        # 表头 = 紧挨着分隔行上面的那一行（markdown 表格的唯一合法表头位置）
+        if i + 1 < len(raw_rows) and _is_separator_row(raw_rows[i + 1]):
+            continue
+        if tuple(cells) == PITFALL_HEADER:
+            continue
+        if len(cells) != 3:
+            continue
+        rows.append({"symptom": cells[0], "cause": cells[1], "fix": cells[2]})
+    return rows
+
+
 BASELINE_RE = re.compile(r"^#\s*生成时间:\s*(\S+)\s+hermes v(\S+)", re.M)
 COMMIT_RE = re.compile(r"@\s*([0-9a-f]{7,40})")
 

@@ -31,19 +31,26 @@ class TestBuildOutput(unittest.TestCase):
 
     def test_stats_match_repo(self):
         # 页数按**组成**断言，不留魔法数字：
-        # 页数 = 课程页（= 课程数）+ 仓库规范页（= site.json 的 repo_docs 条数）+ 首页 + 学习地图 + 404
-        self.assertEqual(self.stats["lessons"], 32)
-
+        # 页数 = 课程页（= 课程数）+ 仓库规范页（= site.json 的 repo_docs 条数）
+        #        + 站点根目录的页面（首页 / 学习地图 / 常见错误合集 / 404）
+        n_lessons = len(core.load_lessons(REPO))
         lesson_pages = len(list((self.out / "lessons").glob("*.html")))
         repo_pages = len(list((self.out / "repo").glob("*.html")))
+        root_pages = len(list(self.out.glob("*.html")))          # 只有站点根目录的页面，不含子目录
         cfg = build_site.load_config()
 
-        self.assertEqual(lesson_pages, 32)                      # 每课一页
-        self.assertEqual(repo_pages, len(cfg["repo_docs"]))     # 每个 repo_doc 一页
-        self.assertTrue((self.out / "index.html").is_file())     # 首页
-        self.assertTrue((self.out / "404.html").is_file())       # 404
-        self.assertTrue((self.out / "map.html").is_file())       # 学习地图
-        self.assertEqual(self.stats["pages"], lesson_pages + repo_pages + 3)
+        self.assertEqual(self.stats["lessons"], n_lessons)
+        self.assertEqual(lesson_pages, n_lessons)                # 每课一页
+        self.assertEqual(repo_pages, len(cfg["repo_docs"]))      # 每个 repo_doc 一页
+        for rel in ("index.html", "map.html", "pitfalls.html", "404.html"):
+            self.assertTrue((self.out / rel).is_file(), f"缺 {rel}")
+        self.assertEqual(root_pages, 4)                          # 首页 / 地图 / 合集 / 404
+        self.assertEqual(self.stats["pages"], lesson_pages + repo_pages + root_pages)
+
+        # 文件数也是组成式：页面 + 非页面文件（sitemap/robots/.nojekyll/data/*.json/assets/*）
+        non_html = [p for p in self.out.rglob("*") if p.is_file() and p.suffix != ".html"]
+        self.assertEqual(self.stats["files"], self.stats["pages"] + len(non_html))
+        self.assertTrue(non_html, "产物里除了 .html 还应该有 sitemap/robots/data/资源文件")
 
     def test_index_and_data_files_exist(self):
         for rel in ("index.html", "404.html", "map.html", ".nojekyll",
@@ -57,14 +64,14 @@ class TestBuildOutput(unittest.TestCase):
 
     def test_index_json_shape(self):
         data = json.loads((self.out / "data" / "index.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(data["lessons"]), 32)
+        self.assertEqual(len(data["lessons"]), len(core.load_lessons(REPO)))
         first = data["lessons"][0]
         for key in ("id", "title", "stage", "minutes", "level", "prereq", "summary", "url"):
             self.assertIn(key, first)
 
     def test_search_json_shape(self):
         data = json.loads((self.out / "data" / "search.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(data["docs"]), 32)
+        self.assertEqual(len(data["docs"]), len(core.load_lessons(REPO)))
         l23 = next(d for d in data["docs"] if d["id"] == "L23")
         self.assertIn("hermes cron", l23["text"])
 
@@ -80,7 +87,7 @@ class TestBuildOutput(unittest.TestCase):
 
     def test_manifest_records_source_hashes(self):
         manifest = json.loads((self.out / "data" / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(manifest["lessons"]), 32)
+        self.assertEqual(len(manifest["lessons"]), len(core.load_lessons(REPO)))
         self.assertEqual(len(manifest["lessons"][0]["sha256"]), 64)
         self.assertTrue(manifest["baseline"]["version"])
 
@@ -140,9 +147,8 @@ class TestMapPage(unittest.TestCase):
         stat = (self.out / "map.html").stat()
         self.assertGreater(stat.st_size, 0)
         rows = re.findall(r'<li data-lesson="(L\d+)"', main_region(self.page))
-        self.assertEqual(len(rows), len(self.lessons))
-        self.assertEqual(len(rows), 32)
-        self.assertEqual(set(rows), {l["id"] for l in self.lessons})   # 每课一行、不重复
+        self.assertEqual(len(rows), len(core.load_lessons(REPO)))       # 每课一行
+        self.assertEqual(set(rows), {l["id"] for l in self.lessons})   # 不重复、也没有多余的
 
     def test_map_rows_link_to_the_lesson_pages(self):
         links = re.findall(r'<li data-lesson="(L\d+)"><a href="([^"]+)"', main_region(self.page))
@@ -209,6 +215,141 @@ class TestMapPage(unittest.TestCase):
         self.assertIn('href="../lessons/L15-skills.html"', repo)
         self.assertIn('href="../map.html"', repo)
         self.assertNotIn('href="repo/', lesson)          # 课程页的前缀必须是 ../
+
+
+class TestPitfallsPage(unittest.TestCase):
+    """v1.4 常见错误合集 `/pitfalls.html`：32 课「常见坑」的全量聚合页。
+
+    这一页最容易坏的地方是**链接前缀**：它和首页同在站点根目录，而 `[[Lxx]]`
+    在课程页里的映射是「同级页面」（`L15-skills.html`）。照抄那份映射，读者点课号
+    就会跳到 `site/L15-skills.html`（不存在）——构建期只有 check_links 会发现，
+    所以这里先把它断言死。
+
+    第二处容易坏的是**行数**：表头行 / 分隔行没被解析层跳掉时，页面上会多出
+    32 行「现象/真实原因/怎么解决」，看着仍然像一张表。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        cls.base = cls.cfg["base_url"]
+        cls.stats = build_site.build(cls.out, cls.cfg)
+        cls.page = (cls.out / "pitfalls.html").read_text(encoding="utf-8")
+        cls.main = main_region(cls.page)
+        cls.lessons = core.load_lessons(REPO)
+        cls.groups = core.group_by_stage(cls.lessons)
+        cls.expected_rows = sum(len(core.pitfall_rows(l)) for l in cls.lessons)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    # --- 内容 --------------------------------------------------------------
+
+    def test_page_exists_and_holds_all_253_pitfall_rows(self):
+        self.assertTrue((self.out / "pitfalls.html").is_file())
+        self.assertGreater((self.out / "pitfalls.html").stat().st_size, 0)
+
+        # 数据行 = `<tr>` 后面直接跟着 `<td>` 的行；表头行是 `<th>`，天然被排除。
+        data_rows = re.findall(r"<tr>\s*<td>", self.main)
+        self.assertEqual(len(data_rows), 253)
+        # 与解析层对账（**不是**数 `[[src:` 的出现次数：一个单元格里可能有两个标记）
+        self.assertEqual(self.expected_rows, 253)
+        self.assertEqual(len(data_rows), self.expected_rows)
+        # 表头行另算：每个阶段一张表 → 一行 `<th>`
+        self.assertEqual(len(re.findall(r"<tr>", self.main)), len(data_rows) + len(self.groups))
+        self.assertEqual(len(self.groups), 7)          # 0/1/2/3/4/5/9
+
+    def test_table_columns_are_lesson_symptom_cause_fix(self):
+        heads = re.findall(r"<th>([^<]+)</th>", self.main)
+        self.assertEqual(heads, ["课", "现象", "真实原因", "怎么解决"] * len(self.groups))
+
+    def test_every_lesson_id_appears(self):
+        ids = re.findall(r'<a class="xref" href="[^"]+">(L\d+)</a>', self.main)
+        self.assertEqual(set(ids), {l["id"] for l in self.lessons})
+        self.assertEqual(len(set(ids)), 32)
+
+    def test_cell_content_is_rendered_not_left_as_markers(self):
+        self.assertNotIn("[[", self.main)              # 出处与交叉引用标记都该变成链接
+        self.assertIn('class="cite"', self.main)
+        self.assertIn("hermes-agent.nousresearch.com", self.main)
+        self.assertIn("<code>hermes cron list</code>", self.main)   # 行内代码照常渲染
+
+    # --- 那个坑：课程链接必须带 lessons/ 前缀 -------------------------------
+
+    def test_links_back_to_lessons_carry_the_lessons_prefix(self):
+        # 课号总数 = 每行「课」列一个 + 有些格子正文里自己也带交叉引用（本文里 10 处）
+        joined = "".join(
+            r["symptom"] + r["cause"] + r["fix"]
+            for l in self.lessons for r in core.pitfall_rows(l)
+        )
+        markers = re.findall(r"\[\[(L\d+)\]\]", joined)
+        self.assertEqual(len(markers), 10)          # 格子正文里自带的交叉引用（如「见 [[L24]]」）
+
+        hrefs = re.findall(r'<a class="xref" href="([^"]+)"', self.main)
+        self.assertEqual(len(hrefs), 253 + len(markers))   # 每行「课」列一个 + 格子里的
+        self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向 32 个课程页
+        for href in hrefs:
+            self.assertTrue(href.startswith("lessons/"), f"合集页在站点根目录，课号必须带前缀：{href}")
+            self.assertTrue((self.out / href).is_file(), f"指向不存在的页面：{href}")
+        self.assertNotIn('href="L15-skills.html"', self.main)      # 「同级页面」映射的典型错法
+        self.assertNotIn('href="../lessons/', self.main)           # 前缀多一层也是死链
+
+    def test_no_broken_links_from_this_page(self):
+        self.assertEqual(
+            [p for p in build_site.check_links(self.out) if p.startswith("pitfalls.html")], []
+        )
+
+    # --- sitemap / canonical / og / 侧栏 ------------------------------------
+
+    def test_page_is_in_the_sitemap(self):
+        locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
+        self.assertIn(self.base + "pitfalls.html", locs)
+        # 组成式：sitemap = 课程页 + 规范页 + 首页/地图/合集（404 不收录）
+        self.assertEqual(len(locs), len(self.lessons) + len(self.cfg["repo_docs"]) + 3)
+        self.assertEqual(len(locs), len(list(self.out.rglob("*.html"))) - 1)
+
+    def test_page_has_canonical_and_five_og_tags(self):
+        self.assertEqual(CANONICAL_RE.findall(self.page), [self.base + "pitfalls.html"])
+        metas = dict(OG_META_RE.findall(self.page))
+        self.assertEqual(len(OG_META_RE.findall(self.page)), 5)
+        self.assertEqual(set(metas), OG_NAMES)
+        self.assertEqual(metas["og:url"], self.base + "pitfalls.html")
+        self.assertTrue(metas["og:title"].startswith("常见错误合集"), metas["og:title"])
+        self.assertTrue(metas["og:description"], "og:description 不能为空")
+
+    def test_sidebar_links_the_page_from_root_and_subpages(self):
+        for rel, href in (
+            ("index.html", "pitfalls.html"),
+            ("map.html", "pitfalls.html"),
+            ("pitfalls.html", "pitfalls.html"),
+            ("lessons/L15-skills.html", "../pitfalls.html"),
+            ("repo/roadmap.html", "../pitfalls.html"),
+        ):
+            page = (self.out / rel).read_text(encoding="utf-8")
+            self.assertIn(f'<li><a href="{href}">常见错误合集</a></li>', page, rel)
+
+    def test_build_fails_loudly_when_a_pitfall_cites_an_unregistered_source(self):
+        """未登记的出处必须让构建报错，而不是渲染成一个点了就 404 的标记。
+
+        这一页用到的 `[[src:]]` id 全部已登记；这里用一个假的正文验
+        「报错这条路真的通」——绕过去（静默留字面量）才是真的坏。
+        """
+        fake_groups = [{
+            "stage": 9, "name": "毕业项目", "why": "",
+            "lessons": [{
+                "id": "L99", "title": "假课", "stage": 9,
+                "body": "## 常见坑\n\n| 现象 | 真实原因 | 怎么解决 |\n|---|---|---|\n"
+                        "| a | b | [[src:not-registered]] |\n",
+            }],
+        }]
+        md = build_site.render_pitfalls_markdown(fake_groups)
+        html, _ = R.render_markdown(md)
+        with self.assertRaises(R.SiteError) as ctx:
+            R.linkify_citations(html, core.load_citations(REPO), "pitfalls.html")
+        self.assertIn("not-registered", str(ctx.exception))
 
 
 class TestSiteReachability(unittest.TestCase):

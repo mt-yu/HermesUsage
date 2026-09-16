@@ -228,6 +228,7 @@ def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, pre
     out.append('<section class="nav-stage"><h2 class="nav-stage-title">'
                '<span>入口</span></h2><ul>'
                f'<li><a href="{prefix}map.html">学习地图</a></li>'
+               f'<li><a href="{prefix}pitfalls.html">常见错误合集</a></li>'
                "</ul></section>")
     if cfg.get("repo_docs"):
         out.append('<section class="nav-stage nav-repo"><h2 class="nav-stage-title">'
@@ -331,6 +332,75 @@ def render_map_page(groups: list[dict], lessons: list[dict], cfg: dict, link_for
         '<code>docs/learning-map.html</code>（行数据与这一页同源）。</p>'
     )
     return "".join(out)
+
+
+def render_pitfalls_markdown(groups: list[dict]) -> str:
+    """32 课的「常见坑」→ 一份 **markdown 文档**（刻意不手拼 HTML）。
+
+    为什么走 markdown：这一页的每一格都带 `[[src:id]]` 与 `[[Lxx]]` 标记。
+    直接拼 HTML 就等于把「出处链接」「回课程的链接」再实现一遍 —— 而课程页已经有一份，
+    第三份实现必然与它漂移（同一课号在两边指向不同地址）。走 markdown 就能原样复用
+    课程页的渲染管线：render_markdown → linkify_citations → linkify_xrefs。
+
+    「课」这一列写 `[[L15]]` 而不是裸的 `L15`：交叉引用解析会把课号变成回原课的链接，
+    读者看到某条坑能一步跳回去看上下文。代价是调用方必须传**带前缀的** id → href 映射
+    （这一页在站点根目录，课程页在 lessons/ 下），见 build() 里的注释。
+
+    阶段的顺序、每课的顺序都跟课程正文一致；同一课的多条坑挨在一起，
+    这样「点开课号跳回去」才符合读者的预期。
+    """
+    total = sum(len(core.pitfall_rows(ls)) for g in groups for ls in g["lessons"])
+    lines = [
+        "# 常见错误合集",
+        "",
+        f"这是全部 {sum(len(g['lessons']) for g in groups)} 课里「常见坑」小节的全量汇总，"
+        f"共 {total} 条：每条都写清现象、真实原因、怎么解决，点课号能跳回原课看上下文。",
+        "",
+        "顺序与课程一致。这一页是**构建期**从课程正文里抽出来的"
+        "（`scripts/tutorial_core.py` 的 `pitfall_rows`）——课程改了这一页跟着变，"
+        "不需要谁记得手动同步。",
+        "",
+    ]
+    for g in groups:
+        rows = [(ls, row) for ls in g["lessons"] for row in core.pitfall_rows(ls)]
+        if not rows:
+            continue
+        lines += [
+            f"## 阶段 {g['stage']} · {g['name']}",
+            "",
+            f"{len(rows)} 条，来自本阶段 {len(g['lessons'])} 课。",
+            "",
+            "| 课 | 现象 | 真实原因 | 怎么解决 |",
+            "|---|---|---|---|",
+        ]
+        lines += [
+            f"| [[{ls['id']}]] | {row['symptom']} | {row['cause']} | {row['fix']} |"
+            for ls, row in rows
+        ]
+        lines.append("")
+    return "\n".join(lines)
+
+
+def render_pitfalls_page(groups: list[dict], lessons: list[dict], citations: dict) -> tuple[str, str]:
+    """「常见错误合集」正文 HTML：markdown → 出处链接 → 课程链接。
+
+    ⚠️ 这里最关键的一行是 `linkify_xrefs` 的映射：**必须带 `lessons/` 前缀**
+    （`l["url"]` 就是 `lessons/L15-skills.html`）。课程页之间互引用时用的是
+    「同级页面」（`L15-skills.html`），直接照抄那份映射，这一页上 253 个课号
+    就会全部指到不存在的 `site/L15-skills.html` —— 而页面本身渲染得好好的，
+    不检查链接根本发现不了。
+
+    `[[src:]]` 不做任何兜底：某个 id 没登记，linkify_citations 必须抛错让构建停下来
+    （这一页用到的 id 全部已在 sources/citations.yaml 登记）。绕过去的话，
+    读者点到的就是「可考证」招牌底下的死链。
+
+    返回 (正文 HTML, 目录 HTML)。
+    """
+    md = render_pitfalls_markdown(groups)
+    html, toc = R.render_markdown(md)
+    html = R.linkify_citations(html, citations, "pitfalls.html")
+    html = R.linkify_xrefs(html, {l["id"]: l["url"] for l in lessons}, "pitfalls.html")
+    return html, R.build_toc_html(toc)
 
 
 def render_lesson_article(ls: dict, html: str, toc_html: str, prev, nxt, link_for) -> str:
@@ -604,13 +674,40 @@ def build(out: Path, cfg: dict) -> dict:
     (site / "map.html").write_text(map_page, encoding="utf-8", newline="\n")
     sitemap_entries.append((base + "map.html", today))
 
+    # 常见错误合集 /pitfalls.html：构建期聚合 32 课「常见坑」的全部 253 行。
+    # 与地图页一样在站点根目录，所以 prefix=""；但正文里的课号指向 lessons/ 下的页面
+    # （见 render_pitfalls_page 里那条「映射必须带前缀」的注释）。
+    pitfall_html, pitfall_toc = render_pitfalls_page(groups, lessons, citations)
+    pitfall_rows_total = sum(len(core.pitfall_rows(l)) for l in lessons)
+    pitfalls_page = R.render_template(
+        layout,
+        {
+            "title": f"常见错误合集 · {cfg['title']}",
+            "desc": f"{len(lessons)} 课「常见坑」的全量汇总，共 {pitfall_rows_total} 条：现象、真实原因、怎么解决。",
+            **page_meta(
+                base, "pitfalls.html", "article", f"常见错误合集 · {cfg['title']}",
+                f"{len(lessons)} 课里「常见坑」小节的全量汇总，共 {pitfall_rows_total} 条，点课号可跳回原课。",
+            ),
+            "prefix": "",
+            "site_title": R.escape(cfg["title"]),
+            "lesson_id": "",
+            "sidebar": render_sidebar(groups, "__pitfalls__", link_from_root, cfg, ""),
+            "content": f'<article class="lesson pitfalls">{pitfall_html}</article>',
+            "toc": pitfall_toc,
+            "footer": render_footer(cfg),
+        },
+        "pitfalls.html",
+    )
+    (site / "pitfalls.html").write_text(pitfalls_page, encoding="utf-8", newline="\n")
+    sitemap_entries.append((base + "pitfalls.html", today))
+
     # 仓库规范页
     repo_pages = [render_repo_doc(rel, cfg, layout, groups) for rel in cfg.get("repo_docs", [])]
     for slug, page in repo_pages:
         (site / "repo" / f"{slug}.html").write_text(page, encoding="utf-8", newline="\n")
         sitemap_entries.append((base + f"repo/{slug}.html", today))
 
-    # sitemap / robots：首页一条 + 每课一条 + 每个规范页一条。
+    # sitemap / robots：首页一条 + 每课一条 + 学习地图 + 常见错误合集 + 每个规范页一条。
     # 404.html 不在其中 —— 它是错误兜底页，不该出现在搜索结果里（check_seo 会盯着这点）。
     (site / "sitemap.xml").write_text(
         build_sitemap([(base, today)] + sitemap_entries), encoding="utf-8", newline="\n",

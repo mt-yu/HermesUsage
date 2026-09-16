@@ -226,6 +226,118 @@ class TestMapRows(unittest.TestCase):
         self.assertEqual(flagged, {"L15", "L90"})
 
 
+PITFALL_BODY = """## 你将学会
+
+- 先看表格
+
+| 现象 | 真实原因 | 怎么解决 |
+|---|---|---|
+| 别算我 | 不在「常见坑」小节里 | —— |
+
+## 常见坑
+
+| 现象 | 真实原因 | 怎么解决 |
+|---|---|---|
+| 现象一 | 原因一 | 跑 `hermes cron list` 看看 |
+| 现象二 | 原因二 | 见 [[src:quickstart]] |
+
+补充一句说明，然后第二张表：
+
+| 现象 | 真实原因 | 怎么解决 |
+|---|---|---|
+| 现象三 | 原因三 | 见 [[L15]] |
+| 两列的行 | 只有两列 |
+| 现象四 | 原因四 | 解决四 |
+
+## 试一试
+
+- 把上面几条照着做一遍
+"""
+
+
+class TestPitfallRows(unittest.TestCase):
+    """`## 常见坑` 表格 → 行数据：站点「常见错误合集」页的唯一数据来源。
+
+    这一段的解析规则要写死在解析层（而不是渲染层）：
+    页面上的 253 行全部来自这里，解析口径一变，页面上就会多出表头、
+    少掉整张表，而那种错在浏览器里看着「也挺像表格」。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lessons = core.load_lessons(REPO)
+        cls.repo_rows = {l["id"]: core.pitfall_rows(l) for l in cls.lessons}
+
+    # --- 解析规则（fixture） ------------------------------------------------
+
+    def test_parses_only_the_pitfall_section(self):
+        rows = core.pitfall_rows({"body": PITFALL_BODY})
+        self.assertEqual(
+            [r["symptom"] for r in rows], ["现象一", "现象二", "现象三", "现象四"]
+        )
+
+    def test_row_shape(self):
+        for row in core.pitfall_rows({"body": PITFALL_BODY}):
+            self.assertEqual(set(row), {"symptom", "cause", "fix"}, row)
+
+    def test_skips_header_and_separator_rows(self):
+        rows = core.pitfall_rows({"body": PITFALL_BODY})
+        for row in rows:
+            self.assertNotIn(row["symptom"], ("现象", "---"), row)
+            self.assertNotEqual(row["cause"], "真实原因", row)
+
+    def test_skips_rows_whose_cell_count_is_not_three(self):
+        symptoms = [r["symptom"] for r in core.pitfall_rows({"body": PITFALL_BODY})]
+        self.assertNotIn("两列的行", symptoms)
+
+    def test_keeps_cell_text_verbatim(self):
+        by = {r["symptom"]: r for r in core.pitfall_rows({"body": PITFALL_BODY})}
+        self.assertEqual(by["现象一"]["fix"], "跑 `hermes cron list` 看看")   # 行内代码原样保留
+        self.assertEqual(by["现象二"]["fix"], "见 [[src:quickstart]]")        # 出处标记原样保留
+        self.assertEqual(by["现象三"]["fix"], "见 [[L15]]")                   # 交叉引用原样保留
+
+    def test_two_tables_in_one_section_are_both_parsed(self):
+        rows = core.pitfall_rows({"body": PITFALL_BODY})
+        self.assertEqual(len(rows), 4)      # 一张表 2 行 + 另一张表 2 行
+        self.assertEqual(rows[2]["symptom"], "现象三")
+
+    def test_section_without_table_returns_empty(self):
+        self.assertEqual(core.pitfall_rows({"body": "## 常见坑\n\n这里只有一句话。\n"}), [])
+
+    def test_missing_section_returns_empty(self):
+        self.assertEqual(core.pitfall_rows({"body": "# L99\n\n## 试一试\n\n- 无\n"}), [])
+
+    def test_lesson_without_body_returns_empty(self):
+        self.assertEqual(core.pitfall_rows({}), [])
+
+    # --- 真实仓库 ----------------------------------------------------------
+
+    def test_every_lesson_has_a_pitfall_section(self):
+        for lesson in self.lessons:
+            self.assertTrue(
+                core.pitfall_section(lesson["body"]).strip(), f"{lesson['id']} 没有「常见坑」小节"
+            )
+
+    def test_repo_total_is_253_rows(self):
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 253)
+
+    def test_capstone_has_15_rows(self):
+        self.assertEqual(len(self.repo_rows["L90"]), 15)
+
+    def test_first_lesson_has_4_rows(self):
+        self.assertEqual(len(self.repo_rows["L00"]), 4)
+
+    def test_every_lesson_contributes_at_least_one_row(self):
+        empty = [lid for lid, rows in self.repo_rows.items() if not rows]
+        self.assertEqual(empty, [], "这些课在「常见坑」里一行都没有（合集页会漏掉它们）")
+
+    def test_each_row_has_three_non_empty_cells(self):
+        for lid, rows in self.repo_rows.items():
+            for row in rows:
+                for key in ("symptom", "cause", "fix"):
+                    self.assertTrue(row[key], f"{lid}: 空单元格 {key}={row!r}")
+
+
 class TestGrouping(unittest.TestCase):
     def test_groups_cover_all_stages(self):
         groups = core.group_by_stage(core.load_lessons(REPO))
