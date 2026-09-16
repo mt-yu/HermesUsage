@@ -109,19 +109,26 @@ python scripts/progress.py next   # 下一课学什么
 | `v0.2-orient` | 阶段 0 全部就绪 | ✅ |
 | `v0.3-core` | 阶段 1 全部就绪（核心五件事） | ✅ |
 | `v1.0-tutorial` | 阶段 0-5 + 毕业项目全部就绪 | ✅ |
+| `v1.1-web` | 可交互静态站点上线（搜索/进度/出处徽标） | ✅ |
+| `v1.2-seo` | 站点可达性：sitemap / robots / canonical / og / skip-link | ✅ |
+| `v1.3-site` | 练习打卡 / 学习地图 / 键盘导航 | ✅ |
+| `v1.4-content` | 出处 89→91、L44 本机复现、`/pitfalls.html` | ✅ |
+| `v1.5-auto` | 外链存活检测 + 文档漂移哨兵 | ✅ |
+| `v2.0-deliverable` | 学习报告导出 + 单文件离线版 | ✅ |
 
 ## 维护待办（内容层）
 
-- [ ] 把带「官方文档表述（未本机实测）」说明的段落补全（实测当前只剩一处：`lessons/04-extend/L44-as-a-library.md:102` 的 API Server 启动横幅；L33 已无此标记）
-- [ ] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` 两页，让 L21 的浏览器与检索内容有更精确的出处（当前借用 tools-reference）
-- [ ] 官方文档漂移后：`python scripts/sync_sources.py` 并复核受影响的课程表述
-- [ ] 阶段完成后补一个「常见错误合集」页（跨课程的坑聚合）
+- [x] 把带「官方文档表述（未本机实测）」说明的段落补全 —— 已完成，见 v1.4（L44 的 API Server 段已本机复现）
+- [x] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` —— 已完成，见 v1.4（出处 89 → 91）
+- [ ] **常驻流程（不是待办）**：官方文档漂移后跑 `python scripts/sync_sources.py`，并复核受影响课程的表述；
+  漂移检测已自动化：`python scripts/drift_watch.py`（可开 issue）
+- [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 
 ## 维护待办（系统层）
 
 - [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
-- [ ] journal 自动归档：`hermes cron` 定时跑 `scripts/journal.py digest`
-- [ ] 用 Graphviz / 手绘风格 SVG 替换 README 的 ASCII 路线图
+- [x] journal 自动归档 —— 已完成，见 v1.5；cron 任务 `c2e058a277da` 每小时跑，**实测 17:00 真的自动提交了一条**（前提是网关在跑，见「需要人工决策」）
+- [ ] 用 Graphviz / 手绘风格 SVG 替换 README 的 ASCII 路线图（**唯一剩下的待办**：需要选渲染方式，且要保证与 ROADMAP 阶段一致）
 
 ## 站点（前端）
 
