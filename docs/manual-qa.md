@@ -1,4 +1,4 @@
-# 发布前手工验收清单（15 条）
+# 发布前手工验收清单（17 条）
 
 自动化能覆盖的（内容门禁、单元测试、站点构建与链接自检）交给 `python scripts/check.py`，
 **这份清单只列自动化盖不住的事**：真实浏览器里的交互与渲染。每次发布前跑一遍。
@@ -24,6 +24,8 @@ python scripts/serve.py --open     # 本地起站；线上版同理（把 URL �
 | 13 | 走完以上操作后看控制台 | **零未捕获异常**（`addEventListener('error')` 无触发） |
 | 14 | 首页或地图页点「导出学习报告」 | 下载 `hermes-usage-report.md`；里面汇总行的课数/练习数与页面一致，按阶段分表齐全 |
 | 15 | 打开 `/offline.html`（或下载后双击） | 单文件可读、样式生效；顶部目录能跳到对应课；断网也不影响阅读 |
+| 16 | 打开仓库首页首屏的「学习路线图」 | 是一张深色底的图（不是代码块）：中文正常、芯片文字不溢出边框、7 个阶段都带「N/N 课就绪」；失败时先跑 `python scripts/build_roadmap_svg.py --check`（应为 0） |
+| 17 | 改任意一课的标题后跑 `python scripts/check.py` | 报「路线图 SVG 同步」失败并打印差异；跑 `python scripts/build_roadmap_svg.py` 后重回 6 项全绿 |
 
 > 第 13 条可以脚本化：注入
 > `addEventListener('error',e=>__errs.push(e.message))` 与 `unhandledrejection` 监听后再做上面 1-12 条。
