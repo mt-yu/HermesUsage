@@ -10,8 +10,9 @@
 $EDITOR lessons/02-core/L21-xxx.md      # 或新建：cp templates/lesson.md lessons/...
 
 # 自检（必须全绿）
-python scripts/build_index.py
-python scripts/verify.py
+python scripts/build_index.py            # 重建 llms.txt（AI 的导航入口）
+python scripts/build_map.py              # 重建 docs/learning-map.html（学习者的可视化地图）
+python scripts/verify.py                 # 11 条硬规则，0 错误才算完
 
 # 归档并提交（自动写 journal + commit）
 python scripts/journal.py commit --kind docs --title "新增 L21" --scope L21 \

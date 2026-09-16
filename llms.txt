@@ -2,7 +2,7 @@
 
 > 一份可考证、可自维护、可回滚的 Hermes Agent 教程系统。每条事实性陈述都带 [[src:id]] 出处标记，可在 sources/citations.yaml 反查到官方文档 URL、版本与内容哈希。
 
-课程总数：10 课（入门 10 课 / 进阶 0 课），合计约 180 分钟。
+课程总数：32 课（入门 10 课 / 进阶 22 课），合计约 725 分钟。
 
 ## 怎么读这份索引（给 AI 维护者）
 
@@ -26,6 +26,38 @@
 - [L13 记忆系统：它怎么记住你](lessons/01-core/L13-memory.md) — [入门] 20 分钟 · 标签：记忆、MEMORY.md、USER.md、冻结快照 · 出处 3 条
 - [L14 上下文文件：你怎么给它下规矩](lessons/01-core/L14-context-files.md) — [入门] 20 分钟 · 标签：.hermes.md、AGENTS.md、SOUL.md、@引用 · 出处 4 条
 - [L15 技能系统：让它学会你的活法](lessons/01-core/L15-skills.md) — [入门] 25 分钟 · 标签：技能、SKILL.md、渐进式披露、项目技能 · 出处 5 条
+## 阶段 2 · 日常威力（把 agent 当主力用）
+
+- [L20 提问与指挥：把模糊需求变成可验证任务](lessons/02-workflow/L20-craft-requests.md) — [进阶] 20 分钟 · 标签：提问、判据、prompt-size、上下文文件 · 出处 3 条
+- [L21 让它动真格：终端 / 文件 / 浏览器 / 网页](lessons/02-workflow/L21-do-real-work.md) — [进阶] 25 分钟 · 标签：terminal、browser、web_extract、code_execution · 出处 3 条
+- [L22 委派：delegate_task 并行子代理](lessons/02-workflow/L22-delegation.md) — [进阶] 20 分钟 · 标签：delegation、并行、子代理、context 隔离 · 出处 3 条
+- [L23 定时与循环：cron / loops / goals](lessons/02-workflow/L23-cron-loops-goals.md) — [进阶] 25 分钟 · 标签：cron、loop、goal、heartbeat · 出处 5 条
+- [L24 检查点与回滚：干坏事了怎么办](lessons/02-workflow/L24-checkpoints-and-rollback.md) — [进阶] 15 分钟 · 标签：checkpoints、rollback、影子仓库、备份 · 出处 2 条
+- [L25 配方库：20 个可直接抄的工作流](lessons/02-workflow/L25-cookbook.md) — [进阶] 30 分钟 · 标签：配方、工作流、cron、hermes send · 出处 4 条
+## 阶段 3 · 自动化与多代理（进阶）
+
+- [L30 钩子 hooks：在生命周期节点插入你的代码](lessons/03-automation/L30-hooks.md) — [进阶] 20 分钟 · 标签：hooks、shell hooks、生命周期、拦阻 · 出处 2 条
+- [L31 事件驱动：webhooks 让外部事件触发 Hermes](lessons/03-automation/L31-webhooks.md) — [进阶] 20 分钟 · 标签：webhooks、事件驱动、HMAC、GitHub · 出处 3 条
+- [L32 多代理：kanban 看板与 bot mode](lessons/03-automation/L32-kanban-and-bot-mode.md) — [进阶] 25 分钟 · 标签：kanban、多代理、profiles、bot mode · 出处 3 条
+- [L33 网关：把 Hermes 变成机器人](lessons/03-automation/L33-gateway.md) — [进阶] 25 分钟 · 标签：网关、gateway、消息平台、配对 · 出处 3 条
+- [L34 无人值守流水线：cron + webhook + skill](lessons/03-automation/L34-unattended-pipeline.md) — [进阶] 30 分钟 · 标签：cron、webhook、流水线、无人值守 · 出处 6 条
+## 阶段 4 · 扩展与改造（进阶）
+
+- [L40 写一个技能：SKILL.md 规范与实战](lessons/04-extend/L40-authoring-skills.md) — [进阶] 25 分钟 · 标签：技能、SKILL.md、frontmatter、platforms · 出处 3 条
+- [L41 写一个插件：工具 / 钩子 / 中间件](lessons/04-extend/L41-authoring-plugins.md) — [进阶] 30 分钟 · 标签：插件、plugin.yaml、register、hooks · 出处 4 条
+- [L42 桌面插件 / TUI 部件 / 皮肤](lessons/04-extend/L42-desktop-tui-skins.md) — [进阶] 25 分钟 · 标签：皮肤、TUI、桌面插件、petdex · 出处 4 条
+- [L43 MCP 集成：接上外部工具服务器](lessons/04-extend/L43-mcp.md) — [进阶] 25 分钟 · 标签：MCP、工具、外部集成、工具过滤 · 出处 4 条
+- [L44 当作库来用：Python / ACP / API Server](lessons/04-extend/L44-as-a-library.md) — [进阶] 25 分钟 · 标签：Python 库、AIAgent、ACP、API Server · 出处 4 条
+## 阶段 5 · 运维与安全（进阶）
+
+- [L50 安全模型与审批：危险命令怎么拦住](lessons/05-ops/L50-security-and-approvals.md) — [进阶] 20 分钟 · 标签：安全、审批、approvals、hardline-blocklist · 出处 3 条
+- [L51 密钥、凭证池与多 profile](lessons/05-ops/L51-secrets-and-profiles.md) — [进阶] 20 分钟 · 标签：密钥、凭证池、profile、HERMES_HOME · 出处 4 条
+- [L52 成本与缓存：prompt caching 心法](lessons/05-ops/L52-cost-and-caching.md) — [进阶] 20 分钟 · 标签：成本、prompt-caching、上下文压缩、provider-routing · 出处 3 条
+- [L53 排障手册：它变笨了 / 工具不见了](lessons/05-ops/L53-troubleshooting.md) — [进阶] 25 分钟 · 标签：排障、日志、上下文、项目技能 · 出处 4 条
+- [L54 升级、备份与迁移](lessons/05-ops/L54-update-backup-migrate.md) — [进阶] 15 分钟 · 标签：升级、备份、迁移、checkpoints · 出处 3 条
+## 毕业项目 · Capstone
+
+- [L90 毕业项目：自动化一件你真正在做的活](lessons/06-capstone/L90-capstone.md) — [进阶] 60 分钟 · 标签：毕业项目、capstone、cron、webhook · 出处 4 条
 
 ## 支撑文件
 
