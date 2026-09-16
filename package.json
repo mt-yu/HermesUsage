@@ -1,0 +1,12 @@
+{
+  "name": "hermes-usage-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HermesUsage 教程站前端。刻意没有 dependencies：浏览器直接加载原生 ES 模块，Node 只用来跑单元测试。",
+  "scripts": {
+    "test": "node --test \"tests/js/*.test.js\"",
+    "build": "python scripts/build_site.py",
+    "serve": "python scripts/serve.py --open"
+  }
+}
