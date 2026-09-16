@@ -112,7 +112,7 @@ python scripts/progress.py next   # 下一课学什么
 
 ## 维护待办（内容层）
 
-- [ ] 把各课里标为「官方文档表述（未本机复现）」的段落本机复现一遍（已知：L44 的 API Server 启动横幅、L33 的部分平台配置细节）
+- [ ] 把带「官方文档表述（未本机实测）」说明的段落补全（实测当前只剩一处：`lessons/04-extend/L44-as-a-library.md:102` 的 API Server 启动横幅；L33 已无此标记）
 - [ ] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` 两页，让 L21 的浏览器与检索内容有更精确的出处（当前借用 tools-reference）
 - [ ] 官方文档漂移后：`python scripts/sync_sources.py` 并复核受影响的课程表述
 - [ ] 阶段完成后补一个「常见错误合集」页（跨课程的坑聚合）
@@ -141,3 +141,63 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 | 本地预览 / Docker / Netlify / Vercel / Pages | ✅ | `docs/deploy.md` |
 | 练习打卡（`- [ ]` 可点击并保存） | ⬜ | 现在是只读方框，交互待做 |
 | 学习地图与站点合并（去掉重复的两套渲染） | ⬜ | `scripts/build_map.py` 仍是独立渲染 |
+
+---
+
+## 下一阶段路线图（v1.2 → v2.0）
+
+现状（2026-09-16 实测）：内容 32 课全部就绪、门禁 11 条 + `check.py` 五项、CI 与 Pages 双绿、
+站点已公开。下面各条**都必须能用一条命令验收**，否则不许进这个列表。
+
+### v1.2 · 让公开站点能被搜到、能被分享（约半天，优先做）
+
+站点刚公开，但没有任何给搜索引擎和社交平台看的元信息。
+
+- [ ] `build_site.py` 产出 `sitemap.xml`（首页 + 32 课 + 6 规范页）与 `robots.txt`
+- [ ] 每个页面加 `<link rel="canonical">`；课页加 `og:title` / `og:description` / `og:url` / `og:site_name`
+- [ ] 跳转到正文的 skip link（`#main` 已存在），补 `aria-label` 到搜索按钮
+- [ ] 把 4 个 tag 推到远端、给仓库填 Website / Topics、建 `v1.1-web` Release
+
+**验收**：`python scripts/build_site.py --check` 断言 sitemap 条目数 == 产物页数、每个课页恰好 4 个
+`og:` 标签；`git ls-remote --tags origin` 出现 4 个 tag；线上 `curl -sI .../sitemap.xml` → 200。
+
+### v1.3 · 站点交互补齐（约一天）
+
+- [ ] 练习打卡可点击并保存（独立存储键 `hermes-usage:exercises:v1`，与「课程完成」分开计）
+- [ ] 学习地图并入站点：新增 `/map.html`，与桌面部件 `docs/learning-map.html` 共享同一个渲染函数
+      （现在两套渲染各写一遍）
+- [ ] 课间键盘导航（`←/→` 上一课下一课），搜索面板内 `Tab` 循环
+
+**验收**：`python scripts/check.py` 全绿；新增纯函数（练习状态、课间导航）有 `node --test` 覆盖；
+浏览器手测清单从 10 条扩到 13 条（练习勾选、地图页、键盘导航）。
+
+### v1.4 · 内容可考证的最后一块（约一天）
+
+- [ ] `sources/registry.yaml` 补登记两页（官方文档确实有：`user-guide/features/browser.md`、
+      `user-guide/features/web-search.md`）→ `sync_sources.py` → 更新 L21 的 `sources:` 并复核表述
+      （L21 现在借的是 `tools-reference`，不够精确）
+- [ ] L44 的「官方文档表述（非本机实测）」段落：本机复现，或在文中给出「为什么不复现 + 复现命令」
+- [ ] 新增「常见错误合集」：构建期聚合 32 课的「常见坑」表格 → 站点 `/pitfalls.html`
+
+**验收**：`sync_sources.py --check` 无漂移且出处从 89 条增加到 91 条；`verify.py` 全绿；
+`/pitfalls.html` 的条目数 == 各课坑表行数之和，每行带课号链接。
+
+### v1.5 · 自维护自动化（约半天）
+
+- [ ] journal 自动归档：`hermes cron` 启用 `scripts/journal.py autocommit`（脚本已有，只是没启用）
+- [ ] 官方文档漂移哨兵：定时 `sync_sources.py --check`，发现漂移自动开 GitHub issue
+- [ ] 外链存活检测 `scripts/check_links.py --external`（对 89 条官方 URL 低频探测，不进 CI 以免被限流）
+
+**验收**：`hermes cron list` 显示任务为启用；手动制造一次文档漂移能自动开出 issue 并把链接打出来。
+
+### v2.0 · 让「学过」变成可交付（按需启动）
+
+- [ ] 学习报告导出：32 课完成状态 + 练习勾选 + 时间线 → `report.md`（可反向被 `progress.py` 校验）
+- [ ] 单文件离线版 `hermes-usage-offline.html`（内联 CSS/JS + 全部课程，双击即可读，适合发给不会 git 的人）
+
+**验收**：离线版 < 2 MB 且断网可读；`report.md` 里的完成课数与 `progress/.state.json` 一致。
+
+### 已知欠账（继续如实标注，不许写成「已验证」）
+
+- Docker / Netlify / Vercel 三条部署路径**未在真实环境验证**（本机无 docker、无那两家账号）
+- `site/` 产物目前没有 SEO 元信息（v1.2 的目标）
