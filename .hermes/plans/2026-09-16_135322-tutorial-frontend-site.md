@@ -4205,3 +4205,19 @@ git tag -a v1.1-web -m "教程站：可交互前端 + 快速部署"
 
 另记：数据层实施时，T4 与 T7 的测试从第一跑就是绿的（它们依赖的函数在 T3/T5 已随计划一次写完）。
 这不是问题，但按 TDD 纪律需要知道 —— 只有「测试从没见过红」才需要停下来检查。
+
+4. **`stats["pages"]` 实测是 40，不是 T14/T17 里写的 39**：32 课程页 + index.html + 6 规范页 + 404.html
+   都是 `.html`。文件数也是 52（40 html + 4 json + assets 7 + .nojekyll），体积 1589 KB。
+   断言要写「组成」（课程页 32、规范页 == len(repo_docs)、首页与 404 存在），不要抄魔法数字。
+5. **T16 的 `render_repo_doc` 有两个真 bug，会让 `--check` 报 200 条死链**（第一次实测就是
+   `站内链接自检失败：200 条`），已修：
+   - 规范页侧栏误用了 `link_sibling`，32 条课程链接全指向 `site/repo/L01-….html`
+     （6 个规范页 × 32 = 192 条）。需要 `link_from_repo()` → `../lessons/<page>`。
+   - 规范页正文里的仓库相对链接（`scripts/verify.py`、`.hermes/skills/`、`ROADMAP.md`…）原样渲染即 404。
+     需要 `rewrite_repo_doc_links()`：登记过的仓库文档 → 对应规范页；课程 md → 课程页；
+     其余（脚本/目录）在 `repo_url` 为空时去掉 href 只留文字，`repo_url` 有值时指向 GitHub。
+   `check_links()` 保持严格，**不给链接加豁免**。
+6. **样式与模板的交互坑（无浏览器时看不见）**：`layout.html` 里搜索面板用 `<div class="palette" hidden>`，
+   而 CSS 给 `.palette` 设了 `display: flex` —— 这会盖掉 `hidden` 自带的 `display: none`，
+   结果是**一进页面搜索面板就摊在全屏上**。已加一条 `[hidden] { display: none !important; }` 兜住。
+   凡是「用 `hidden` 属性做显隐」的元素，CSS 里都不许再声明 display。
