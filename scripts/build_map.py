@@ -39,28 +39,17 @@ OUT = REPO / "docs" / "learning-map.html"
 
 
 def load_rows() -> list[dict]:
-    """把解析层的课程列表压成学习地图需要的字段。
+    """学习地图的行数据：全部来自解析层，本文件不再自己拼字段或提示语。
 
-    ⚠️ `summary` 故意写死空串，别改成 `lesson["summary"]`：
-    迁移前这里取的是 frontmatter 的 `summary` 键，而课程的 frontmatter 里
-    根本没有这个键，所以实际取到的永远是空串（地图模板当前也不显示摘要）。
-    解析层的 `summary` 是从正文「**一句话**：…」抽出来的真摘要，直接透传
-    会改变输出字节 —— 那不是本任务（DRY 收口）该带来的变化。
+    行结构见 `core.map_rows`（id/title/stage/minutes/rel/url/done/prompt）。
+    `done` 由本地的 `progress/.state.json` 决定，那是**桌面应用的状态**，
+    与站点地图页（数据存在浏览器 localStorage）是两条独立的进度线。
+
+    历史注记：迁移前这里手抄了 id/title/stage/level/minutes/rel/summary，
+    其中 `summary` 取的是 frontmatter 里不存在的键（永远是空串）、`level`
+    从未被模板用到 —— 两者现在都由 `core.map_rows` 明确地**不出**。
     """
-    rows = [
-        {
-            "id": lesson["id"],
-            "title": lesson["title"],
-            "stage": lesson["stage"],
-            "level": lesson["level"],
-            "minutes": lesson["minutes"],
-            "rel": lesson["rel"],
-            "summary": "",  # 见 docstring：保持与迁移前一致的空串
-        }
-        for lesson in core.load_lessons(REPO)
-    ]
-    rows.sort(key=lambda r: (r["stage"], r["id"]))
-    return rows
+    return core.map_rows(core.load_lessons(REPO), done_set())
 
 
 def done_set() -> set[str]:
@@ -72,9 +61,9 @@ def done_set() -> set[str]:
     return set()
 
 
-def render(rows: list[dict], done: set[str]) -> str:
+def render(rows: list[dict]) -> str:
     total = len(rows)
-    n_done = sum(1 for r in rows if r["id"] in done)
+    n_done = sum(1 for r in rows if r["done"])
     total_min = sum(r["minutes"] for r in rows)
     parts: list[str] = []
     A = parts.append
@@ -124,7 +113,7 @@ def render(rows: list[dict], done: set[str]) -> str:
             name = core.stage_name(current_stage)
             why = core.stage_why(current_stage)
             stage_rows = [x for x in rows if x["stage"] == current_stage]
-            s_done = sum(1 for x in stage_rows if x["id"] in done)
+            s_done = sum(1 for x in stage_rows if x["done"])
             tag = "入门" if current_stage in (0, 1) else "进阶"
             A('<div class="stage">')
             A('<div class="top">')
@@ -133,9 +122,9 @@ def render(rows: list[dict], done: set[str]) -> str:
             A(f'<span class="muted">{s_done}/{len(stage_rows)} · {tag}</span>')
             A("</div>")
             A("<ul>")
-        mark = '<span class="ok">✓</span>' if r["id"] in done else '<span class="lock">○</span>'
-        prompt = (f"带我学 {r['id']}「{r['title']}」：先读 {r['rel']}，"
-                  f"然后按课里的「先动手」一步步带我走，每步都等我确认")
+        mark = '<span class="ok">✓</span>' if r["done"] else '<span class="lock">○</span>'
+        # 提示语来自解析层：站点地图页用的是同一句（见 core.tutor_prompt）
+        prompt = r["prompt"]
         A("<li>")
         A(f'<span class="id">{mark} {r["id"]}</span>')
         A(f'<span class="t">{html.escape(r["title"])}</span>')
@@ -165,7 +154,7 @@ def main() -> int:
     if not rows:
         print("lessons/ 下还没有课程。")
         return 0
-    out = render(rows, done_set())
+    out = render(rows)
     if args.stdout:
         print(out)
         return 0

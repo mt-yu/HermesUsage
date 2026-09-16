@@ -140,6 +140,55 @@ def group_by_stage(lessons: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return groups
 
 
+TUTOR_PROMPT_TAIL = "然后按课里的「先动手」一步步带我走，每步都等我确认"
+
+
+def tutor_prompt(lesson: dict[str, Any]) -> str:
+    """「带我学这一课」的提示语 —— 桌面部件与站点地图页共用的唯一一份。
+
+    例：`带我学 L15「技能系统：让它学会你的活法」：先读 lessons/01-core/L15-skills.md，`
+    `然后按课里的「先动手」一步步带我走，每步都等我确认`
+
+    这句话是**给 agent 的指令**，不是给人看的摘要，所以三处细节都是刻意的：
+    - 课程 id + 标题：agent 要知道学哪一课；
+    - 仓库相对路径 `rel`：agent 要能直接读文件，而不是先自己做一次模糊搜索；
+    - 结尾「每步都等我确认」：把「先动手」的节奏钉死，防止它一口气跑完 8 步。
+
+    全角「」与「，」也是刻意的（中文排版）。改这句话前先想清楚：
+    桌面应用里用户点「开始」看到的就是它，站点地图页点圆圈看到的也是它。
+    """
+    return (f"带我学 {lesson['id']}「{lesson['title']}」：先读 {lesson['rel']}，"
+            f"{TUTOR_PROMPT_TAIL}")
+
+
+def map_rows(lessons: list[dict[str, Any]], done: set[str] | None = None) -> list[dict[str, Any]]:
+    """把课程列表压成「学习地图」的行数据：桌面部件与站点地图页共用。
+
+    行结构：{id, title, stage, minutes, rel, url, done: bool, prompt}。
+    `done` 由调用方传入（桌面部件读 progress/.state.json，站点读 localStorage），
+    解析层不碰任何状态文件 —— 它只回答「仓库里有什么」。
+
+    注意这里**不出** `level` / `summary`：地图模板两者都不用，
+    多传一份就多一处将来会各自漂移的字段。
+    """
+    mark = done or set()
+    rows = [
+        {
+            "id": lesson["id"],
+            "title": lesson["title"],
+            "stage": lesson["stage"],
+            "minutes": lesson["minutes"],
+            "rel": lesson["rel"],
+            "url": lesson["url"],
+            "done": lesson["id"] in mark,
+            "prompt": tutor_prompt(lesson),
+        }
+        for lesson in lessons
+    ]
+    rows.sort(key=lambda r: (r["stage"], r["id"]))
+    return rows
+
+
 BASELINE_RE = re.compile(r"^#\s*生成时间:\s*(\S+)\s+hermes v(\S+)", re.M)
 COMMIT_RE = re.compile(r"@\s*([0-9a-f]{7,40})")
 

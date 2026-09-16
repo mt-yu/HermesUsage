@@ -30,8 +30,8 @@ class TestBuildOutput(unittest.TestCase):
         cls._tmp.cleanup()
 
     def test_stats_match_repo(self):
-        # lessons/pages 的组成写清楚，不留魔法数字：
-        # 页数 = 课程页（= 课程数）+ 仓库规范页（= site.json 的 repo_docs 条数）+ 首页 + 404
+        # 页数按**组成**断言，不留魔法数字：
+        # 页数 = 课程页（= 课程数）+ 仓库规范页（= site.json 的 repo_docs 条数）+ 首页 + 学习地图 + 404
         self.assertEqual(self.stats["lessons"], 32)
 
         lesson_pages = len(list((self.out / "lessons").glob("*.html")))
@@ -42,10 +42,11 @@ class TestBuildOutput(unittest.TestCase):
         self.assertEqual(repo_pages, len(cfg["repo_docs"]))     # 每个 repo_doc 一页
         self.assertTrue((self.out / "index.html").is_file())     # 首页
         self.assertTrue((self.out / "404.html").is_file())       # 404
-        self.assertEqual(self.stats["pages"], lesson_pages + repo_pages + 2)
+        self.assertTrue((self.out / "map.html").is_file())       # 学习地图
+        self.assertEqual(self.stats["pages"], lesson_pages + repo_pages + 3)
 
     def test_index_and_data_files_exist(self):
-        for rel in ("index.html", "404.html", ".nojekyll",
+        for rel in ("index.html", "404.html", "map.html", ".nojekyll",
                     "data/index.json", "data/citations.json", "data/search.json", "data/manifest.json",
                     "assets/app.css", "assets/app.js"):
             self.assertTrue((self.out / rel).is_file(), f"缺 {rel}")
@@ -99,6 +100,115 @@ CANONICAL_RE = re.compile(r'<link rel="canonical" href="([^"]+)"')
 OG_META_RE = re.compile(r'<meta property="(og:[a-z_]+)" content="([^"]*)"')
 
 OG_NAMES = {"og:site_name", "og:type", "og:title", "og:description", "og:url"}
+
+
+def main_region(html: str) -> str:
+    """取出 `<main>` 里的正文。
+
+    为什么需要它：`data-lesson` 在整页里出现三次来源 —— layout 的 `<body data-lesson>`、
+    全局侧栏的 32 条课程行、以及正文里的课程行。要断言「地图页有 32 行」，
+    必须只看正文，否则数的其实是「侧栏 + 正文」（64）。
+    """
+    m = re.search(r"<main\b[^>]*>(.*)</main>", html, re.S)
+    assert m, "页面里没有 <main>"
+    return m.group(1)
+
+
+class TestMapPage(unittest.TestCase):
+    """v1.3 学习地图页 `/map.html`：与桌面部件同源，但用站点自己的模板渲染。
+
+    这一页最容易坏的地方是**链接前缀**（它和首页一样在站点根目录），
+    而前缀错了在构建期只有 check_links 能发现 —— 所以这里连前缀一起断言。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        cls.base = cls.cfg["base_url"]
+        build_site.build(cls.out, cls.cfg)
+        cls.page = (cls.out / "map.html").read_text(encoding="utf-8")
+        cls.lessons = core.load_lessons(REPO)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def test_map_page_exists_and_has_one_row_per_lesson(self):
+        self.assertTrue((self.out / "map.html").is_file())
+        stat = (self.out / "map.html").stat()
+        self.assertGreater(stat.st_size, 0)
+        rows = re.findall(r'<li data-lesson="(L\d+)"', main_region(self.page))
+        self.assertEqual(len(rows), len(self.lessons))
+        self.assertEqual(len(rows), 32)
+        self.assertEqual(set(rows), {l["id"] for l in self.lessons})   # 每课一行、不重复
+
+    def test_map_rows_link_to_the_lesson_pages(self):
+        links = re.findall(r'<li data-lesson="(L\d+)"><a href="([^"]+)"', main_region(self.page))
+        self.assertEqual(len(links), len(self.lessons))
+        for lesson in self.lessons:
+            self.assertIn((lesson["id"], lesson["url"]), links, lesson["id"])
+        for _, href in links:
+            self.assertTrue(href.startswith("lessons/"), href)
+            self.assertTrue((self.out / href).is_file(), f"地图页指向不存在的页面：{href}")
+
+    def test_map_page_reuses_existing_classes_only(self):
+        """不新增视觉类：只用站点已有的 card / stage-h / lesson-grid / nav-check / lc-*。"""
+        for cls_name in ("card", "stage-h", "stage-why", "lesson-grid", "nav-check", "lc-head", "lc-summary"):
+            self.assertIn(cls_name, self.page, cls_name)
+        # 桌面部件的样式与 data-hermes-send 不许出现在站点页里
+        self.assertNotIn("humap", self.page)
+        self.assertNotIn("data-hermes-send", self.page)
+
+    def test_map_page_is_in_the_sitemap(self):
+        locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
+        self.assertIn(self.base + "map.html", locs)
+        # 组成式：sitemap 条目数 == 产物 .html 数 - 1（404 不收录）
+        self.assertEqual(len(locs), len(list(self.out.rglob("*.html"))) - 1)
+
+    def test_map_page_has_canonical_and_five_og_tags(self):
+        self.assertEqual(CANONICAL_RE.findall(self.page), [self.base + "map.html"])
+        metas = dict(OG_META_RE.findall(self.page))
+        self.assertEqual(len(OG_META_RE.findall(self.page)), 5)
+        self.assertEqual(set(metas), OG_NAMES)
+        self.assertEqual(metas["og:type"], "website")
+        self.assertEqual(metas["og:url"], self.base + "map.html")
+        self.assertTrue(metas["og:description"], "og:description 不能为空")
+
+    def test_sidebar_links_to_the_map_from_root_and_subpages(self):
+        """首页 `map.html`，课程/规范页 `../map.html`，地图页自己也是 `map.html`。"""
+        for rel, href in (
+            ("index.html", "map.html"),
+            ("map.html", "map.html"),
+            ("lessons/L15-skills.html", "../map.html"),
+            ("repo/roadmap.html", "../map.html"),
+        ):
+            page = (self.out / rel).read_text(encoding="utf-8")
+            self.assertIn(f'<li><a href="{href}">学习地图</a></li>', page, rel)
+
+    def test_sidebar_prefix_is_explicit_and_still_right_for_other_groups(self):
+        """前缀改成显式参数后，其余三组页面的侧栏链接必须和以前一样。
+
+        三类页面的课程链接本来就不同（首页从根、课程页同级、规范页往上一级），
+        这正是 `link_for` 的职责；`prefix` 只管「入口」与「规范与出处」两组。
+        """
+        root = (self.out / "map.html").read_text(encoding="utf-8")
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        lesson = (self.out / "lessons" / "L15-skills.html").read_text(encoding="utf-8")
+        repo = (self.out / "repo" / "roadmap.html").read_text(encoding="utf-8")
+
+        for page in (home, root):                     # 站点根目录的页面
+            self.assertIn('href="repo/hermes-md.html"', page)
+            self.assertIn('href="lessons/L15-skills.html"', page)
+            self.assertIn('href="map.html"', page)
+        self.assertIn('href="../repo/hermes-md.html"', lesson)
+        self.assertIn('href="L15-skills.html"', lesson)          # 课程页之间是同级引用
+        self.assertIn('href="../map.html"', lesson)
+        self.assertIn('href="../repo/hermes-md.html"', repo)
+        self.assertIn('href="../lessons/L15-skills.html"', repo)
+        self.assertIn('href="../map.html"', repo)
+        self.assertNotIn('href="repo/', lesson)          # 课程页的前缀必须是 ../
 
 
 class TestSiteReachability(unittest.TestCase):

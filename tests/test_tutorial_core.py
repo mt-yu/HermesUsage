@@ -135,6 +135,97 @@ class TestCitations(unittest.TestCase):
         self.assertGreaterEqual(b["count"], 89)
 
 
+class TestTutorPrompt(unittest.TestCase):
+    """「带我学」提示语只有一份：桌面部件（build_map）与站点地图页共用它。
+
+    这句话会被塞进 data-hermes-send / data-hermes-prompt，用户在桌面应用里
+    看到的字面量就是它 —— 所以断言按**逐字**比较，不按「包含关键词」比较。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.by_id = {l["id"]: l for l in core.load_lessons(REPO)}
+
+    def test_tutor_prompt_matches_expected_sentence_for_real_lesson(self):
+        lesson = self.by_id["L15"]
+        self.assertEqual(
+            core.tutor_prompt(lesson),
+            "带我学 L15「技能系统：让它学会你的活法」：先读 lessons/01-core/L15-skills.md，"
+            "然后按课里的「先动手」一步步带我走，每步都等我确认",
+        )
+
+    def test_tutor_prompt_uses_fullwidth_brackets_and_commas(self):
+        """全角括号「」/「，」/「：」是刻意的：半角版本在中文排版里挤成一团。"""
+        prompt = core.tutor_prompt(self.by_id["L15"])
+        self.assertNotIn('"', prompt)
+        self.assertIn("「", prompt)
+        self.assertIn("」", prompt)
+        self.assertEqual(prompt.count("「"), 2)
+        self.assertEqual(prompt.count("」"), 2)
+        self.assertIn("：先读 ", prompt)
+        self.assertIn("，然后按课里的", prompt)
+
+    def test_tutor_prompt_is_built_from_lesson_fields(self):
+        lesson = self.by_id["L90"]
+        prompt = core.tutor_prompt(lesson)
+        self.assertIn(lesson["id"], prompt)
+        self.assertIn(lesson["title"], prompt)
+        self.assertIn(lesson["rel"], prompt)
+
+    def test_tutor_prompt_for_every_lesson_reads_back_its_own_fields(self):
+        for lesson in self.by_id.values():
+            prompt = core.tutor_prompt(lesson)
+            self.assertTrue(prompt.startswith(f"带我学 {lesson['id']}「{lesson['title']}」：先读 "))
+            self.assertTrue(prompt.endswith("每步都等我确认"), lesson["id"])
+            self.assertIn(lesson["rel"], prompt, lesson["id"])
+
+
+class TestMapRows(unittest.TestCase):
+    """站点地图页与桌面部件共用的行数据（单一来源）。"""
+
+    KEYS = {"id", "title", "stage", "minutes", "rel", "url", "done", "prompt"}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lessons = core.load_lessons(REPO)
+        cls.rows = core.map_rows(cls.lessons)
+
+    def test_row_count_matches_lessons(self):
+        self.assertEqual(len(self.rows), len(self.lessons))
+        self.assertEqual(len(self.rows), 32)
+
+    def test_row_shape(self):
+        for row in self.rows:
+            self.assertEqual(set(row), self.KEYS, row["id"])
+            self.assertIsInstance(row["done"], bool)
+            self.assertIsInstance(row["minutes"], int)
+            self.assertIsInstance(row["stage"], int)
+            self.assertTrue(row["url"].startswith("lessons/"))
+            self.assertTrue(row["url"].endswith(".html"))
+
+    def test_rows_sorted_by_stage_then_id(self):
+        keys = [(r["stage"], r["id"]) for r in self.rows]
+        self.assertEqual(keys, sorted(keys))
+
+    def test_url_matches_lesson_page(self):
+        by_id = {l["id"]: l for l in self.lessons}
+        for row in self.rows:
+            self.assertEqual(row["url"], by_id[row["id"]]["url"])
+
+    def test_prompt_comes_from_tutor_prompt(self):
+        by_id = {l["id"]: l for l in self.lessons}
+        for row in self.rows:
+            self.assertEqual(row["prompt"], core.tutor_prompt(by_id[row["id"]]))
+
+    def test_done_defaults_to_all_false(self):
+        self.assertFalse(any(r["done"] for r in self.rows))
+
+    def test_done_flags_only_named_lessons(self):
+        rows = core.map_rows(self.lessons, done={"L15", "L90"})
+        flagged = {r["id"] for r in rows if r["done"]}
+        self.assertEqual(flagged, {"L15", "L90"})
+
+
 class TestGrouping(unittest.TestCase):
     def test_groups_cover_all_stages(self):
         groups = core.group_by_stage(core.load_lessons(REPO))

@@ -72,15 +72,30 @@ def _outside_fences(text: str, transform) -> str:
 
 
 def preprocess_tasklist(text: str) -> str:
-    """`- [ ] 练习` → 带方框的行。
+    """`- [ ] 练习` → 带方框的行，并给每个方框编上课内稳定编号 `data-ex`。
 
     用 <span> 而不是 <input>：Markdown 的 HTML 块规则会把块级 <input> 当独立
     段落处理，把「练习」折到下一行；span 是行内元素，不会改变列表结构。
+
+    编号从 1 开始、在一次调用内递增。本站的调用约定是「一课正文调一次」，
+    所以编号天然是课内编号：L15 的第 3 题就是 data-ex="3"，与它在正文里
+    出现的顺序一致。这也正是打勾状态能被存下来的前提 —— 课号 + 题号就是
+    一个稳定主键（见 web/assets/lib/exercises.js）。
+
+    `- [x]`（模板里预勾的）与 `- [ ]` 一视同仁地参与编号：编号描述的是
+    「这是第几题」，不是「做完了几题」。计数器挂在闭包上，因此跨越围栏
+    代码块前后仍然连续（围栏只影响替换，不影响编号顺序）。
     """
+    counter = 0
 
     def repl(m: re.Match[str]) -> str:
+        nonlocal counter
+        counter += 1
         checked = "1" if m.group(2).lower() == "x" else "0"
-        return f'{m.group(1)}<span class="task-box" data-checked="{checked}" aria-hidden="true"></span> {m.group(3)}'
+        return (
+            f'{m.group(1)}<span class="task-box" data-ex="{counter}"'
+            f' data-checked="{checked}" aria-hidden="true"></span> {m.group(3)}'
+        )
 
     return _outside_fences(text, lambda s: TASKLIST_RE.sub(repl, s))
 

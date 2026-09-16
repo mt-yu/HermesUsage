@@ -194,7 +194,18 @@ def link_from_repo(lesson: dict) -> str:
     return "../lessons/" + lesson["page"]
 
 
-def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict) -> str:
+def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, prefix: str) -> str:
+    """侧栏导航：阶段列表 + 「入口」 + 「规范与出处」。
+
+    `prefix` 是显式参数，由调用方按「这一页在站点里的哪一层」给出：
+    `""` 给站点根目录的页面（首页、`/map.html`），`"../"` 给 `lessons/` 与
+    `repo/` 下的页面。
+
+    以前这里靠 `current_id` 是否为空反推前缀，那是个会在第二处就出错的设计：
+    `/map.html` 也在站点根目录、但它在侧栏里没有「当前课」，反推会拼成
+    `repo/hermes-md.html`（实际在 `repo/` 子目录里，从根目录点就是死链）。
+    「这一页在第几层」是调用方本来就知道的事实，不该由另一个参数去猜。
+    """
     out = ['<nav class="nav-lessons" aria-label="课程导航">']
     for g in groups:
         out.append('<section class="nav-stage">')
@@ -214,15 +225,46 @@ def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict) -> 
                 f'<span class="nav-min">{ls["minutes"]}′</span></a></li>'
             )
         out.append("</ul></section>")
+    out.append('<section class="nav-stage"><h2 class="nav-stage-title">'
+               '<span>入口</span></h2><ul>'
+               f'<li><a href="{prefix}map.html">学习地图</a></li>'
+               "</ul></section>")
     if cfg.get("repo_docs"):
         out.append('<section class="nav-stage nav-repo"><h2 class="nav-stage-title">'
                    '<span>规范与出处</span></h2><ul>')
         for rel in cfg["repo_docs"]:
             slug = R.repo_doc_slug(rel)
-            href = ("../repo/" if current_id else "repo/") + f"{slug}.html"
+            href = prefix + f"repo/{slug}.html"
             out.append(f'<li><a href="{href}"><span class="nav-title">{R.escape(rel)}</span></a></li>')
         out.append("</ul></section>")
     out.append("</nav>")
+    return "".join(out)
+
+
+def render_lesson_cards(groups: list[dict], link_for) -> str:
+    """一套阶段卡片列表（`card` + `stage-h` + `lesson-grid` + `lc-*` 行）。
+
+    首页与学习地图页共用同一份标记：这样「点圆圈打勾」这件事不需要第二份实现
+    —— `app.js` 是绑在 `li[data-lesson] .nav-check` 上的，
+    只要行还是这个结构，地图页的圆圈天生就能点、能存（localStorage）。
+    """
+    out: list[str] = []
+    for g in groups:
+        out.append('<section class="card">')
+        out.append(
+            f'<h2 class="stage-h">阶段 {g["stage"]} · {R.escape(g["name"])}'
+            f'<span class="muted"> {len(g["lessons"])} 课 · {sum(l["minutes"] for l in g["lessons"])} 分钟</span></h2>'
+            f'<p class="stage-why">{R.escape(g["why"])}</p><ul class="lesson-grid">'
+        )
+        for ls in g["lessons"]:
+            out.append(
+                f'<li data-lesson="{ls["id"]}"><a href="{link_for(ls)}">'
+                f'<span class="nav-check" aria-hidden="true">○</span>'
+                f'<span class="lc-head"><b>{ls["id"]} {R.escape(ls["title"])}</b>'
+                f'<span class="muted">{ls["minutes"]} 分钟 · {R.escape(ls["level"])}</span></span>'
+                f'<span class="lc-summary">{R.escape(ls["summary"])}</span></a></li>'
+            )
+        out.append("</ul></section>")
     return "".join(out)
 
 
@@ -247,26 +289,46 @@ def render_home(groups: list[dict], lessons: list[dict], cfg: dict, link_for, ba
         '<p class="muted pc-out" id="pc-out" hidden></p>',
         "</section>",
     ]
-    for g in groups:
-        out.append('<section class="card">')
-        out.append(
-            f'<h2 class="stage-h">阶段 {g["stage"]} · {R.escape(g["name"])}'
-            f'<span class="muted"> {len(g["lessons"])} 课 · {sum(l["minutes"] for l in g["lessons"])} 分钟</span></h2>'
-            f'<p class="stage-why">{R.escape(g["why"])}</p><ul class="lesson-grid">'
-        )
-        for ls in g["lessons"]:
-            out.append(
-                f'<li data-lesson="{ls["id"]}"><a href="{link_for(ls)}">'
-                f'<span class="nav-check" aria-hidden="true">○</span>'
-                f'<span class="lc-head"><b>{ls["id"]} {R.escape(ls["title"])}</b>'
-                f'<span class="muted">{ls["minutes"]} 分钟 · {R.escape(ls["level"])}</span></span>'
-                f'<span class="lc-summary">{R.escape(ls["summary"])}</span></a></li>'
-            )
-        out.append("</ul></section>")
+    out.append(render_lesson_cards(groups, link_for))
     out.append(
         f'<p class="muted site-note">出处基线：hermes v{baseline["version"]} · 文档提交 {baseline["commit"]}'
         f' · {baseline["count"]} 条官方来源。站点的每一课都能在 '
         f'<code>sources/cache/&lt;src-id&gt;.md</code> 里找到原文快照。</p>'
+    )
+    return "".join(out)
+
+
+def render_map_page(groups: list[dict], lessons: list[dict], cfg: dict, link_for, baseline: dict) -> str:
+    """站点版学习地图（`/map.html`）：与桌面部件同源的可点击地图。
+
+    为什么不是把 `docs/learning-map.html` 复制一份过来：
+    那是**桌面应用的部件**，用框架注入的 CSS 变量（`--foreground` / `--card` /
+    `--accent`）上色、每个按钮带 `data-hermes-send` —— 在浏览器里既没有那些变量、
+    也没有接收 `data-hermes-send` 的宿主，复制过去就是「看着像样、点不动的图」。
+    所以两边共享的是**行数据**（`tutorial_core.map_rows` / `tutor_prompt`），
+    渲染各用各的模板：桌面走桌面框架的标记，站点走站点现有的 class（不新增 CSS）。
+
+    从这里能拿到的东西：点圆圈打勾（`app.js` 绑在 `li[data-lesson] .nav-check` 上）、
+    点课程名进正文、进度与首页共用同一份 localStorage。
+    """
+    total_min = sum(l["minutes"] for l in lessons)
+    hours = total_min // 60
+    out = [
+        "<h1>学习地图</h1>",
+        '<p class="lead">这是与桌面应用「Hermes 学习地图」同源的可点击地图：'
+        f'{len(lessons)} 课按阶段排开，点圆圈就能直接打勾（数据存在你这台浏览器的本地 '
+        'localStorage 里，与首页共用同一份进度）。</p>',
+        '<section class="card progress-card">',
+        f'<p class="pc-line"><b id="done-count">0</b> / {len(lessons)} 课完成'
+        f'<span class="muted"> · 全量约 {hours} 小时 · <span id="min-left">{total_min} 分钟</span> 待学</span></p>',
+        '<div class="bar"><i id="bar-fill" style="width:0%"></i></div>',
+        "</section>",
+    ]
+    out.append(render_lesson_cards(groups, link_for))
+    out.append(
+        f'<p class="muted site-note">出处基线：hermes v{baseline["version"]} · 文档提交 {baseline["commit"]}'
+        f' · {baseline["count"]} 条官方来源。桌面应用里的同一张图是'
+        '<code>docs/learning-map.html</code>（行数据与这一页同源）。</p>'
     )
     return "".join(out)
 
@@ -398,7 +460,7 @@ def render_repo_doc(rel: str, cfg: dict, layout: str, groups: list[dict]) -> tup
             "prefix": "../",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
-            "sidebar": render_sidebar(groups, "__repo__", link_from_repo, cfg),
+            "sidebar": render_sidebar(groups, "__repo__", link_from_repo, cfg, "../"),
             "content": f'<article class="lesson repo-doc">{html}</article>',
             "toc": R.build_toc_html(toc),
             "footer": render_footer(cfg),
@@ -422,7 +484,7 @@ def build_sitemap(entries: list[tuple[str, str]]) -> str:
     只列能被搜索引擎收录的页面：404.html 不在其中（它既是错误页，也是给站内
     跳转兜底的页面，收录它等于把「页面不存在」摆到搜索结果里）。
     lastmod 用课程 frontmatter 的 updated —— 全站统一写构建当天，等于告诉搜索引擎
-    「今天 39 个页面全变了」，反而谁也不信。
+    「今天所有页面全变了」，反而谁也不信。
     """
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -486,7 +548,7 @@ def build(out: Path, cfg: dict) -> dict:
                 "prefix": "../",
                 "site_title": R.escape(cfg["title"]),
                 "lesson_id": ls["id"],
-                "sidebar": render_sidebar(groups, ls["id"], link_sibling, cfg),
+                "sidebar": render_sidebar(groups, ls["id"], link_sibling, cfg, "../"),
                 "content": render_lesson_article(
                     ls, html, "", lessons[i - 1] if i else None,
                     lessons[i + 1] if i + 1 < len(lessons) else None, link_sibling,
@@ -509,7 +571,7 @@ def build(out: Path, cfg: dict) -> dict:
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
-            "sidebar": render_sidebar(groups, "", link_from_root, cfg),
+            "sidebar": render_sidebar(groups, "", link_from_root, cfg, ""),
             "content": render_home(groups, lessons, cfg, link_from_root, baseline),
             "toc": "",
             "footer": render_footer(cfg),
@@ -517,6 +579,30 @@ def build(out: Path, cfg: dict) -> dict:
         "index.html",
     )
     (site / "index.html").write_text(home, encoding="utf-8", newline="\n")
+
+    # 学习地图 /map.html：与桌面部件 docs/learning-map.html 共享行数据
+    # （core.map_rows / core.tutor_prompt），但用站点自己的模板渲染。
+    map_page = R.render_template(
+        layout,
+        {
+            "title": f"学习地图 · {cfg['title']}",
+            "desc": f"{len(lessons)} 课按阶段排开的学习地图：点圆圈直接打勾，进度存在浏览器本地。",
+            **page_meta(
+                base, "map.html", "website", f"学习地图 · {cfg['title']}",
+                f"{len(lessons)} 课的可点击学习地图：点圆圈打勾，点课程名读正文。",
+            ),
+            "prefix": "",
+            "site_title": R.escape(cfg["title"]),
+            "lesson_id": "",
+            "sidebar": render_sidebar(groups, "", link_from_root, cfg, ""),
+            "content": render_map_page(groups, lessons, cfg, link_from_root, baseline),
+            "toc": "",
+            "footer": render_footer(cfg),
+        },
+        "map.html",
+    )
+    (site / "map.html").write_text(map_page, encoding="utf-8", newline="\n")
+    sitemap_entries.append((base + "map.html", today))
 
     # 仓库规范页
     repo_pages = [render_repo_doc(rel, cfg, layout, groups) for rel in cfg.get("repo_docs", [])]

@@ -22,13 +22,36 @@ class TestPreprocess(unittest.TestCase):
 
     def test_tasklist_becomes_visual_box(self):
         out = R.preprocess_tasklist("- [ ] 练习一\n- [x] 练习二\n")
-        self.assertIn('<span class="task-box" data-checked="0" aria-hidden="true"></span> 练习一', out)
-        self.assertIn('<span class="task-box" data-checked="1" aria-hidden="true"></span> 练习二', out)
+        self.assertIn('<span class="task-box" data-ex="1" data-checked="0" aria-hidden="true"></span> 练习一', out)
+        self.assertIn('<span class="task-box" data-ex="2" data-checked="1" aria-hidden="true"></span> 练习二', out)
         self.assertNotIn("[ ]", out)
 
     def test_tasklist_ignores_normal_bullets_and_code(self):
         out = R.preprocess_tasklist("- 普通条目\n\n```bash\n- [ ] 这不是练习\n```\n")
         self.assertNotIn("task-box", out)
+
+    def test_tasklist_numbers_boxes_in_lesson_order(self):
+        """课内编号必须稳定地从 1 递增，已勾选/未勾选一视同仁地参与编号。"""
+        out = R.preprocess_tasklist("- [ ] 一\n- [ ] 二\n\n- [x] 三\n")
+        self.assertIn('data-ex="1" data-checked="0"', out)
+        self.assertIn('data-ex="2" data-checked="0"', out)
+        self.assertIn('data-ex="3" data-checked="1"', out)
+        self.assertLess(out.index('data-ex="1"'), out.index('data-ex="2"'))
+        self.assertLess(out.index('data-ex="2"'), out.index('data-ex="3"'))
+
+    def test_tasklist_numbering_restarts_for_each_lesson(self):
+        """一次调用 = 一课正文，所以第二次调用必须又从 1 开始。"""
+        first = R.preprocess_tasklist("- [ ] 一课第一题\n- [ ] 一课第二题\n")
+        second = R.preprocess_tasklist("- [ ] 下一课第一题\n")
+        self.assertIn('data-ex="2"', first)
+        self.assertIn('data-ex="1"', second)
+        self.assertNotIn('data-ex="3"', second)
+
+    def test_tasklist_numbering_skips_fenced_code_but_counts_rest(self):
+        out = R.preprocess_tasklist("- [ ] 一\n\n```text\n- [ ] 示例，不算一题\n```\n\n- [ ] 二\n")
+        self.assertIn("- [ ] 示例，不算一题", out)
+        self.assertIn('data-ex="2"', out)
+        self.assertNotIn('data-ex="3"', out)
 
 
 class TestHeadingIdsAndToc(unittest.TestCase):

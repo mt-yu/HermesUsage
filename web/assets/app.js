@@ -6,15 +6,27 @@
 import { escapeHtml, debounce, formatMinutes, lessonItems } from "./lib/util.js";
 import { search, tokenizeToQuery } from "./lib/search.js";
 import { toggleDone, completion, nextLesson, isDone, blocked } from "./lib/progress.js";
-import { loadState, saveState, parseState, loadTheme, saveTheme, download } from "./lib/storage.js";
+import {
+  loadState, saveState, parseState, loadTheme, saveTheme, download,
+  loadExercises, saveExercises,
+} from "./lib/storage.js";
+import { isExerciseDone, toggleExercise } from "./lib/exercises.js";
+import { arrowTarget, cycleIndex } from "./lib/keynav.js";
 import { pickActive, headingOffsets } from "./lib/toc.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const PREFIX = document.body.dataset.prefix || "";
 
+/* 练习状态的合法性：课号来自 frontmatter（L15），题号来自渲染期的 data-ex。
+   与 storage.js 的 parseExercises 用同一套正则 —— 两边必须一致，
+   否则会出现「前端存进去了、下次加载被静默丢掉」的鬼打墙。 */
+const LESSON_ID_RE = /^L\d{2,}$/;
+const EX_ID_RE = /^\d+$/;
+
 let lessons = [];
 let state = loadState();
+let exercises = loadExercises();
 let searchIndex = null;
 
 boot();
@@ -26,6 +38,10 @@ async function boot() {
   wirePalette();
   wireToc();
   wireCopyButtons();
+  // 练习打勾与课间导航不依赖 data/index.json：放在 fetch 之前，
+  // 索引拿不到时（file:// 打开、部署漏了 data/）这两件事照样能用。
+  wireExercises();
+  wireLessonArrows();
 
   try {
     const res = await fetch(`${PREFIX}data/index.json`);
@@ -35,6 +51,15 @@ async function boot() {
   }
   wireProgressButtons();
   paint();
+}
+
+/* 「焦点在编辑控件里」的统一判定：单键快捷键（/ 、←/→）都要给输入让路。
+   contenteditable 也算编辑区 —— 在可编辑正文里按 ← 同样是移光标。 */
+function isTypingTarget() {
+  const el = document.activeElement;
+  if (!el) return false;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || "")) return true;
+  return el.isContentEditable === true;
 }
 
 /* ---------------------------------------------------------------- 进度 */
@@ -131,6 +156,88 @@ function wireProgressButtons() {
   }
 }
 
+/* ------------------------------------------------------------ 练习打勾 */
+
+/* 练习方框：渲染期输出的是静态 <span class="task-box" data-ex="1" aria-hidden="true">，
+   这里把它升级成一个真正的 checkbox。
+
+   课号取最近的 [data-lesson] 祖先 —— 课程页是 <article class="lesson" data-lesson="L15">。
+   注意 <body data-lesson=""> 在首页 / 地图页是空串，教学页的 body 也带这个属性，
+   所以「先校验格式再使用」不是洁癖：脏键喂进 exercises.js 后会被存储层静默丢弃，
+   表现就是「点了有反应、刷新就没了」。格式不对就跳过，让它老实当个装饰方框。 */
+function wireExercises() {
+  for (const box of $$(".task-box")) {
+    const host = box.closest("[data-lesson]");
+    const lessonId = (host && host.dataset.lesson) || "";
+    const exId = box.dataset.ex || "";
+    if (!LESSON_ID_RE.test(lessonId) || !EX_ID_RE.test(exId)) continue;
+
+    box.removeAttribute("aria-hidden");
+    box.setAttribute("role", "checkbox");
+    box.setAttribute("tabindex", "0");
+    // 方框自己没有文字：拿整条练习的文字当可访问名，否则读屏只会念「复选框」
+    const line = (box.closest("li") || box.parentElement).textContent.replace(/\s+/g, " ").trim();
+    box.setAttribute("aria-label", line ? `练习：${line}` : `练习 ${exId}`);
+    paintExercise(box, lessonId, exId);
+
+    const flip = (e) => {
+      e.preventDefault(); // 空格默认滚动页面
+      exercises = toggleExercise(exercises, lessonId, exId);
+      // 存不下（隐私模式）不拦着：本次会话里照样能看到勾
+      saveExercises(exercises);
+      paintExercise(box, lessonId, exId);
+    };
+    box.addEventListener("click", flip);
+    box.addEventListener("keydown", (e) => {
+      // Enter 与空格都切换 —— role=checkbox 的元素不会自己合成 click，
+      // 所以这里不存在「键盘切一次、click 又切一次」的双触发
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") flip(e);
+    });
+  }
+}
+
+function paintExercise(box, lessonId, exId) {
+  const done = isExerciseDone(exercises, lessonId, exId);
+  // data-checked 是渲染期就写在标签上的属性（CSS 依赖它），aria-checked 是
+  // 读屏读的：两个一起同步，不留一个真一个假
+  box.dataset.checked = done ? "1" : "0";
+  box.setAttribute("aria-checked", String(done));
+}
+
+/* ---------------------------------------------------------- 课间导航 */
+
+/* ←/→ 翻到上一课 / 下一课。
+
+   .prevnext 里第一课与最后一课的位置是空 <span>（CSS 用 :empty 隐藏），
+   所以必须看「首/末子元素到底是不是 <a>」而不是「存不存在」：
+   拿空 span 当链接会跳到 undefined。
+   监听挂在 document 上、每次事件现算方向，不缓存启动时的判断 ——
+   页面只有一处 .prevnext，但把「能不能翻」读成常量正是这类代码的老毛病。 */
+function wireLessonArrows() {
+  const nav = $(".prevnext");
+  if (!nav) return;
+  const first = nav.firstElementChild;
+  const last = nav.lastElementChild;
+  const prev = first && first.tagName === "A" ? first : null;
+  const next = last && last.tagName === "A" ? last : null;
+  if (!prev && !next) return;
+
+  document.addEventListener("keydown", (e) => {
+    // Ctrl/Cmd/Alt + ←→ 是系统的词间移动与前进后退，别抢
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const palette = $("#palette");
+    const target = arrowTarget(e.key, {
+      typing: isTypingTarget(),
+      inPalette: Boolean(palette && !palette.hidden),
+      hasPrev: Boolean(prev),
+      hasNext: Boolean(next),
+    });
+    if (!target) return;
+    e.preventDefault(); // 否则 ←/→ 还会横向滚动页面
+    location.href = (target === "prev" ? prev : next).getAttribute("href");
+  });
+}
+
 /* ---------------------------------------------------------------- 搜索 */
 
 function wirePalette() {
@@ -141,7 +248,14 @@ function wirePalette() {
   if (!palette || !input || !list) return;
   let cursor = 0;
 
-  const close = () => { palette.hidden = true; input.value = ""; list.innerHTML = ""; };
+  const close = () => {
+    palette.hidden = true;
+    input.value = "";
+    list.innerHTML = "";
+    // 焦点还给入口按钮：不然 Esc 之后焦点落在 <body> 上，键盘用户得从
+    // 头 Tab 一遍整个顶栏才能回来
+    if (openBtn) openBtn.focus();
+  };
   const open = async () => {
     palette.hidden = false;
     input.focus();
@@ -186,10 +300,21 @@ function wirePalette() {
   if (openBtn) openBtn.addEventListener("click", open);
   palette.addEventListener("click", (e) => { if (e.target === palette) close(); });
   document.addEventListener("keydown", (e) => {
-    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { open(); e.preventDefault(); return; }
-    if (e.key === "/" && !typing) { open(); e.preventDefault(); return; }
-    if (e.key === "Escape" && !palette.hidden) close();
+    if (e.key === "/" && !isTypingTarget()) { open(); e.preventDefault(); return; }
+    if (palette.hidden) return;
+    /* 面板打开时 Tab 不切 DOM 焦点，而是移动高亮：面板里唯一能聚焦的只有
+       输入框，真按 Tab 焦点会直接甩到面板外（对 aria-modal 的对话框来说
+       就是「逃逸」）。出口是 Esc —— 它会把焦点还给 #search-open。 */
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const items = $$("li[data-url]", list);
+      if (!items.length) return; // 没有结果就只兜住焦点，不动游标
+      cursor = cycleIndex(cursor, e.shiftKey ? -1 : 1, items.length);
+      render();
+      return;
+    }
+    if (e.key === "Escape") close();
   });
 }
 
