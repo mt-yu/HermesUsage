@@ -159,6 +159,10 @@ python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8
 课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、
 `src:…` 出处徽标悬停显示官方版本与快照哈希（共 91 条官方来源）。
 
+想一次性带走？[**单文件离线版**](https://mt-yu.github.io/HermesUsage/offline.html)（622 KB，内联样式、
+页内目录、零外部资源、不需要 JS，双击即可读，也可以直接发给别人）；
+学习痕迹可用首页/地图页的「导出学习报告」按钮导出 markdown。
+
 部署（Docker / Netlify / Vercel / GitHub Pages）：见 [docs/deploy.md](docs/deploy.md)。
 
 ```bash
