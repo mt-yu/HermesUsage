@@ -227,8 +227,8 @@
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: 7e626dd05f91e942a363bbca577c53e75d5b5bff08c9899b637353d3515968e1
-  bytes: 5532
+  sha256: ada9b7f98c0825b8ffa0dba35bfbf86cb48de04a74a8dceffb25a9a979283486
+  bytes: 5390
   retrieved_at: '2026-09-16'
   local: sources/cache/context-references.md
 - id: creating-skills
@@ -239,8 +239,8 @@
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: 39159c033ada52077731427ea3a7d5e5e1c5d123e1cd418e8e7cc6e4fabfe0c6
-  bytes: 20551
+  sha256: 8c02803ab101e1af3893df4876ca50b5a4fb36c0de871c28c9de92662baa9a95
+  bytes: 20113
   retrieved_at: '2026-09-16'
   local: sources/cache/creating-skills.md
 - id: credential-pools
@@ -647,8 +647,8 @@
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: c29d49feb2bedb997f9545dd99efe936db12c90b1aad2de41e5b3e3020571649
-  bytes: 8715
+  sha256: 7bc184e9657cf40ee3b22154afad08763fd5bb52b61ed9c8127070024ed9c6b0
+  bytes: 8466
   retrieved_at: '2026-09-16'
   local: sources/cache/pipe-script-output.md
 - id: platform-support
@@ -995,8 +995,8 @@
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: aa59e83b0b0330d311c0107f923e7fcb1b836f8298a2884da0f638a41b2f475a
-  bytes: 14599
+  sha256: 050bf6f1e6aa9271e5f56647389e7a68138bdeae81895983767492a0ad9eaf3f
+  bytes: 14058
   retrieved_at: '2026-09-16'
   local: sources/cache/use-mcp-with-hermes.md
 - id: use-voice-mode-with-hermes
@@ -1067,7 +1067,7 @@
   source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
   source_date: '2026-09-15'
   hermes_version: 0.21.3
-  sha256: 94a313d3c96ba5001fd61056c7a4384d1fc6720ce5c9c4cb41168da0f9668884
-  bytes: 9291
+  sha256: e5a7933490e8820d83eb66207bc77d1c346fb9fb7d7362e0dee7755620951803
+  bytes: 9001
   retrieved_at: '2026-09-16'
   local: sources/cache/work-with-skills.md

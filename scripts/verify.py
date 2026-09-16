@@ -15,7 +15,7 @@
   R7  相对链接指向的文件真实存在
   R8  llms.txt 与课程集合同步（由 scripts/build_index.py 生成）
   R9  ROADMAP.md 覆盖全部课程
-  R10 sources/cache 快照与 citations.yaml 的 sha256 一致
+  R10 sources/cache 快照与 citations.yaml 的 sha256 一致（且工作区必须是 LF——CRLF 会让 CI 上的哈希对不上）
   R11 文件是 UTF-8 且无 BOM、无 CRLF（Windows 上的老坑）
 
 用法
@@ -249,7 +249,12 @@ def check_global(lessons: list[dict], citations: dict[str, dict]) -> None:
             if not f.is_file():
                 err("R10", f"sources/cache/{sid}.md", "快照缺失", "python scripts/sync_sources.py")
                 continue
-            actual = hashlib.sha256(f.read_bytes()).hexdigest()
+            raw = f.read_bytes()
+            if b"\r\n" in raw:
+                err("R10", f"sources/cache/{sid}.md",
+                    "快照在工作区里是 CRLF，而 git 存的是 LF：Linux/CI 上 checkout 出来的字节不同，哈希必然对不上",
+                    "python scripts/sync_sources.py 会统一按 LF 重算哈希")
+            actual = hashlib.sha256(raw).hexdigest()
             if actual != entry.get("sha256"):
                 err("R10", f"sources/cache/{sid}.md", "快照哈希与 citations.yaml 不一致",
                     "不要手改快照；重新跑 python scripts/sync_sources.py")

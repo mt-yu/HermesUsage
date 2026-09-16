@@ -172,7 +172,10 @@ def main() -> int:
         if not src.is_file():
             missing.append(f"{sid} -> {rel}")
             continue
-        raw = src.read_bytes()
+        # 统一成 LF 再算哈希、再落盘：.gitattributes 声明 *.md 为 eol=lf，
+        # git 仓库里存的永远是 LF。若按上游的 CRLF 算哈希，Linux/CI 上 checkout
+        # 出来是 LF，R10（快照哈希）会整排变红 —— 而 Windows 本地完全看不出来。
+        raw = src.read_bytes().replace(b"\r\n", b"\n")
         text = raw.decode("utf-8", errors="replace")
         digest = sha256_bytes(raw)
         old = known.get(sid)
@@ -231,6 +234,7 @@ def main() -> int:
     CITATIONS.write_text(
         header + yaml.safe_dump(entries, allow_unicode=True, sort_keys=False, width=200),
         encoding="utf-8",
+        newline="\n",   # 否则 Windows 上生成 CRLF、git 里存 LF，工作区与仓库永久不一致
     )
 
     print(f"\n写入 {CITATIONS.relative_to(REPO)}（{len(entries)} 条）")
