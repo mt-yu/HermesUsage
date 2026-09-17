@@ -4,7 +4,7 @@
 
 [![站点](https://img.shields.io/badge/站点-在线-blue)](https://mt-yu.github.io/HermesUsage/)
 [![ci](https://github.com/mt-yu/HermesUsage/actions/workflows/ci.yml/badge.svg)](https://github.com/mt-yu/HermesUsage/actions/workflows/ci.yml)
-[![课程](https://img.shields.io/badge/课程-32_课_(阶段0--5+毕业项目)-blue)](#学习路线图)
+[![课程](https://img.shields.io/badge/课程-38_课_(阶段0--6+毕业项目)-blue)](#学习路线图)
 [![出处](https://img.shields.io/badge/出处-91_条官方来源-green)](sources/README.md)
 [![门禁](https://img.shields.io/badge/质量门禁-check.py-orange)](scripts/check.py)
 
@@ -48,7 +48,7 @@
 
 ## 学习路线图
 
-![学习路线图：32 课 / 7 个阶段](docs/roadmap.svg)
+![学习路线图：38 课 / 8 个阶段](docs/roadmap.svg)
 
 > 这张图由 `python scripts/build_roadmap_svg.py` 从课程 frontmatter 生成（课号、阶段名、时长都取自课程本身）。
 > **别手改 `docs/roadmap.svg`** —— 改了课程就重跑脚本；`python scripts/check.py` 会校验它是否同步。
@@ -125,7 +125,7 @@ python -m pip install -r requirements.txt   # PyYAML + Markdown，都是纯 Pyth
 python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8000/
 ```
 
-站点能力：按阶段浏览 32 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
+站点能力：按阶段浏览 38 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
 练习打勾（与课程完成分开记）、学习地图与常见错误合集两个聚合页、学习报告导出（markdown）、
 课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、
 `src:…` 出处徽标悬停显示官方版本与快照哈希（共 91 条官方来源）。

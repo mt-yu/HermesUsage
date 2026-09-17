@@ -6,10 +6,10 @@
 ```bash
 python -m pip install -r requirements.txt
 python scripts/build_site.py
-# 站点自检通过：32 课 / 43 页 / 60 文件 / 2445 KB（出处基线 hermes v0.21.3）
+# 站点自检通过：38 课 / 49 页 / 66 文件 / 3129 KB（出处基线 hermes v0.21.3）
 ```
 
-产物结构：`site/index.html`（首页）、`site/lessons/*.html`（32 课）、`site/repo/*.html`（规范页）、
+产物结构：`site/index.html`（首页）、`site/lessons/*.html`（38 课）、`site/repo/*.html`（规范页）、
 `site/data/*.json`（导航与检索数据）、`site/assets/*`（样式与前端脚本）。
 
 ---
