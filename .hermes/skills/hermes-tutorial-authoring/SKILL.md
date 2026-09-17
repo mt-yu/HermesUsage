@@ -70,6 +70,7 @@ cp templates/lesson.md lessons/<阶段目录>/<ID>-<slug>.md
 | 3 自动化 | `lessons/03-automation/` | L30–L3x |
 | 4 扩展 | `lessons/04-extend/` | L40–L4x |
 | 5 运维 | `lessons/05-ops/` | L50–L5x |
+| 6 真实工作流案例 | `lessons/06-realwork/` | L60–L6x |
 | 毕业项目 | `lessons/06-capstone/` | L90+ |
 
 ### 3. 填 frontmatter
@@ -126,6 +127,9 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
   要更新内容就重跑 `sync_sources.py`。
 - **引用 id 拼错**是最常见的失败：门禁会报“引用了未登记的出处”，跑一次
   `python scripts/verify.py` 就知道是哪个。
+- **课程里写 `hermes chat -q` 的例子必须带 `--in <目录>`**：实测它的工作目录**不是**你 shell 的
+  当前目录（`terminal.cwd: .` 是相对**会话基目录**解析的，`-q` 还会沿用/恢复会话记录的目录），
+  不加 `--in` 时 agent 在用户主目录里跑 —— 贴进课程的输出会与实际不符。`--no-restore-cwd` 实测不够。
 - **Windows 写文件**：Python 里必须 `encoding="utf-8"` + `newline="\n"`，
   否则 BOM/CRLF 触发 R11。
 - **不要占位**：写不完的课不要建文件，在 `ROADMAP.md` 里标 `⬜` 待建即可。

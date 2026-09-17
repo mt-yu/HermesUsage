@@ -121,7 +121,10 @@ python scripts/progress.py next   # 下一课学什么
 - [x] 把带「官方文档表述（未本机实测）」说明的段落补全 —— 已完成，见 v1.4（L44 的 API Server 段已本机复现）
 - [x] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` —— 已完成，见 v1.4（出处 89 → 91）
 > **常驻流程（不是待办）**：官方文档漂移后跑 `python scripts/sync_sources.py`，并复核受影响课程的表述；
-> 漂移检测已自动化：`python scripts/drift_watch.py`（可开 issue）
+> 漂移检测已自动化两处：本机 cron 的「漂移哨兵」（`scripts/drift_watch.py`，比的是**本机装的**
+> Hermes 源码）+ CI 的 `.github/workflows/drift.yml`（每天 09:00，稀疏克隆**上游** docs 再比快照哈希，
+> 有漂移就开 issue，标题前缀去重）。**2026-09-16 首次运行即发现 37 页正文已变**（基线 `05fac10a`
+> → 上游 `816cb379`），见 issue #1 —— 这是待人工复核的内容工作，不自动做。
 - [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 
 ## 维护待办（系统层）
