@@ -121,7 +121,7 @@ JOBS: tuple[Job, ...] = (
         script="scripts/check_links_external.py",
         args=("--quiet",),
         shim="hu-links.py",
-        note="每周一 09:00：94 条官方外链全查一遍；全部可达时零输出",
+        note="每周一 09:00：95 条官方外链全查一遍；全部可达时零输出",
     ),
 )
 

@@ -615,6 +615,18 @@
   bytes: 20148
   retrieved_at: '2026-09-17'
   local: sources/cache/multi-connection-desktop.md
+- id: multi-profile-gateways
+  title: Running Many Gateways at Once
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/multi-profile-gateways
+  source_path: website/docs/user-guide/multi-profile-gateways.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: 376ffca1dc5110dba6a6a08e4a8acbfd7d668a5eba5553084022dedcbe6c8d41
+  bytes: 53929
+  retrieved_at: '2026-09-17'
+  local: sources/cache/multi-profile-gateways.md
 - id: nous-portal
   title: Nous Portal
   url: https://hermes-agent.nousresearch.com/docs/integrations/nous-portal

@@ -39,6 +39,7 @@ config:
   profiles: user-guide/profiles.md
   profile-commands: reference/profile-commands.md
   profile-distributions: user-guide/profile-distributions.md
+  multi-profile-gateways: user-guide/multi-profile-gateways.md
   which-file: user-guide/which-file-does-what.md
 
 core:
