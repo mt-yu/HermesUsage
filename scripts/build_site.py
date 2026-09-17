@@ -33,6 +33,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
 import site_render as R  # noqa: E402
+import design_matrix as D  # noqa: E402
 import tutorial_core as core  # noqa: E402
 
 WEB = REPO / "web"
@@ -241,6 +242,7 @@ def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, pre
                '<span>入口</span></h2><ul>'
                f'<li><a href="{prefix}map.html">学习地图</a></li>'
                f'<li><a href="{prefix}pitfalls.html">常见错误合集</a></li>'
+               f'<li><a href="{prefix}design.html">设计对比</a></li>'
                "</ul></section>")
     if cfg.get("repo_docs"):
         out.append('<section class="nav-stage nav-repo"><h2 class="nav-stage-title">'
@@ -401,6 +403,34 @@ def render_pitfalls_markdown(groups: list[dict]) -> str:
         ]
         lines.append("")
     return "\n".join(lines)
+
+
+def render_design_page() -> tuple[str, str]:
+    """「设计对比」页 `/design.html` 的正文：整页内容都由 `scripts/design_matrix.py` 现算。
+
+    这一页与其它页面的分工**刻意不同**：坑表页、地图页是「用课程数据渲染页面」，
+    而这一页是「用一份可执行的评分表渲染页面」。所以正文里的每个数字 —— 平均分、
+    排名、赢家、token 取值链、对比度 —— 都不在这里手写，也不在 design_matrix 里
+    手写，而是渲染时算出来的：
+
+    - 平均分/排名：`design_matrix.ranking()`
+    - token 值：从 `web/assets/app.css` 的 `:root` 现读（改样式表不改这一页 → 构建失败）
+    - 对比度：拿读到的 hex 现算 WCAG 比值（`.lesson` 里那张表就是构建期算出来的）
+
+    唯一需要「换一下」的是条形图：它在 markdown 里占一行 `{{design-chart}}`，
+    渲染成 HTML 后由这里换成真实 SVG。占位符没被换掉就直接报错 —— 宁可构建失败，
+    也不要读者在页面上看到一个 `{{design-chart}}` 字面量（这条规则与模板占位符一致）。
+    """
+    css = (WEB / "assets" / "app.css").read_text(encoding="utf-8")
+    html, toc = R.render_markdown(D.render_markdown(css))
+    marker = f"<p>{D.CHART_PLACEHOLDER}</p>"
+    if marker not in html:
+        raise R.SiteError(
+            f"设计对比页里没找到图表占位符 {D.CHART_PLACEHOLDER}"
+            "（design_matrix.render_markdown 与这里的约定漂移了）"
+        )
+    html = html.replace(marker, f'<figure class="chart-figure">{D.average_chart_svg()}</figure>')
+    return f'<article class="lesson design-doc">{html}</article>', R.build_toc_html(toc)
 
 
 def render_pitfalls_page(groups: list[dict], lessons: list[dict], citations: dict) -> tuple[str, str]:
@@ -881,6 +911,35 @@ def build(out: Path, cfg: dict) -> dict:
     (site / "pitfalls.html").write_text(pitfalls_page, encoding="utf-8", newline="\n")
     sitemap_entries.append((base + "pitfalls.html", today))
 
+    # 设计对比 /design.html：10 套 UI 方案 × 10 个维度的评分矩阵 + 落地后的令牌表。
+    # 与坑表页一样在站点根目录（prefix=""），正文里没有任何 [[src:]]/[[Lxx]] 标记，
+    # 所以不需要 linkify —— 它的外链全部是 markdown 里写好的绝对地址。
+    design_html, design_toc = render_design_page()
+    design_page = R.render_template(
+        layout,
+        {
+            "title": f"设计对比 · {cfg['title']}",
+            "desc": f"{len(D.SYSTEMS)} 套 UI 方案 × {len(D.DIMENSIONS)} 个维度的等权平均对比："
+                    f"赢家 {D.winner()['name']}（{D.score(D.winner()):.2f} 分），"
+                    "以及这套结论落地后的令牌表与对比度实测。",
+            **page_meta(
+                base, "design.html", "article", f"设计对比 · {cfg['title']}",
+                f"{len(D.SYSTEMS)} 套 UI 方案的横向对比（{len(D.DIMENSIONS)} 维度等权平均）："
+                f"赢家 {D.winner()['name']}，含落地令牌表与对比度实测。",
+            ),
+            "prefix": "",
+            "site_title": R.escape(cfg["title"]),
+            "lesson_id": "",
+            "sidebar": render_sidebar(groups, "__design__", link_from_root, cfg, ""),
+            "content": design_html,
+            "toc": design_toc,
+            "footer": render_footer(cfg),
+        },
+        "design.html",
+    )
+    (site / "design.html").write_text(design_page, encoding="utf-8", newline="\n")
+    sitemap_entries.append((base + "design.html", today))
+
     # 单文件离线版 /offline.html：整套课程 + 样式压进一个 HTML（零外部依赖、零 JS），
     # 读者可以从首页下载带走。它**不进 sitemap**（见 EXCLUDED_FROM_SITEMAP）：
     # 正文与 32 个课程页完全重复，收录它只会让搜索引擎在两份一样的正文里挑一份。
@@ -906,6 +965,10 @@ def build(out: Path, cfg: dict) -> dict:
     write_json(site / "data" / "citations.json", citations_data(citations))
     write_json(site / "data" / "search.json", search_data(lessons))
     write_json(site / "data" / "manifest.json", manifest_data(lessons, baseline))
+    # 设计对比的机器可读版本：与 /design.html 同一个数据源（design_matrix），
+    # 分数、排名、token 取值链、对比度都带上，供脚本或好奇的读者直接消费。
+    write_json(site / "data" / "design.json",
+               D.as_json((WEB / "assets" / "app.css").read_text(encoding="utf-8")))
 
     # 404
     (site / "404.html").write_text(

@@ -422,18 +422,43 @@ function wireCopyButtons() {
 
 /* ---------------------------------------------------------------- 主题与抽屉 */
 
+/* 主题三态：跟随系统 → 亮 → 暗 → 回到跟随系统。
+   为什么不是「亮/暗」两态：多数人的系统主题是按时间自动切的，两态切换会让
+   他每次都得手动追一遍；三态里「跟随系统」是默认值（storage.js 的 fallback）。
+   按钮上的图标与 aria-label 跟着当前状态走 —— 只画一个 ◐ 的按钮，
+   读屏用户听不出它现在是什么、按下去会变成什么。 */
+const THEME_CYCLE = ["auto", "light", "dark"];
+const THEME_LABEL = { auto: "跟随系统", light: "亮色", dark: "暗色" };
+const THEME_ICON = { auto: "◐", light: "☀", dark: "☾" };
+
+function resolveTheme(theme) {
+  if (theme !== "auto") return theme === "dark" ? "dark" : "light";
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 function applyTheme(theme) {
-  const resolved = theme === "auto"
-    ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    : theme;
-  document.documentElement.dataset.theme = resolved === "dark" ? "dark" : "light";
+  const mode = THEME_CYCLE.includes(theme) ? theme : "auto";
+  document.documentElement.dataset.theme = resolveTheme(mode);
+  const btn = $("#theme-toggle");
+  if (btn) {
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(mode) + 1) % THEME_CYCLE.length];
+    btn.textContent = THEME_ICON[mode];
+    btn.setAttribute("aria-label", `主题：${THEME_LABEL[mode]}（点击切到${THEME_LABEL[next]}）`);
+    btn.title = `主题：${THEME_LABEL[mode]} → ${THEME_LABEL[next]}`;
+  }
+  return mode;
 }
 
 function wireThemeToggle() {
   const btn = $("#theme-toggle");
+  // 系统主题变化时只有「跟随系统」需要跟着变（Read 一次媒体查询，别轮询）
+  window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => {
+    if (loadTheme() === "auto") applyTheme("auto");
+  });
   if (!btn) return;
   btn.addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    const current = applyTheme(loadTheme());
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
     saveTheme(next);
     applyTheme(next);
   });

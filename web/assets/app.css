@@ -1,224 +1,619 @@
 /* HermesUsage 教程站样式
-   设计约束：正文可读性优先（中文 16px/1.85、行宽 74ch）；不依赖任何外部字体或 CDN。 */
+   ===========================================================================
+   这套样式表按 /design.html 那页对比出来的赢家重写过：**GitHub Primer**（10 维
+   等权平均 4.40 分）。它的核心规则只有两条，本站照抄：
 
+   1. **不在组件里写裸值。** 颜色、间距、圆角、阴影、动效时长、层级全部收进
+      token，组件只用语义变量 —— 改一处就真的只改一处。
+      （Primer 原文：Never use raw values (hex, px, etc.). Only use semantic tokens.）
+   2. **无障碍是硬约束，不是加分项。** 焦点必须可见、指针目标 ≥24px、
+      动效必须能被系统关掉、正文对比度 ≥4.5:1（正文实际 6:1 以上）。
+
+   另外从别的方案里各拿了一条（清单见 /design.html）：
+   - Tailwind v4：色板用 oklch 表达，并在 P3 屏上把强调色的 chroma 推出去；
+   - IBM Carbon：动效按时长分档（快 120 / 标准 200 / 慢 320 ms）+ 统一缓动；
+   - Vercel Geist：留白优先，卡片不靠阴影分层，行宽收在 74ch；
+   - Radix：只有键盘焦点才画环（:focus-visible），鼠标点击不画；
+   - Apple HIG：层级靠「层」（顶栏/抽屉/搜索面板是独立的一层）；
+   - Ant Design：中文正文 16px、行高放到 1.75 以上；
+   - Fluent 2：圆角与阴影也令牌化，不在组件里写死。
+
+   三条硬约束（别破坏它们）：
+   * **不引任何外部资源**：没有 @import、没有 url()、没有网络字体。离线版
+     （site/offline.html）把这整个文件逐字内联进一个 HTML，任何外链都会让它在
+     断网时走形 —— tests/test_build_site.py 里有一条断言钉着这件事。
+   * **暗色不是亮色的反相**：它是同一套语义 token 的第二份取值，
+     所以组件规则里一条 `data-theme` 判断都不需要。
+   * **中文优先**：字号/行高按 CJK 口径给（16px / 1.75），拉丁字体只作兜底。
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   第 1 层：primitive —— 唯一允许出现色值的地方
+   值本身就是「亮色的兜底值」（sRGB）。下面 @supports 里那份 oklch 是覆盖值：
+   老浏览器拿到 sRGB，现代浏览器拿到 oklch（明度轴可读、P3 屏上更饱和）。
+   对比度是拿这一层的 sRGB 值算的（见 /design.html 的对比度表）。
+   --------------------------------------------------------------------------- */
 :root {
-  --bg: #ffffff;
-  --fg: #1b1f24;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --card: #f8fafc;
-  --accent: #3b5bdb;
-  --accent-soft: #eef2ff;
-  --code-bg: #f4f6f8;
-  --radius: 10px;
-  --sidebar-w: 292px;
-  --toc-w: 220px;
-  --measure: 74ch;
-}
-:root[data-theme="dark"] {
-  --bg: #0f1115;
-  --fg: #e6e8eb;
-  --muted: #9aa4b2;
-  --line: #242a33;
-  --card: #161a21;
-  --accent: #7aa2ff;
-  --accent-soft: #1b2233;
-  --code-bg: #151a21;
+  --gray-0: #ffffff;
+  --gray-1: #f7f8fa;
+  --gray-2: #f2f4f7;
+  --gray-3: #e4e7ec;
+  --gray-6: #5a6270;
+  --gray-9: #16181d;
+  --blue-6: #2f4fd8;
+  --blue-soft: #eef1fe;
+
+  /* --- 第 2 层：semantic —— 按「角色」命名，组件只认这一层 --- */
+  --bg: var(--gray-0);              /* 页面底色 */
+  --fg: var(--gray-9);              /* 正文前景（对比度 17.8:1） */
+  --fg-muted: var(--gray-6);        /* 次要文字（6.2:1，仍过 AA） */
+  --line: var(--gray-3);            /* 细线：分割线 + 卡片描边 */
+  --card: var(--gray-1);            /* 表面：卡片、引用块 */
+  --code-bg: var(--gray-2);         /* 代码底色 */
+  --accent: var(--blue-6);          /* 全站唯一强调色（6.5:1） */
+  --accent-soft: var(--blue-soft);  /* 强调色的浅底 */
+  --focus-ring: var(--blue-6);      /* 键盘焦点环（6.5:1，非文本元素要求 ≥3:1） */
+
+  /* 兼容别名：早期样式与课程里提到过的名字，别删（改了会有一堆地方静默失配） */
+  --muted: var(--fg-muted);
+  --radius: var(--radius-md);
+
+  /* --- 字体与字号阶梯 ---
+     --step-* 用 clamp 做流体缩放：小屏不挤、大屏不空，且不需要多写断点。
+     中文正文固定 16px：再小就开始伤可读性了（这是 Ant Design 的口径）。 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei",
+               "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Cascadia Mono",
+               "Noto Sans Mono CJK SC", monospace;
+  --step-0: 0.8125rem;                                  /* 12.5px：标签、胶囊 */
+  --step-1: clamp(1rem, 0.97rem + 0.14vw, 1.0625rem);   /* h3 / 小标题 */
+  --step-2: clamp(1.125rem, 1.06rem + 0.34vw, 1.3125rem); /* h2 */
+  --step-3: clamp(1.3125rem, 1.16rem + 0.75vw, 1.75rem);  /* h1 / 页面标题 */
+  --leading: 1.75;                  /* CJK 正文行高：比拉丁的 1.6 松一档 */
+  --leading-tight: 1.4;             /* 标题行高 */
+
+  /* --- 空间刻度（4px 基准） --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* --- 圆角 / 阴影 / 层级 --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 18px 48px rgb(15 17 21 / 0.18);
+  --z-progress: 45;                 /* 课页阅读进度线 */
+  --z-topbar: 40;                   /* 顶栏 */
+  --z-drawer: 50;                   /* 窄屏侧栏抽屉 */
+  --z-overlay: 60;                  /* 搜索面板（最上层） */
+
+  /* --- 动效（Carbon 的分档口径） --- */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- 布局与可达性 --- */
+  --sidebar-w: 288px;
+  --toc-w: 216px;
+  --measure: 74ch;                  /* 正文行宽上限（中文约 37 字/行） */
+  --target-min: 24px;               /* WCAG 2.2 SC 2.5.8：指针目标最小边长 */
+
+  color-scheme: light;
 }
 
+/* 暗色：同一套语义 token 的第二份取值。用属性选择器而不是媒体查询 ——
+   本站的主题由用户手动切换（存 localStorage），媒体查询只在「跟随系统」时读一次。 */
+:root[data-theme="dark"] {
+  --gray-0: #0e1014;
+  --gray-1: #161a20;
+  --gray-2: #14181e;
+  --gray-3: #262b33;
+  --gray-6: #a2abb8;
+  --gray-9: #e7e9ee;
+  --blue-6: #93b2ff;
+  --blue-soft: #1a2130;
+  --shadow-md: 0 20px 56px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+/* 广色域覆盖：色板用 oklch 重写一遍。
+   * 明度（第一个数）与原 sRGB 值相同 —— 所以对比度表在两种取值下都成立；
+   * 只有强调色把 chroma 推到了 sRGB 之外：sRGB 屏上浏览器会做色域映射，
+     结果与上面的兜底值几乎一样，P3 屏上则明显更饱和。这就是「P3 色板」的全部含义。 */
+@supports (color: oklch(0% 0 0)) {
+  :root {
+    --gray-0: oklch(1.000 0.000 89.9);
+    --gray-1: oklch(0.979 0.003 264.5);
+    --gray-2: oklch(0.966 0.005 258.3);
+    --gray-3: oklch(0.927 0.007 260.7);
+    --gray-6: oklch(0.494 0.025 261.7);
+    --gray-9: oklch(0.209 0.010 268.2);
+    --blue-6: oklch(0.496 0.255 267.4);   /* sRGB 里最大约 0.212，这里刻意推出去 */
+    --blue-soft: oklch(0.960 0.018 275.6);
+  }
+  :root[data-theme="dark"] {
+    --gray-0: oklch(0.173 0.009 264.3);
+    --gray-1: oklch(0.216 0.013 258.4);
+    --gray-2: oklch(0.208 0.013 258.4);
+    --gray-3: oklch(0.288 0.016 259.8);
+    --gray-6: oklch(0.738 0.021 257.5);
+    --gray-9: oklch(0.934 0.007 268.5);
+    --blue-6: oklch(0.771 0.150 266.9);
+    --blue-soft: oklch(0.248 0.030 264.9);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   基础
+   --------------------------------------------------------------------------- */
 * { box-sizing: border-box; }
 
 /* `hidden` 属性优先：.palette 用 display:flex 布局，会盖掉 hidden 自带的
    display:none，导致搜索面板一进页面就摊在屏幕上（且它盖住全屏）。 */
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;          /* 锚点跳转时别被 sticky 顶栏盖住 */
+  scrollbar-color: var(--line) transparent;   /* 滚动条跟着主题走（Firefox + Chrome 121+） */
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 16px/1.85 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--leading);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Consolas, "Cascadia Mono", monospace; }
-.muted { color: var(--muted); }
 
-/* 跳过导航（skip-link）：键盘 / 读屏用户按 Tab 的第一下就能越过顶栏与 32 条课程
+/* 标题断行：balance 让标题不出现「最后一行只剩一个字」；Chromium/Safari 支持，
+   不支持的浏览器忽略这一行，没有任何副作用。 */
+h1, h2, h3 { text-wrap: balance; }
+
+/* 正文段落用 pretty：避免孤字行。同上，纯渐进增强。 */
+.lesson p, .lead { text-wrap: pretty; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+code, pre, kbd { font-family: var(--font-mono); }
+
+::selection { background: var(--accent-soft); color: var(--fg); }
+
+.muted { color: var(--fg-muted); }
+
+/* 指针目标下限（WCAG 2.2 SC 2.5.8 = 24×24 CSS 像素）。方框/胶囊这些
+   视觉上可以更小，但可点区域必须够大，所以统一给最小高度而不是扩大视觉尺寸。 */
+.btn, .icon-btn, .search-btn, .task-box {
+  min-height: var(--target-min);
+}
+
+/* 只有键盘焦点才画环：鼠标点击不画（Radix 的口径）。
+   全站统一一条规则，避免个别组件「忘了写 focus」。 */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 跳过导航（skip-link）：键盘 / 读屏用户按 Tab 的第一下就能越过顶栏与 40 条课程
    导航，直接落到正文。平时移出视口而不是 display:none —— display:none 的元素
    拿不到焦点，键盘用户永远等不到它出现。 */
 .skip-link {
-  position: absolute; left: -9999px; top: 0; z-index: 100;
-  padding: 8px 14px;
+  position: absolute; left: -9999px; top: 0; z-index: var(--z-overlay);
+  padding: var(--space-2) var(--space-3);
   background: var(--bg); color: var(--fg);
-  border: 1px solid var(--accent); border-radius: 8px;
+  border: 1px solid var(--accent); border-radius: var(--radius-sm);
   font-weight: 600; text-decoration: none;
 }
 .skip-link:focus {
   left: 12px; top: 10px;
-  outline: 2px solid var(--accent); outline-offset: 2px;
+  outline: 2px solid var(--focus-ring); outline-offset: 2px;
 }
 
-/* 顶栏 */
+/* ---------------------------------------------------------------------------
+   顶栏（Apple HIG 的那条：可交互层浮在内容层之上）
+   --------------------------------------------------------------------------- */
 .topbar {
-  position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 18px;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  position: sticky; top: 0; z-index: var(--z-topbar);
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(12px) saturate(1.4);
 }
-.brand { font-weight: 600; color: var(--fg); }
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.brand {
+  font-weight: 650;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+.brand:hover { text-decoration: none; color: var(--accent); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+
 .icon-btn, .btn, .search-btn {
-  font: inherit; cursor: pointer; color: var(--fg);
-  background: transparent; border: 1px solid var(--line); border-radius: 8px;
-  padding: 4px 10px;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font: inherit; font-size: var(--step-0);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer; color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard);
 }
-.icon-btn:hover, .btn:hover, .search-btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn.primary:hover { color: #fff; opacity: .9; }
-.search-btn { display: flex; align-items: center; gap: 8px; color: var(--muted); min-width: 220px; }
-.search-btn kbd { font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.icon-btn:hover, .btn:hover, .search-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+}
+.btn.primary {
+  background: var(--accent); color: var(--bg); border-color: var(--accent);
+  font-weight: 600;
+}
+.btn.primary:hover { color: var(--bg); background: var(--accent); opacity: .92; }
+.icon-btn { width: 34px; justify-content: center; padding: 0; font-size: 15px; }
+
+/* 搜索入口做成一枚「像输入框」的按钮：读者一眼知道它可以打字 */
+.search-btn {
+  min-width: 240px; color: var(--fg-muted);
+  background: var(--card);
+  justify-content: space-between;
+}
+.search-btn kbd {
+  font-size: 11px; color: var(--fg-muted);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 1px 5px; background: var(--bg);
+}
 .progress-pill {
-  font-size: 12px; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px;
+  font-size: var(--step-0); color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;      /* 数字不跳动 */
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 2px var(--space-3);
 }
 #nav-toggle { display: none; }
 
-/* 三栏布局 */
+/* ---------------------------------------------------------------------------
+   三栏布局
+   --------------------------------------------------------------------------- */
 .layout {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--toc-w);
-  gap: 28px;
+  gap: var(--space-6);
   max-width: 1440px;
   margin: 0 auto;
-  padding: 20px 20px 40px;
+  padding: var(--space-5) var(--space-5) var(--space-7);
   align-items: start;
 }
-.sidebar { position: sticky; top: 68px; max-height: calc(100vh - 88px); overflow: auto; font-size: 13.5px; }
+.sidebar {
+  position: sticky; top: 68px;
+  max-height: calc(100vh - 88px); overflow: auto;
+  font-size: 13.5px;
+  scrollbar-width: thin;
+  padding-right: var(--space-2);
+}
 .content { min-width: 0; max-width: var(--measure); }
-.toc-side { position: sticky; top: 68px; max-height: calc(100vh - 88px); overflow: auto; font-size: 13px; }
+.toc-side {
+  position: sticky; top: 68px;
+  max-height: calc(100vh - 88px); overflow: auto;
+  font-size: 13px;
+  scrollbar-width: thin;
+}
 
-/* 侧栏 */
-.nav-stage { margin-bottom: 16px; }
-.nav-stage-title { display: flex; gap: 6px; font-size: 12.5px; margin: 0 0 2px; color: var(--muted); font-weight: 600; }
-.nav-stage-no { color: var(--accent); }
-.nav-stage-why { margin: 0 0 6px; color: var(--muted); font-size: 12px; }
+/* ---------------------------------------------------------------------------
+   侧栏导航
+   --------------------------------------------------------------------------- */
+.nav-stage { margin-bottom: var(--space-4); }
+.nav-stage-title {
+  display: flex; gap: var(--space-2); align-items: baseline;
+  font-size: 12.5px; margin: 0 0 2px;
+  color: var(--fg-muted); font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.nav-stage-no { color: var(--accent); font-variant-numeric: tabular-nums; }
+.nav-stage-why { margin: 0 0 var(--space-2); color: var(--fg-muted); font-size: 12px; }
 .nav-stage ul { list-style: none; margin: 0; padding: 0; }
 .nav-stage li a {
-  display: grid; grid-template-columns: 14px 34px 1fr auto; gap: 6px; align-items: baseline;
-  padding: 4px 6px; border-radius: 6px; color: var(--fg);
+  display: grid; grid-template-columns: 14px 34px 1fr auto;
+  gap: var(--space-2); align-items: baseline;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  color: var(--fg);
+  transition: background var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard);
 }
-.nav-stage li a:hover { background: var(--card); text-decoration: none; }
-.nav-stage li.is-current a { background: var(--accent-soft); color: var(--accent); }
-.nav-id { color: var(--muted); font-variant-numeric: tabular-nums; }
-.nav-min { color: var(--muted); font-size: 11.5px; }
-.nav-check { color: var(--muted); }
+.nav-stage li a:hover {
+  background: var(--card); text-decoration: none;
+  border-left-color: var(--line);
+}
+.nav-stage li.is-current a {
+  background: var(--accent-soft); color: var(--accent);
+  border-left-color: var(--accent); font-weight: 600;
+}
+.nav-id { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.nav-min { color: var(--fg-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.nav-check { color: var(--fg-muted); }
 .nav-stage.is-done .nav-check, li.is-done .nav-check { color: var(--accent); }
-li.is-done .nav-title { color: var(--muted); text-decoration: line-through; }
+li.is-done .nav-title { color: var(--fg-muted); text-decoration: line-through; }
 
-/* 首页 */
-h1 { font-size: 26px; line-height: 1.35; margin: 8px 0 12px; }
-.lead { color: var(--muted); margin-top: 0; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px; }
-.stage-h { font-size: 17px; margin: 0 0 4px; }
-.stage-why { color: var(--muted); margin: 0 0 12px; font-size: 13.5px; }
+/* ---------------------------------------------------------------------------
+   首页 / 地图页 / 合集页的卡片与课程行
+   --------------------------------------------------------------------------- */
+h1 { font-size: var(--step-3); line-height: var(--leading-tight); margin: var(--space-2) 0 var(--space-3); }
+.lead { color: var(--fg-muted); margin-top: 0; }
+
+/* 卡片不靠阴影分层（Geist 的口径）：1px 细线 + 表面色差已经足够，
+   阴影留给真正浮起来的搜索面板。 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+.stage-h {
+  font-size: var(--step-1); margin: 0 0 var(--space-1);
+  display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: baseline;
+}
+.stage-why { color: var(--fg-muted); margin: 0 0 var(--space-3); font-size: 13.5px; }
 .lesson-grid { list-style: none; margin: 0; padding: 0; }
 .lesson-grid li + li { border-top: 1px solid var(--line); }
-.lesson-grid li a { display: grid; grid-template-columns: 16px 1fr; gap: 10px; padding: 9px 4px; color: var(--fg); }
+.lesson-grid li a {
+  display: grid; grid-template-columns: 16px 1fr;
+  gap: var(--space-2); padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  transition: background var(--dur-fast) var(--ease-standard);
+}
 .lesson-grid li a:hover { background: var(--bg); text-decoration: none; }
-.lc-head { display: flex; justify-content: space-between; gap: 12px; }
-.lc-summary { grid-column: 2; color: var(--muted); font-size: 13px; }
-.lesson-grid li.is-done .lc-head b { color: var(--muted); text-decoration: line-through; }
-.progress-card .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin: 10px 0; }
-.progress-card .bar > i { display: block; height: 100%; background: var(--accent); transition: width .25s; }
-.pc-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
-.pc-out { margin: 10px 0 0; font-size: 13px; }
+.lc-head { display: flex; justify-content: space-between; gap: var(--space-3); }
+.lc-summary { grid-column: 2; color: var(--fg-muted); font-size: 13px; }
+.lesson-grid li.is-done .lc-head b { color: var(--fg-muted); text-decoration: line-through; }
 
-/* 课程页 */
-.lesson h1 { font-size: 24px; }
-.lesson h2 { font-size: 19px; margin-top: 34px; padding-top: 12px; border-top: 1px solid var(--line); }
-.lesson h3 { font-size: 16.5px; margin-top: 24px; }
-.lesson blockquote { margin: 14px 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
+.progress-card .pc-line { margin: 0; }
+.progress-card .bar {
+  height: 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  overflow: hidden; margin: var(--space-3) 0;
+}
+.progress-card .bar > i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 72%, var(--bg)));
+  transition: width var(--dur-slow) var(--ease-standard);
+}
+.progress-card .pc-note { font-size: 13px; margin: var(--space-3) 0 0; }
+.pc-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-3) 0 0; }
+.pc-out { margin: var(--space-3) 0 0; font-size: 13px; }
+.site-note { font-size: 13px; }
+
+/* ---------------------------------------------------------------------------
+   课程页正文
+   --------------------------------------------------------------------------- */
+.lesson h1 { font-size: var(--step-3); }
+.lesson h2 {
+  font-size: var(--step-2);
+  margin-top: var(--space-7); padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 84px;
+}
+.lesson h3 { font-size: var(--step-1); margin-top: var(--space-6); }
+.lesson blockquote {
+  margin: var(--space-4) 0; padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent); background: var(--card);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
 .lesson blockquote p { margin: 0; }
-.lesson table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; margin: 14px 0; font-size: 14px; }
+.lesson table {
+  width: 100%; border-collapse: collapse;
+  display: block; overflow-x: auto;
+  margin: var(--space-4) 0; font-size: 14px;
+  scrollbar-width: thin;
+}
 .lesson th, .lesson td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
-.lesson th { background: var(--card); }
+.lesson th { background: var(--card); font-weight: 650; }
+.lesson tr:nth-child(even) td { background: color-mix(in srgb, var(--card) 55%, transparent); }
 .lesson pre {
-  position: relative; background: var(--code-bg); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.7;
+  position: relative;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  font-size: 13.5px; line-height: 1.65;
+  tab-size: 2;
+  scrollbar-width: thin;
 }
-.lesson :not(pre) > code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 13.5px; }
-.lesson ul, .lesson ol { padding-left: 22px; }
-.lesson li { margin: 4px 0; }
+.lesson :not(pre) > code {
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: 5px; padding: 1px 5px; font-size: 13.5px;
+}
+.lesson ul, .lesson ol { padding-left: var(--space-5); }
+.lesson li { margin: var(--space-1) 0; }
+.lesson hr { border: 0; border-top: 1px solid var(--line); margin: var(--space-6) 0; }
+
+/* 条形图（/design.html 的平均分图）：构建期生成的 SVG，颜色全走变量，
+   暗色下自动换色。窄屏上允许横向滚动 —— 图里 760 单位的 viewBox 等比缩到
+   手机宽度时，11px 的标签会缩到看不清，滚动比缩小好。 */
+.chart-figure { margin: var(--space-4) 0; overflow-x: auto; scrollbar-width: thin; }
+.chart { display: block; width: 100%; min-width: 560px; height: auto; }
+
+/* 练习方框：渲染期的静态 <span>，app.js 升级成真 checkbox。
+   交互样式只动边框和轮廓：display 保持行内块，否则练习文字会被挤到下一行。 */
 .task-box {
-  display: inline-block; width: 13px; height: 13px; margin-right: 4px;
-  border: 1.5px solid var(--muted); border-radius: 3px; vertical-align: -1px;
-  cursor: pointer;
+  display: inline-block; width: 15px; height: 15px;
+  margin-right: var(--space-1);
+  border: 1.5px solid var(--fg-muted); border-radius: 4px;
+  vertical-align: -2px; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard);
 }
-/* app.js 会把方框升级成 role="checkbox" + tabindex 的元素（脚本没跑起来时
-   它只是个装饰方框）。交互样式只动边框和轮廓：display 保持行内块，
-   否则练习文字会被挤到下一行。 */
 .task-box:hover { border-color: var(--accent); }
-.task-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .task-box[data-checked="1"],
 .task-box[role="checkbox"][aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+
 .copy-btn {
-  position: absolute; top: 6px; right: 6px; font-size: 11.5px; padding: 2px 8px;
-  color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+  position: absolute; top: var(--space-2); right: var(--space-2);
+  font-size: 11.5px; padding: 2px var(--space-2);
+  color: var(--fg-muted); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard);
 }
 .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 .cite {
   font-size: 11.5px; color: var(--accent); background: var(--accent-soft);
   border-radius: 5px; padding: 0 5px; margin: 0 2px; white-space: nowrap;
 }
 .xref { font-weight: 600; }
-.lesson-meta { color: var(--muted); font-size: 13px; margin-top: 26px; }
-.lesson-actions, .prevnext { display: flex; gap: 10px; justify-content: space-between; margin-top: 18px; }
+.lesson-meta { color: var(--fg-muted); font-size: 13px; margin-top: var(--space-5); }
+.lesson-actions, .prevnext {
+  display: flex; gap: var(--space-3); justify-content: space-between;
+  margin-top: var(--space-4);
+}
 .prevnext span:empty { display: none; }
-.repo-doc h1 { font-size: 22px; }
+.repo-doc h1 { font-size: var(--step-2); }
 
-/* 目录 */
-.page-toc ol { list-style: none; margin: 0; padding-left: 10px; }
-.page-toc a { color: var(--muted); display: block; padding: 3px 0; border-left: 2px solid transparent; padding-left: 8px; }
-.page-toc a.active { color: var(--accent); border-left-color: var(--accent); }
-.toc-title { font-weight: 600; font-size: 12.5px; margin: 0 0 6px; padding-left: 8px; }
+/* 阅读进度线：课页顶部一条随滚动增长的细线。
+   用 CSS 滚动驱动的动画（animation-timeline）实现 —— 不写一行 JS，
+   不测量、不监听 scroll；不支持的浏览器整条规则被 @supports 挡在门外。 */
+@supports (animation-timeline: scroll()) {
+  body[data-lesson]:not([data-lesson=""])::before {
+    content: "";
+    position: fixed; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    z-index: var(--z-progress);
+    animation: hu-read-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+  @keyframes hu-read-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
 
-/* 搜索面板 */
-.palette { position: fixed; inset: 0; background: rgba(15, 17, 21, .45); z-index: 60; display: flex; justify-content: center; padding-top: 12vh; }
-.palette-box { width: min(680px, 92vw); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.25); height: fit-content; }
-#palette-input { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); }
-#palette-results { list-style: none; margin: 10px 0 0; padding: 0; max-height: 52vh; overflow: auto; }
-#palette-results li { padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+/* ---------------------------------------------------------------------------
+   页内目录（scrollspy 高亮由 web/assets/lib/toc.js 负责）
+   --------------------------------------------------------------------------- */
+.page-toc ol { list-style: none; margin: 0; padding-left: var(--space-3); }
+.page-toc a {
+  display: block; padding: 3px 0 3px var(--space-2);
+  color: var(--fg-muted);
+  border-left: 2px solid transparent;
+  transition: color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard);
+}
+.page-toc a:hover { color: var(--fg); text-decoration: none; }
+.page-toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.page-toc .toc-l3 { padding-left: var(--space-2); }
+.toc-title { font-weight: 650; font-size: 12.5px; margin: 0 0 var(--space-2); padding-left: var(--space-2); }
+
+/* ---------------------------------------------------------------------------
+   搜索面板（本页唯一真正「浮」起来的一层）
+   --------------------------------------------------------------------------- */
+.palette {
+  position: fixed; inset: 0; z-index: var(--z-overlay);
+  background: color-mix(in srgb, #0f1115 46%, transparent);
+  display: flex; justify-content: center; padding-top: 12vh;
+  backdrop-filter: blur(2px);
+}
+.palette-box {
+  width: min(680px, 92vw); height: fit-content;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-md);
+  animation: hu-palette-in var(--dur-slow) var(--ease-standard) both;
+}
+@keyframes hu-palette-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+#palette-input {
+  width: 100%; font: inherit; font-size: 15px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--fg);
+}
+#palette-results { list-style: none; margin: var(--space-3) 0 0; padding: 0; max-height: 52vh; overflow: auto; scrollbar-width: thin; }
+#palette-results li { padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); cursor: pointer; }
 #palette-results li[aria-selected="true"] { background: var(--accent-soft); }
-#palette-results .pr-meta { color: var(--muted); font-size: 12.5px; }
-#palette-results mark { background: transparent; color: var(--accent); font-weight: 600; }
-.palette-hint { color: var(--muted); font-size: 12px; margin: 8px 2px 0; }
+#palette-results .pr-meta { color: var(--fg-muted); font-size: 12.5px; }
+#palette-results mark { background: transparent; color: var(--accent); font-weight: 650; }
+.palette-hint { color: var(--fg-muted); font-size: 12px; margin: var(--space-2) 2px 0; }
 
-/* 页脚 */
-.footer { border-top: 1px solid var(--line); margin-top: 40px; }
-.footer-inner { max-width: 1440px; margin: 0 auto; padding: 18px 20px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+/* ---------------------------------------------------------------------------
+   页脚
+   --------------------------------------------------------------------------- */
+.footer { border-top: 1px solid var(--line); margin-top: var(--space-7); }
+.footer-inner {
+  max-width: 1440px; margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex; gap: var(--space-4); flex-wrap: wrap;
+  font-size: 13px; color: var(--fg-muted);
+}
 
-/* 响应式：<=1180px 收掉右侧目录；<=900px 侧栏变抽屉 */
+/* ---------------------------------------------------------------------------
+   响应式：<=1180px 收掉右侧目录；<=900px 侧栏变抽屉
+   --------------------------------------------------------------------------- */
 @media (max-width: 1180px) {
   .layout { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
   .toc-side { display: none; }
 }
 @media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); padding: 16px 14px 32px; }
-  #nav-toggle { display: inline-block; }
+  .layout { grid-template-columns: minmax(0, 1fr); padding: var(--space-4) var(--space-3) var(--space-6); }
+  #nav-toggle { display: inline-flex; }
   .search-btn { min-width: 0; }
   .search-btn span { display: none; }
   .sidebar {
-    position: fixed; top: 0; bottom: 0; left: 0; width: 86vw; max-width: 340px;
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: 86vw; max-width: 340px; max-height: none;
     background: var(--bg); border-right: 1px solid var(--line);
-    padding: 16px; z-index: 50; transform: translateX(-102%); transition: transform .2s;
-    max-height: none;
+    box-shadow: var(--shadow-md);
+    padding: var(--space-4); z-index: var(--z-drawer);
+    transform: translateX(-102%);
+    transition: transform var(--dur) var(--ease-standard);
   }
   .sidebar.is-open { transform: none; }
+  .lesson h2 { margin-top: var(--space-6); }
 }
+@media (max-width: 640px) {
+  :root { --step-3: 1.5rem; }
+  .topbar { padding: var(--space-2) var(--space-3); }
+  .card { padding: var(--space-3) var(--space-4); }
+}
+
+/* 对比度偏好：把细线加重，让低视力用户在强光下也能看出边界 */
+@media (prefers-contrast: more) {
+  :root { --line: var(--fg-muted); }
+  .card, .lesson pre, .lesson th, .lesson td { border-width: 2px; }
+}
+
+/* 减少动态效果：这是无障碍要求，不是可选项。所有过渡与动画归零，
+   但**保留**「状态变化本身」（打勾照样变实心、进度条照样变宽，只是瞬间完成）。 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @media print {
   .topbar, .sidebar, .toc-side, .prevnext, .lesson-actions, .footer { display: none; }
   .layout { display: block; padding: 0; }
   .lesson pre { white-space: pre-wrap; }
+  body[data-lesson]::before { display: none; }
 }

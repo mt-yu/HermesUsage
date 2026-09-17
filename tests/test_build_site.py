@@ -42,8 +42,9 @@ class TestBuildOutput(unittest.TestCase):
         self.assertEqual(self.stats["lessons"], n_lessons)
         self.assertEqual(lesson_pages, n_lessons)                # 每课一页
         self.assertEqual(repo_pages, len(cfg["repo_docs"]))      # 每个 repo_doc 一页
-        # 站点根目录的页面：首页 / 学习地图 / 常见错误合集 / 离线单文件版 / 404
-        root_expected = ("index.html", "map.html", "pitfalls.html", "offline.html", "404.html")
+        # 站点根目录的页面：首页 / 学习地图 / 常见错误合集 / 设计对比 / 离线单文件版 / 404
+        root_expected = ("index.html", "map.html", "pitfalls.html", "design.html",
+                         "offline.html", "404.html")
         for rel in root_expected:
             self.assertTrue((self.out / rel).is_file(), f"缺 {rel}")
         self.assertEqual(root_pages, len(root_expected))
@@ -57,7 +58,7 @@ class TestBuildOutput(unittest.TestCase):
     def test_index_and_data_files_exist(self):
         for rel in ("index.html", "404.html", "map.html", ".nojekyll",
                     "data/index.json", "data/citations.json", "data/search.json", "data/manifest.json",
-                    "assets/app.css", "assets/app.js"):
+                    "data/design.json", "assets/app.css", "assets/app.js"):
             self.assertTrue((self.out / rel).is_file(), f"缺 {rel}")
 
     def test_every_lesson_has_a_page(self):
@@ -313,8 +314,9 @@ class TestPitfallsPage(unittest.TestCase):
     def test_page_is_in_the_sitemap(self):
         locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
         self.assertIn(self.base + "pitfalls.html", locs)
-        # 组成式：sitemap = 课程页 + 规范页 + 首页/地图/合集（离线版与 404 不收录）
-        self.assertEqual(len(locs), len(self.lessons) + len(self.cfg["repo_docs"]) + 3)
+        # 组成式：sitemap = 课程页 + 规范页 + 站点根目录的四个可收录页面
+        # （首页 / 学习地图 / 常见错误合集 / 设计对比；离线版与 404 不收录）
+        self.assertEqual(len(locs), len(self.lessons) + len(self.cfg["repo_docs"]) + 4)
         self.assertEqual(
             len(locs),
             len(list(self.out.rglob("*.html"))) - len(build_site.EXCLUDED_FROM_SITEMAP),
@@ -452,7 +454,162 @@ class TestExerciseCountsAndReportButton(unittest.TestCase):
         self.assertIn("export function summarize", report)
 
 
-class TestSiteReachability(unittest.TestCase):
+class TestDesignPage(unittest.TestCase):
+    """v3.1 设计对比 `/design.html`：10 套 UI 方案 × 10 个维度的评分矩阵。
+
+    这一页最容易坏的地方**不是样式**，而是「页面上的数字与数据源脱钩」：
+    有人手改一句结论、或者改了 `web/assets/app.css` 却没重算 token 表，
+    页面照样渲染得好好的，只是开始说假话。所以这一组断言全部是**双路对账**：
+
+    - 页面上的赢家 ⟷ `design_matrix.winner()`
+    - 页面上印的 token 取值链 ⟷ 从 app.css `:root` 现读出来的链
+    - 页面上那 8 行对比度结论 ⟷ 现算的 WCAG 比值（必须全部通过）
+    - `data/design.json` ⟷ 同一份数据源（同一个赢家、同一个字节数）
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        cls.base = cls.cfg["base_url"]
+        build_site.build(cls.out, cls.cfg)
+        cls.page = (cls.out / "design.html").read_text(encoding="utf-8")
+        cls.main = main_region(cls.page)
+        cls.css = (REPO / "web" / "assets" / "app.css").read_text(encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    # --- 内容与数据源 -------------------------------------------------------
+
+    def test_page_exists_and_is_not_empty(self):
+        self.assertTrue((self.out / "design.html").is_file())
+        self.assertGreater((self.out / "design.html").stat().st_size, 0)
+
+    def test_winner_named_on_the_page_is_the_computed_winner(self):
+        winners = re.findall(r"<td><strong>([^<]+)</strong> ← 赢家</td>", self.main)
+        self.assertEqual(winners, [D.winner()["name"]])
+        self.assertIn(f"{D.score(D.winner()):.2f}", self.main)
+        # 结论句里的平均分也必须与现算值一致（正文里没有任何手写数字）
+        self.assertIn(f"**{D.score(D.winner()):.2f}**", D.render_markdown(self.css))
+
+    def test_matrix_has_a_row_per_system_plus_two_reference_rows(self):
+        rows = re.findall(r'<tr>\s*<td>(?:\*\*|<em>)', self.main)
+        self.assertEqual(len(rows), len(D.SYSTEMS) + 2)
+        for system in D.SYSTEMS:
+            self.assertIn(system["name"], self.main, system["key"])
+        self.assertIn("改造前", self.main)
+        self.assertIn("改造后", self.main)
+
+    def test_every_dimension_header_is_rendered(self):
+        heads = re.findall(r"<th>([^<]+)</th>", self.main)
+        matrix_heads = heads[:len(D.DIM_KEYS) + 2]
+        self.assertEqual(matrix_heads, ["方案"] + [D.SHORT[k] for k in D.DIM_KEYS] + ["平均"])
+
+    def test_token_table_matches_app_css(self):
+        for item in D.APPLIED_TOKENS:
+            with self.subTest(token=item["token"]):
+                steps = D.token_chain(self.css, item["token"])
+                cell = " → ".join(f"<code>{step}</code>" for step in steps)
+                self.assertIn(f"<td>{cell}</td>", self.main)
+
+    def test_contrast_table_is_fully_passing_and_matches_the_css(self):
+        self.assertNotIn("❌", self.main)
+        self.assertEqual(self.main.count("✅ 通过"), len(D.CONTRAST_PAIRS))
+        for fg, bg, _, _ in D.CONTRAST_PAIRS:
+            ratio = D.contrast_ratio(D.hex_of(self.css, fg), D.hex_of(self.css, bg))
+            self.assertIn(f"<strong>{ratio}:1</strong>", self.main)
+
+    def test_stylesheet_size_on_the_page_matches_the_file(self):
+        stats = build_site.D.css_stats(self.css)
+        self.assertEqual(stats["bytes"], (REPO / "web" / "assets" / "app.css").stat().st_size)
+        self.assertIn(f"{stats['bytes']:,} 字节", self.main)
+
+    def test_chart_svg_is_embedded_with_one_bar_per_row(self):
+        self.assertIn("chart-figure", self.main)
+        self.assertEqual(self.main.count("<svg"), 1)
+        self.assertEqual(self.main.count("<rect"), len(D.SYSTEMS) + 2)
+        self.assertIn('role="img"', self.main)
+
+    def test_chart_placeholder_never_reaches_the_reader(self):
+        self.assertNotIn(D.CHART_PLACEHOLDER, self.page)
+        self.assertNotIn("{", self.page.split("<body")[0].split("dataset.theme")[0])
+
+    def test_no_markdown_markers_left_in_the_body(self):
+        self.assertNotIn("[[", self.main)
+        self.assertNotIn("**", self.main)          # markdown 加粗必须已经变成 <strong>
+        for source in D.SOURCES:
+            self.assertIn(source["url"], self.main, source["url"])
+
+    def test_sources_and_systems_links_are_absolute_https(self):
+        hrefs = re.findall(r'<a[^>]+href="([^"]+)"', self.main)
+        external = [h for h in hrefs if h.startswith("http")]
+        self.assertGreaterEqual(len(external), len(D.SOURCES))
+        for href in external:
+            self.assertTrue(href.startswith("https://"), href)
+
+    # --- 机器可读版本 -------------------------------------------------------
+
+    def test_design_json_matches_the_module(self):
+        data = json.loads((self.out / "data" / "design.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["winner"], D.winner()["key"])
+        self.assertEqual(len(data["systems"]), len(D.SYSTEMS))
+        self.assertEqual(len(data["dimensions"]), len(D.DIMENSIONS))
+        self.assertEqual(data["stylesheet"]["bytes"], (REPO / "web" / "assets" / "app.css").stat().st_size)
+        self.assertTrue(all(row["pass"] for row in data["contrast"]), data["contrast"])
+        self.assertEqual([s["rank"] for s in data["systems"]], list(range(1, len(D.SYSTEMS) + 1)))
+
+    # --- sitemap / canonical / og / 侧栏 ------------------------------------
+
+    def test_page_is_in_the_sitemap(self):
+        locs = LOC_RE.findall((self.out / "sitemap.xml").read_text(encoding="utf-8"))
+        self.assertIn(self.base + "design.html", locs)
+        self.assertEqual(
+            len(locs),
+            len(list(self.out.rglob("*.html"))) - len(build_site.EXCLUDED_FROM_SITEMAP),
+        )
+
+    def test_page_has_canonical_and_five_og_tags(self):
+        self.assertEqual(CANONICAL_RE.findall(self.page), [self.base + "design.html"])
+        metas = dict(OG_META_RE.findall(self.page))
+        self.assertEqual(len(OG_META_RE.findall(self.page)), 5)
+        self.assertEqual(set(metas), OG_NAMES)
+        self.assertEqual(metas["og:type"], "article")
+        self.assertEqual(metas["og:url"], self.base + "design.html")
+        self.assertTrue(metas["og:title"].startswith("设计对比"), metas["og:title"])
+        self.assertTrue(metas["og:description"], "og:description 不能为空")
+
+    def test_sidebar_links_the_page_from_root_and_subpages(self):
+        for rel, href in (
+            ("index.html", "design.html"),
+            ("map.html", "design.html"),
+            ("pitfalls.html", "design.html"),
+            ("design.html", "design.html"),
+            ("lessons/L15-skills.html", "../design.html"),
+            ("repo/roadmap.html", "../design.html"),
+        ):
+            page = (self.out / rel).read_text(encoding="utf-8")
+            self.assertIn(f'<li><a href="{href}">设计对比</a></li>', page, rel)
+
+    def test_no_broken_links_from_this_page(self):
+        self.assertEqual(
+            [p for p in build_site.check_links(self.out) if p.startswith("design.html")], []
+        )
+
+    # --- 与离线版的关系 -----------------------------------------------------
+
+    def test_offline_page_stays_self_contained_and_does_not_inline_this_page(self):
+        offline = (self.out / "offline.html").read_text(encoding="utf-8")
+        for needle in ("<link ", "<script", 'src="', "design.html"):
+            self.assertNotIn(needle, offline, f"离线版不该出现 {needle}")
+        # 它内联的那份样式表里当然**有** .chart 那几条规则（逐字内联），
+        # 但它自己不含 SVG 图：离线版是「32 课正文」，不含这一页。
+        self.assertNotIn("<svg", offline)
+
+
+
     """v1.2 站点可达性：canonical / og / sitemap / robots / skip-link。
 
     这些元信息错了在浏览器里**完全看不出来**（页面照常渲染），只能靠断言。

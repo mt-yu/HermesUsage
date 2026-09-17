@@ -6,11 +6,26 @@
 <title>{{title}}</title>
 <meta name="description" content="{{desc}}">
 <link rel="canonical" href="{{canonical}}">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)">
 <meta property="og:site_name" content="{{site_title}}">
 <meta property="og:type" content="{{og_type}}">
 <meta property="og:title" content="{{og_title}}">
 <meta property="og:description" content="{{og_desc}}">
 <meta property="og:url" content="{{og_url}}">
+<!-- 主题必须在样式表之前落地：否则暗色用户会先看到一帧白屏再变黑（FOUC）。
+     键名与 web/assets/lib/storage.js 的 THEME_KEY 保持一致，别各写一份；
+     「auto」跟随系统，所以这里读一次媒体查询。 -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("hermes-usage:theme:v1") || "auto";
+      var dark = saved === "dark" || (saved !== "light" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+    } catch (e) { /* 隐私模式下读不到 localStorage：保持模板里的默认值 */ }
+  })();
+</script>
 <link rel="stylesheet" href="{{prefix}}assets/app.css">
 <script type="module" src="{{prefix}}assets/app.js"></script>
 </head>
