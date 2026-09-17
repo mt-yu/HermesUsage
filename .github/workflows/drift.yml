@@ -1,0 +1,57 @@
+name: drift
+
+# 官方文档漂移哨兵 —— CI 版。
+#
+# 为什么需要它：scripts/drift_watch.py 是拿「本机装的 Hermes 源码里的 website/docs」
+# 跟我们的快照比哈希；CI 里没有 Hermes 安装，那条路跑不起来（退出码 2）。
+# 所以这里先把**上游** docs 仓库按默认分支稀疏克隆下来当“官方文档”，
+# 再把同一个哨兵原样交给它 —— 不新增脚本，行为与本地那份完全一致。
+#
+# 有漂移 → 开一条 issue（标题前缀去重，不会每次刷屏）；漂移**不算失败**，
+# 只有「检查本身跑不起来」才让这次运行变红。每天 09:00（北京）跑一次。
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # UTC 01:00 = 北京 09:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: python -m pip install -r requirements.txt
+
+      - name: 取上游官方文档（浅克隆 + 稀疏，只拿 website/docs）
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/NousResearch/hermes-agent.git "$RUNNER_TEMP/hermes-agent"
+          git -C "$RUNNER_TEMP/hermes-agent" sparse-checkout set website/docs
+          echo "上游 docs 提交：$(git -C "$RUNNER_TEMP/hermes-agent" rev-parse HEAD)"
+          ls "$RUNNER_TEMP/hermes-agent/website/docs" | head -5
+
+      - name: 跑漂移哨兵（有漂移就开 issue）
+        env:
+          HERMES_AGENT_HOME: ${{ runner.temp }}/hermes-agent
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python scripts/drift_watch.py
+          code=$?
+          set -e
+          case "$code" in
+            0) echo "::notice::无漂移 —— 快照仍与官方文档一致" ;;
+            1) echo "::warning::检测到漂移（issue 已新建或已存在同前缀 issue）" ;;
+            *) echo "::error::漂移检查本身跑不起来（退出码 $code）：先看上面 sync_sources 的输出"; exit "$code" ;;
+          esac
+          echo "漂移哨兵退出码：$code（0=无漂移 1=有漂移）"
