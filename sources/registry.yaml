@@ -21,6 +21,7 @@ surfaces:
   cli: user-guide/cli.md
   tui: user-guide/tui.md
   desktop: user-guide/desktop.md
+  multi-connection-desktop: user-guide/multi-connection-desktop.md
   web-dashboard: user-guide/features/web-dashboard.md
   acp: user-guide/features/acp.md
   api-server: user-guide/features/api-server.md
@@ -36,6 +37,8 @@ config:
   credential-pools: user-guide/features/credential-pools.md
   provider-routing: user-guide/features/provider-routing.md
   profiles: user-guide/profiles.md
+  profile-commands: reference/profile-commands.md
+  profile-distributions: user-guide/profile-distributions.md
   which-file: user-guide/which-file-does-what.md
 
 core:

@@ -1,5 +1,5 @@
 # 自动生成，请勿手改 —— 由 scripts/sync_sources.py 从官方文档源码生成
-# 生成时间: 2026-09-16   hermes v0.21.3
+# 生成时间: 2026-09-17   hermes v0.21.3
 # 文档源码: https://github.com/NousResearch/hermes-agent @ 05fac10a758c41c321a1904430b6b3d79ecc4d7e (2026-09-15)
 # 校验：python scripts/sync_sources.py --check
 
@@ -13,7 +13,7 @@
   hermes_version: 0.21.3
   sha256: 0c6e2ab63a6815b43f771486c8722accc4445dd814298e1ed521ddc64777113d
   bytes: 15238
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/acp.md
 - id: adding-tools
   title: Adding Tools
@@ -25,7 +25,7 @@
   hermes_version: 0.21.3
   sha256: 7e398af4bcc09dc2b3cce9aafdb12fae7252ea5c9c9812a87d0665f138c9bb63
   bytes: 6700
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/adding-tools.md
 - id: agent-loop
   title: Agent Loop Internals
@@ -37,7 +37,7 @@
   hermes_version: 0.21.3
   sha256: 67d66f701226dc58676b5bf53667b5b0abdded7b8f6920c091eba474927073e2
   bytes: 11241
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/agent-loop.md
 - id: api-server
   title: API Server
@@ -49,7 +49,7 @@
   hermes_version: 0.21.3
   sha256: 32bc89fe0b510ac789ac8485442595a0e540646d93c79a438d6544a9e7d0f375
   bytes: 36339
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/api-server.md
 - id: arch
   title: Architecture
@@ -61,7 +61,7 @@
   hermes_version: 0.21.3
   sha256: f484f3c632aaec759a2100f1c481f9c89f8d7d44c541ac618d3f20c3d86b4a79
   bytes: 16766
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/arch.md
 - id: automate-with-cron
   title: Automate Anything with Cron
@@ -73,7 +73,7 @@
   hermes_version: 0.21.3
   sha256: 1893257eb0fc8891cc5df71603fccc930d9e7de0bb049068ea3313d0941a290d
   bytes: 12447
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/automate-with-cron.md
 - id: automation-blueprints
   title: Automation Blueprints
@@ -85,7 +85,7 @@
   hermes_version: 0.21.3
   sha256: ab338fee2951418636cbb544801b551a98a06ac744c2df94572c78a188bf8154
   bytes: 19235
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/automation-blueprints.md
 - id: batch-processing
   title: Batch Processing
@@ -97,7 +97,7 @@
   hermes_version: 0.21.3
   sha256: 941a6349f9a61a3663176f49e930424e35ac3f208dd487fdec4a327356c10fa3
   bytes: 9096
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/batch-processing.md
 - id: bot-mode
   title: Bot Mode
@@ -109,7 +109,7 @@
   hermes_version: 0.21.3
   sha256: 8dfe19d9e118ad853320da0617f6bb353270c3b1bb29358a8a3a8810d0c93aee
   bytes: 35178
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/bot-mode.md
 - id: browser
   title: Browser Automation
@@ -121,7 +121,7 @@
   hermes_version: 0.21.3
   sha256: 38e00d4f98331b80c9c976706eef3fbb348f8ec37b29c01f924b39c01a6eb672
   bytes: 50620
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/browser.md
 - id: checkpoints
   title: Checkpoints and /rollback
@@ -133,7 +133,7 @@
   hermes_version: 0.21.3
   sha256: 859bba3c2f3c154378abd8e2bcca1aaa1024b9fcd6d4e8dcb5c34bfdaf2d9e21
   bytes: 12066
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/checkpoints.md
 - id: cli
   title: CLI Interface
@@ -145,7 +145,7 @@
   hermes_version: 0.21.3
   sha256: 6f2a3952ab2eed9840a02fef3baaa8dcb8d65000dc34d14f76ee6a036b910d5b
   bytes: 29883
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/cli.md
 - id: cli-commands
   title: CLI Commands Reference
@@ -157,7 +157,7 @@
   hermes_version: 0.21.3
   sha256: 68e278c4b5f3cf849221b0da0ef9eec3132e21c457247798de2ea2a4ed7cb197
   bytes: 112212
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/cli-commands.md
 - id: cli-symbols
   title: CLI Symbols Glossary
@@ -169,7 +169,7 @@
   hermes_version: 0.21.3
   sha256: 7434e50f859242eaead6b4d99c76bda18b729c4fa2a6e34a3e81f2b2b075a63f
   bytes: 5979
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/cli-symbols.md
 - id: code-execution
   title: Code Execution
@@ -181,7 +181,7 @@
   hermes_version: 0.21.3
   sha256: 549847635c489d6706948ebfee38c209fe631feb57f0b5d26d0b9a0b8eda67f0
   bytes: 14943
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/code-execution.md
 - id: compression
   title: Context Compression and Caching
@@ -193,7 +193,7 @@
   hermes_version: 0.21.3
   sha256: a089637ba2a0ed5466cc52aef6bc0b0188742f97a26da99a598efabf911f542b
   bytes: 34983
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/compression.md
 - id: configuration
   title: Hermes Agent Configuration
@@ -205,7 +205,7 @@
   hermes_version: 0.21.3
   sha256: 18973cd9adce76fa179d03cfe9eb1318bf1900951d0d653675fe56f17a7bfe99
   bytes: 208563
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/configuration.md
 - id: configuring-models
   title: Configuring Models
@@ -217,7 +217,7 @@
   hermes_version: 0.21.3
   sha256: b3e92005e7ef1f78852e4d70d9a9b5a39da88a68277c5f92530517ea06e128db
   bytes: 25060
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/configuring-models.md
 - id: context-files
   title: Context Files
@@ -229,7 +229,7 @@
   hermes_version: 0.21.3
   sha256: 385efe123b7f7518365f88b687a6db1dec9f1a92233b8a1abfd7d312884c5533
   bytes: 11450
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/context-files.md
 - id: context-references
   title: Context References
@@ -241,7 +241,7 @@
   hermes_version: 0.21.3
   sha256: ada9b7f98c0825b8ffa0dba35bfbf86cb48de04a74a8dceffb25a9a979283486
   bytes: 5390
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/context-references.md
 - id: creating-skills
   title: Creating Skills
@@ -253,7 +253,7 @@
   hermes_version: 0.21.3
   sha256: 8c02803ab101e1af3893df4876ca50b5a4fb36c0de871c28c9de92662baa9a95
   bytes: 20113
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/creating-skills.md
 - id: credential-pools
   title: Credential Pools
@@ -265,7 +265,7 @@
   hermes_version: 0.21.3
   sha256: 8a561c521e65d70bd55daf14eed74872e1154245a9c9da1cb55715b93fee8e52
   bytes: 14688
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/credential-pools.md
 - id: credential-vault
   title: Passwords & Logins
@@ -277,7 +277,7 @@
   hermes_version: 0.21.3
   sha256: e50ca86444200d2c8b23c15ea4b71ee50367b5cfb37f7ed6908bad2102b479ea
   bytes: 5715
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/credential-vault.md
 - id: cron
   title: Scheduled Tasks (Cron)
@@ -289,7 +289,7 @@
   hermes_version: 0.21.3
   sha256: aadba0853e9a39dc526f4ccb2245ccbdd1b2422039a5284db0c20c349fa30e18
   bytes: 65342
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/cron.md
 - id: cron-script-only
   title: Script-Only Cron Jobs (No LLM)
@@ -301,7 +301,7 @@
   hermes_version: 0.21.3
   sha256: 9098da29b2e496128de32b492f79dbb6cd06ddc148b1d4609bbeb26a6af23d83
   bytes: 11185
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/cron-script-only.md
 - id: curator
   title: Curator
@@ -313,7 +313,7 @@
   hermes_version: 0.21.3
   sha256: 973cca127c8d3a8a24fc987aa9bb7a30dc61680993de9054a0b92e8d474b455e
   bytes: 25260
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/curator.md
 - id: delegation
   title: Subagent Delegation
@@ -325,7 +325,7 @@
   hermes_version: 0.21.3
   sha256: e275db9d1c69c9fdacec3e47d3050b66bdc05ee2510b9da0d75963efe55271bc
   bytes: 47105
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/delegation.md
 - id: delegation-patterns
   title: Delegation & Parallel Work
@@ -337,7 +337,7 @@
   hermes_version: 0.21.3
   sha256: 553eb9e1107ba6a2c27fb4bf66686970363740a29ea04ace989f527ace431917
   bytes: 11195
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/delegation-patterns.md
 - id: deliverable-mode
   title: Deliverable Mode (Artifacts in Chat)
@@ -349,7 +349,7 @@
   hermes_version: 0.21.3
   sha256: 650fa7eb592de99ec1348a768237c816f3d21b70576afdf40be4eff6b226b58f
   bytes: 5787
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/deliverable-mode.md
 - id: desktop
   title: Hermes Desktop
@@ -361,7 +361,7 @@
   hermes_version: 0.21.3
   sha256: 845ee5e1c605427c32eb721b7c3563fddf161f1a780746e5b37772ca946a59d0
   bytes: 66231
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/desktop.md
 - id: desktop-plugin-sdk
   title: Desktop Plugin SDK (@hermes/plugin-sdk)
@@ -373,7 +373,7 @@
   hermes_version: 0.21.3
   sha256: 68be9032f39eb4a9e677fbf39f0c9c24d411749fadeae98eee108845c5b86eb5
   bytes: 44456
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/desktop-plugin-sdk.md
 - id: env-vars
   title: Environment Variables
@@ -385,7 +385,7 @@
   hermes_version: 0.21.3
   sha256: 410f32f1ad76fbc245aaccad3f000e0f76fb9c1657ae16ff5dcd2cfb7b4e181b
   bytes: 101663
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/env-vars.md
 - id: fallback-providers
   title: Fallback Providers
@@ -397,7 +397,7 @@
   hermes_version: 0.21.3
   sha256: 35a6cd2531d732e644d7101550bb3b150c8b374fb46ef1fe20f890d804193ecb
   bytes: 23318
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/fallback-providers.md
 - id: faq
   title: FAQ & Troubleshooting
@@ -409,7 +409,7 @@
   hermes_version: 0.21.3
   sha256: 28a6d03f78ac46b76e1d98f6ed1a3364dffdb069b8597a37573dac029779812b
   bytes: 36105
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/faq.md
 - id: feat-overview
   title: Features Overview
@@ -421,7 +421,7 @@
   hermes_version: 0.21.3
   sha256: a08c52065f4ec06e8ad921b77497801e5055f7113a8b5e502c27c23bd5cd56a7
   bytes: 7334
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/feat-overview.md
 - id: gateway-messaging
   title: Messaging Gateway
@@ -433,7 +433,7 @@
   hermes_version: 0.21.3
   sha256: 5ae66a7b27508481972a126462945d8149f1917a00c34c749454c7ef81f5d956
   bytes: 44683
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/gateway-messaging.md
 - id: goals
   title: Persistent Goals
@@ -445,7 +445,7 @@
   hermes_version: 0.21.3
   sha256: e3ddab870243ac235101a0d2ce2f696f2e7381b129a75896b1cad42dc0ce395f
   bytes: 21635
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/goals.md
 - id: heartbeat
   title: Session Heartbeats
@@ -457,7 +457,7 @@
   hermes_version: 0.21.3
   sha256: 8990452de7cbc85252ea9507af85a58a0893f86acb403373f16efca29f5534dd
   bytes: 5132
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/heartbeat.md
 - id: hooks
   title: Event Hooks
@@ -469,7 +469,7 @@
   hermes_version: 0.21.3
   sha256: e60a3ca3318e2bdee86ce5ff170e21f46a85bcfbb420c08a5dbc855b6d6ee58b
   bytes: 108802
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/hooks.md
 - id: installation
   title: Installation
@@ -481,7 +481,7 @@
   hermes_version: 0.21.3
   sha256: 5fb84dd42e03eb81b66f99734421c45108ef2cb72fd2198d0b6c051acb0dda1e
   bytes: 11228
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/installation.md
 - id: kanban
   title: Kanban (Multi-Agent Board)
@@ -493,7 +493,7 @@
   hermes_version: 0.21.3
   sha256: 0d9ce0f93917fcd169a55082f87a9d05ae4739e3de070974ee880f087aa50e01
   bytes: 107101
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/kanban.md
 - id: learning-path
   title: Learning Path
@@ -505,7 +505,7 @@
   hermes_version: 0.21.3
   sha256: a6dd75409410e2922b2f9dc9d4fa68b742fe83fde696f03c4c5de1a6ed33fff3
   bytes: 9105
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/learning-path.md
 - id: local-models
   title: Local Models
@@ -517,7 +517,7 @@
   hermes_version: 0.21.3
   sha256: 9cbb864ed687d81bc2802186e2e6cb0dfe5004a967aa132d2f67ebcd11d736df
   bytes: 6375
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/local-models.md
 - id: loops
   title: Recurring Loops
@@ -529,7 +529,7 @@
   hermes_version: 0.21.3
   sha256: 11e4fe9d5b4d5eaa4bd0cab58fd47ccedb398163beb5eeee31d54d29f42ea6cb
   bytes: 7360
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/loops.md
 - id: lsp
   title: LSP — Semantic Diagnostics
@@ -541,7 +541,7 @@
   hermes_version: 0.21.3
   sha256: 89e79d99196b4bd7e37be2feeaed3a7958430970948b813ff34195c8f1886f99
   bytes: 12403
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/lsp.md
 - id: mcp
   title: MCP (Model Context Protocol)
@@ -553,7 +553,7 @@
   hermes_version: 0.21.3
   sha256: 7dd0e2eb63586e9f367369b947b741044b483ad323396df6d403949713df30eb
   bytes: 40992
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/mcp.md
 - id: mcp-config
   title: MCP Config Reference
@@ -565,7 +565,7 @@
   hermes_version: 0.21.3
   sha256: 87bc3d293687066e32f12451cca4b54ec56e650823d4e220d6b47826bb87dcbf
   bytes: 20208
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/mcp-config.md
 - id: memory
   title: Persistent Memory
@@ -577,7 +577,7 @@
   hermes_version: 0.21.3
   sha256: 7f84b8d73f50517fefdc0831975cd72dfae9b69785190b878aa14eeba4045b2d
   bytes: 25290
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/memory.md
 - id: memory-providers
   title: Memory Providers
@@ -589,7 +589,7 @@
   hermes_version: 0.21.3
   sha256: 3c09ea1216f135572f38836d684f6b1a6d1ca03487c705edee074fac539499e4
   bytes: 32276
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/memory-providers.md
 - id: middleware
   title: Middleware
@@ -601,8 +601,20 @@
   hermes_version: 0.21.3
   sha256: 2af65e1c688b50c6bd7f13a0f1c70e55c064ea5a8ab121ef5a7ec8de2986f475
   bytes: 9234
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/middleware.md
+- id: multi-connection-desktop
+  title: Connecting Desktop to Many Hermes Instances
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/multi-connection-desktop
+  source_path: website/docs/user-guide/multi-connection-desktop.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: 7a69fb9efe80b1a6539d853c7f1ba24f17d660566bc74600a9598fe1ad59a23e
+  bytes: 20148
+  retrieved_at: '2026-09-17'
+  local: sources/cache/multi-connection-desktop.md
 - id: nous-portal
   title: Nous Portal
   url: https://hermes-agent.nousresearch.com/docs/integrations/nous-portal
@@ -613,7 +625,7 @@
   hermes_version: 0.21.3
   sha256: ce62416e8cd3bbc1b2fc79c71fb5cfe5b362258ad6421f3c4c204926e2c84f7b
   bytes: 15539
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/nous-portal.md
 - id: optional-skills-catalog
   title: Optional Skills Catalog
@@ -625,7 +637,7 @@
   hermes_version: 0.21.3
   sha256: 90cab695c3c93637f5c336153756ad93895188d695b6a12eeec7e2dbf92a9c09
   bytes: 24643
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/optional-skills-catalog.md
 - id: personality
   title: Personality & SOUL.md
@@ -637,7 +649,7 @@
   hermes_version: 0.21.3
   sha256: f94f1d5e6d055080fd5c166101605eafdf934a2704a22884b5b334e4e702ae07
   bytes: 9774
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/personality.md
 - id: pets
   title: Pets (Petdex Mascots)
@@ -649,7 +661,7 @@
   hermes_version: 0.21.3
   sha256: d741033344c853a3d765c6c8f59272c5bd317a41fd290bcf3f4abca4921e71d1
   bytes: 10723
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/pets.md
 - id: pipe-script-output
   title: Pipe Script Output to Messaging Platforms
@@ -661,7 +673,7 @@
   hermes_version: 0.21.3
   sha256: 7bc184e9657cf40ee3b22154afad08763fd5bb52b61ed9c8127070024ed9c6b0
   bytes: 8466
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/pipe-script-output.md
 - id: platform-support
   title: Platform Support
@@ -673,7 +685,7 @@
   hermes_version: 0.21.3
   sha256: 250c36a664d84170cf9240486b920208ef2e7fba1392c445d265b20d01bdf1e1
   bytes: 4302
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/platform-support.md
 - id: plugins
   title: Plugins
@@ -685,7 +697,7 @@
   hermes_version: 0.21.3
   sha256: f512e4851c15ed78dca6da2592f27a1fa713c0a25b127c7f2013c5d9c4b20af8
   bytes: 46168
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/plugins.md
 - id: plugins-guide
   title: Build a Hermes Plugin
@@ -697,8 +709,32 @@
   hermes_version: 0.21.3
   sha256: d72a8ee5053152f3af694d2d3680f6c5f784fb7556e989727c46c2a0dfa859d4
   bytes: 83607
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/plugins-guide.md
+- id: profile-commands
+  title: Profile Commands Reference
+  url: https://hermes-agent.nousresearch.com/docs/reference/profile-commands
+  source_path: website/docs/reference/profile-commands.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: fb8caa9bf73a984f963b0bced4b98363e93fa913bf29737be184d4411043ed85
+  bytes: 18786
+  retrieved_at: '2026-09-17'
+  local: sources/cache/profile-commands.md
+- id: profile-distributions
+  title: 'Profile Distributions: Share a Whole Agent'
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
+  source_path: website/docs/user-guide/profile-distributions.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 05fac10a758c41c321a1904430b6b3d79ecc4d7e
+  source_date: '2026-09-15'
+  hermes_version: 0.21.3
+  sha256: ece2bfa0f8d28161e4230afd1ca437c63d28e8bc836c466b48df472cf7b37651
+  bytes: 31564
+  retrieved_at: '2026-09-17'
+  local: sources/cache/profile-distributions.md
 - id: profiles
   title: 'Profiles: Running Multiple Agents'
   url: https://hermes-agent.nousresearch.com/docs/user-guide/profiles
@@ -709,7 +745,7 @@
   hermes_version: 0.21.3
   sha256: 22c2882048e10e591c90ea108037a2cfcb08594ecc5cd8a08244b3fdb04559b7
   bytes: 21263
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/profiles.md
 - id: programmatic
   title: Programmatic Integration
@@ -721,7 +757,7 @@
   hermes_version: 0.21.3
   sha256: c3846ca5e301f6195a5814456ca67098536bd5231df42e7dfdbbf6ab4554c789
   bytes: 15039
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/programmatic.md
 - id: prompt-assembly
   title: Prompt Assembly
@@ -733,7 +769,7 @@
   hermes_version: 0.21.3
   sha256: eed2b296923704192047c7f6ef12194b88fbfc7fa269bc74f1ee29ac8230fc2b
   bytes: 15103
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/prompt-assembly.md
 - id: prompt-cache
   title: Context Compression and Caching
@@ -745,7 +781,7 @@
   hermes_version: 0.21.3
   sha256: a089637ba2a0ed5466cc52aef6bc0b0188742f97a26da99a598efabf911f542b
   bytes: 34983
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/prompt-cache.md
 - id: provider-routing
   title: Provider Routing
@@ -757,7 +793,7 @@
   hermes_version: 0.21.3
   sha256: e40bd56b674753a5a03054cd2c030a1a7d94def77d06e3e43a4c745ea33cd00f
   bytes: 6931
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/provider-routing.md
 - id: providers
   title: LLM and Model Providers
@@ -769,7 +805,7 @@
   hermes_version: 0.21.3
   sha256: 13b27fa4516a88f4bb9c5ccb1b9a5d7c9b38631cb4de169566b115af8371fb29
   bytes: 89944
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/providers.md
 - id: python-library
   title: Using Hermes as a Python Library
@@ -781,7 +817,7 @@
   hermes_version: 0.21.3
   sha256: 7dcd77d64b61a26d346f22853d898d98d8241c338b72ee505e879a7c3ae86182
   bytes: 10237
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/python-library.md
 - id: quickstart
   title: Hermes Agent Quickstart
@@ -793,7 +829,7 @@
   hermes_version: 0.21.3
   sha256: e0f74a5e82ce427d577fdc06dc8430e50df6067c5bddf2e3a20d5641a57ed9ef
   bytes: 20185
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/quickstart.md
 - id: secrets
   title: Secrets
@@ -805,7 +841,7 @@
   hermes_version: 0.21.3
   sha256: 33ec3722a2405d9232125f82e5e94c5ce9d4ed31f7ae9c291824eb420aeae528
   bytes: 4136
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/secrets.md
 - id: secure-work-machine
   title: Running Hermes on a Personal or Work Machine
@@ -817,7 +853,7 @@
   hermes_version: 0.21.3
   sha256: 9d133ad2a20f61536f2bb5b21e60b4495e423cd803149f5125dfc950fcffde01
   bytes: 10415
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/secure-work-machine.md
 - id: security
   title: Security
@@ -829,7 +865,7 @@
   hermes_version: 0.21.3
   sha256: d35939f68861e7a736e3c633e617723b786c8a16401e1f1d77446c175ebb0e55
   bytes: 51992
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/security.md
 - id: session-storage
   title: Session Storage
@@ -841,7 +877,7 @@
   hermes_version: 0.21.3
   sha256: c15acf9edb93ea89c43740b58fb12ceea252ba6172497c1e55630e9ea4498d71
   bytes: 22335
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/session-storage.md
 - id: sessions
   title: Sessions
@@ -853,7 +889,7 @@
   hermes_version: 0.21.3
   sha256: 090a8f4900ee700b182c85ffb04d3682b010a1227f44101358e797b01e95a76c
   bytes: 48980
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/sessions.md
 - id: skills
   title: Skills System
@@ -865,7 +901,7 @@
   hermes_version: 0.21.3
   sha256: e8004cffc6ac27c2b3f6e36c0c477fe696267c7dbbe3caadfdc17108d4c5ed94
   bytes: 52828
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/skills.md
 - id: skills-catalog
   title: Bundled Skills Catalog
@@ -877,7 +913,7 @@
   hermes_version: 0.21.3
   sha256: 7f7ead9e67b647e0b7462bcb66b07940953df6abc3d3c1547ab169df39a49ebd
   bytes: 12555
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/skills-catalog.md
 - id: skins
   title: Skins & Themes
@@ -889,7 +925,7 @@
   hermes_version: 0.21.3
   sha256: 9e952a5a0bed55ec4e5af8007fc7169d3467618bd63ea5ef2c729a59408ee5e9
   bytes: 11607
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/skins.md
 - id: slash-commands
   title: Slash Commands Reference
@@ -901,7 +937,7 @@
   hermes_version: 0.21.3
   sha256: 8dc697add70ac04fb49197765fe05036e9a2c25759e5699c142ed450c4986362
   bytes: 45737
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/slash-commands.md
 - id: tips
   title: Tips & Best Practices
@@ -913,7 +949,7 @@
   hermes_version: 0.21.3
   sha256: b7683de966bf717d38d7e79d906f22355b245e4118091cbc15f512f99d125726
   bytes: 13005
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/tips.md
 - id: tools
   title: Tools & Toolsets
@@ -925,7 +961,7 @@
   hermes_version: 0.21.3
   sha256: bfb1183328b486c09307dbf2355a3d09680fd918dc9a069920e00b7503020878
   bytes: 14555
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/tools.md
 - id: tools-reference
   title: Built-in Tools Reference
@@ -937,7 +973,7 @@
   hermes_version: 0.21.3
   sha256: dce8375a1c5eb9042855c1a296c1f84f1248856e3920dfed14a1ff556a72771a
   bytes: 37495
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/tools-reference.md
 - id: tools-runtime
   title: Tools Runtime
@@ -949,7 +985,7 @@
   hermes_version: 0.21.3
   sha256: eff476b64dfb2a9279e7bcb4e51efdd89711d866c1cfcc03d3b42301f322e80e
   bytes: 12079
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/tools-runtime.md
 - id: toolsets-reference
   title: Toolsets Reference
@@ -961,7 +997,7 @@
   hermes_version: 0.21.3
   sha256: 8ac505bafe251cb8b638efea7d92c713cc95a2f24a932a1837ae3e506d327920
   bytes: 13575
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/toolsets-reference.md
 - id: troubleshooting-quality
   title: 'Troubleshooting: \"My Agent Feels Dumber\'
@@ -973,7 +1009,7 @@
   hermes_version: 0.21.3
   sha256: ea72440811268becd573634d5e9d0861abfec8a815b47e282d06eae11b01fa99
   bytes: 10661
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/troubleshooting-quality.md
 - id: tui
   title: TUI
@@ -985,7 +1021,7 @@
   hermes_version: 0.21.3
   sha256: 3abcab09c2567efecb4330e4295d8696b5f85585811214fdb80305e90787ee0d
   bytes: 19314
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/tui.md
 - id: updating
   title: Updating & Uninstalling
@@ -997,7 +1033,7 @@
   hermes_version: 0.21.3
   sha256: bacdcadff4967014fe98e1599fcca48a080cde87226727d10096f85d1ab8ae17
   bytes: 27421
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/updating.md
 - id: use-mcp-with-hermes
   title: Use MCP with Hermes
@@ -1009,7 +1045,7 @@
   hermes_version: 0.21.3
   sha256: 050bf6f1e6aa9271e5f56647389e7a68138bdeae81895983767492a0ad9eaf3f
   bytes: 14058
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/use-mcp-with-hermes.md
 - id: use-voice-mode-with-hermes
   title: Use Voice Mode with Hermes
@@ -1021,7 +1057,7 @@
   hermes_version: 0.21.3
   sha256: 40511dce8a6d31994b15bd6ac03c0a66b15f0ec2fb8f0ec5db763298f533311a
   bytes: 10183
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/use-voice-mode-with-hermes.md
 - id: web-dashboard
   title: Hermes Web Dashboard
@@ -1033,7 +1069,7 @@
   hermes_version: 0.21.3
   sha256: dba79de162d0f6842ce887c24bd09de49a3db19c7b1a992875b397c7fdd67f5d
   bytes: 76249
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/web-dashboard.md
 - id: web-search
   title: Web Search & Extract
@@ -1045,7 +1081,7 @@
   hermes_version: 0.21.3
   sha256: db305e096c6427025b2cfb296e0788ea9e68121b116bb4cfcd5992567229ef2f
   bytes: 22298
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/web-search.md
 - id: webhook-github-pr-review
   title: Automated GitHub PR Comments with Webhooks
@@ -1057,7 +1093,7 @@
   hermes_version: 0.21.3
   sha256: 046e8b1bda8e5fe81f3f8af592da06a87c75559632e02520305b2972f69ce316
   bytes: 15279
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/webhook-github-pr-review.md
 - id: webhooks
   title: Webhooks
@@ -1069,7 +1105,7 @@
   hermes_version: 0.21.3
   sha256: 88ee8a5247ae16550d1e4a259ace752cad7f09c27b0c0a10c0f9013cb95fd974
   bytes: 34100
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/webhooks.md
 - id: which-file
   title: Which File Does What?
@@ -1081,7 +1117,7 @@
   hermes_version: 0.21.3
   sha256: ce54b39d2b9a15decc845cb802298b21d70d0bcf688105c7851336998702345c
   bytes: 6562
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/which-file.md
 - id: work-with-skills
   title: Working with Skills
@@ -1093,5 +1129,5 @@
   hermes_version: 0.21.3
   sha256: e5a7933490e8820d83eb66207bc77d1c346fb9fb7d7362e0dee7755620951803
   bytes: 9001
-  retrieved_at: '2026-09-16'
+  retrieved_at: '2026-09-17'
   local: sources/cache/work-with-skills.md

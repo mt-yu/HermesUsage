@@ -408,7 +408,7 @@ def render_pitfalls_page(groups: list[dict], lessons: list[dict], citations: dic
 
     ⚠️ 这里最关键的一行是 `linkify_xrefs` 的映射：**必须带 `lessons/` 前缀**
     （`l["url"]` 就是 `lessons/L15-skills.html`）。课程页之间互引用时用的是
-    「同级页面」（`L15-skills.html`），直接照抄那份映射，这一页上 253 个课号
+    「同级页面」（`L15-skills.html`），直接照抄那份映射，这一页上每个课号
     就会全部指到不存在的 `site/L15-skills.html` —— 而页面本身渲染得好好的，
     不检查链接根本发现不了。
 

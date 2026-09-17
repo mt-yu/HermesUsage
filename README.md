@@ -48,7 +48,7 @@
 
 ## 学习路线图
 
-![学习路线图：38 课 / 8 个阶段](docs/roadmap.svg)
+![学习路线图：39 课 / 8 个阶段](docs/roadmap.svg)
 
 > 这张图由 `python scripts/build_roadmap_svg.py` 从课程 frontmatter 生成（课号、阶段名、时长都取自课程本身）。
 > **别手改 `docs/roadmap.svg`** —— 改了课程就重跑脚本；`python scripts/check.py` 会校验它是否同步。
@@ -99,7 +99,7 @@ python scripts/build_site.py               # 重建静态站点 site/（前端�
 python scripts/sync_sources.py --check     # 官方文档有没有改版（出处漂移检测）
 python scripts/sync_sources.py             # 同步官方文档快照
 python scripts/drift_watch.py --dry-run    # 漂移哨兵：有漂移就（可选）自动开 GitHub issue
-python scripts/check_links_external.py     # 91 条官方外链存活检测（ok/blocked/broken/network，不进 CI）
+python scripts/check_links_external.py     # 94 条官方外链存活检测（ok/blocked/broken/network，不进 CI）
 
 python scripts/journal.py log              # 我这段时间做了什么（含 git 历史）
 python scripts/journal.py commit --kind session --title "完成 L01" --scope L01
@@ -125,12 +125,12 @@ python -m pip install -r requirements.txt   # PyYAML + Markdown，都是纯 Pyth
 python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8000/
 ```
 
-站点能力：按阶段浏览 38 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
+站点能力：按阶段浏览 39 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
 练习打勾（与课程完成分开记）、学习地图与常见错误合集两个聚合页、学习报告导出（markdown）、
 课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、
-`src:…` 出处徽标悬停显示官方版本与快照哈希（共 91 条官方来源）。
+`src:…` 出处徽标悬停显示官方版本与快照哈希（共 94 条官方来源）。
 
-想一次性带走？[**单文件离线版**](https://mt-yu.github.io/HermesUsage/offline.html)（622 KB，内联样式、
+想一次性带走？[**单文件离线版**](https://mt-yu.github.io/HermesUsage/offline.html)（833 KB，内联样式、
 页内目录、零外部资源、不需要 JS，双击即可读，也可以直接发给别人）；
 学习痕迹可用首页/地图页的「导出学习报告」按钮导出 markdown。
 

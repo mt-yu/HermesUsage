@@ -2,7 +2,7 @@
 
 > 一份可考证、可自维护、可回滚的 Hermes Agent 教程系统。每条事实性陈述都带 [[src:id]] 出处标记，可在 sources/citations.yaml 反查到官方文档 URL、版本与内容哈希。
 
-课程总数：38 课（入门 10 课 / 进阶 28 课），合计约 935 分钟。
+课程总数：39 课（入门 10 课 / 进阶 29 课），合计约 960 分钟。
 
 ## 怎么读这份索引（给 AI 维护者）
 
@@ -55,6 +55,7 @@
 - [L52 成本与缓存：prompt caching 心法](lessons/05-ops/L52-cost-and-caching.md) — [进阶] 20 分钟 · 标签：成本、prompt-caching、上下文压缩、provider-routing · 出处 3 条
 - [L53 排障手册：它变笨了 / 工具不见了](lessons/05-ops/L53-troubleshooting.md) — [进阶] 25 分钟 · 标签：排障、日志、上下文、项目技能 · 出处 4 条
 - [L54 升级、备份与迁移](lessons/05-ops/L54-update-backup-migrate.md) — [进阶] 15 分钟 · 标签：升级、备份、迁移、checkpoints · 出处 3 条
+- [L55 换一台电脑：把记忆、技能和会话带走](lessons/05-ops/L55-move-to-another-machine.md) — [进阶] 25 分钟 · 标签：迁移、换电脑、备份、profile 导出 · 出处 9 条
 ## 阶段 6 · 真实工作流案例（把学的拼成能交付的活）
 
 - [L60 先把目录看清楚：只读侦察与可核对清单](lessons/06-realwork/L60-inventory-first.md) — [进阶] 30 分钟 · 标签：清理、清单、只读原则、inventory · 出处 5 条

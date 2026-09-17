@@ -3,7 +3,7 @@
 
 为什么存在
 ----------
-sources/citations.yaml 里 91 条 URL 全部指向 hermes-agent.nousresearch.com。
+sources/citations.yaml 里 94 条 URL 全部指向 hermes-agent.nousresearch.com。
 scripts/sync_sources.py --check 比的是**本地快照的 sha256**，它只能回答
 "我抄的那份文件有没有变"，回答不了"读者点进去还能不能打开"。
 官方文档改版、页面改名、站点换域名时，本仓库的哈希可以毫无变化，
@@ -21,7 +21,7 @@ scripts/sync_sources.py --check 比的是**本地快照的 sha256**，它只能�
 
 怎么跑
 ------
-  python scripts/check_links_external.py                    # 默认全量 91 条
+  python scripts/check_links_external.py                    # 默认全量 94 条
   python scripts/check_links_external.py --limit 8          # 先拿 8 条探路
   python scripts/check_links_external.py --only acp,quickstart
   python scripts/check_links_external.py --timeout 30 --json
@@ -120,7 +120,7 @@ def has_broken(summary: dict) -> bool:
 
 
 def healthy(summary: dict) -> bool:
-    """「健康」= 91 条全都验成了 ok。
+    """「健康」= 94 条全都验成了 ok。
 
     broken 是坏链；network 是没查成（连不上/超时，本机代理抖动时很常见）；
     blocked 是被站点挡住（403/429 之类）—— 三者都不是「没问题」，所以只要出现一个，
@@ -155,7 +155,7 @@ def load_citations() -> list[dict]:
 
 
 def opener() -> urllib.request.OpenerDirector:
-    """显式清空代理：本机默认代理已挂，否则 91 条全会变成 network。"""
+    """显式清空代理：本机默认代理已挂，否则 94 条全会变成 network。"""
     return urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
@@ -170,7 +170,7 @@ def check_one(entry: dict, timeout: float = 15.0, retries: int = 2, backoff: flo
 
     为什么要重试：本机出网走的是一个会抖动的本地隧道（TUN/fake-IP），
     同一个域名可能连续十几次 `SSL: UNEXPECTED_EOF_WHILE_READING`，过 40 秒又全好。
-    不重试的话，一次抖动就会把 91 条全报成 network —— 看起来像"官方文档全挂"，
+    不重试的话，一次抖动就会把 94 条全报成 network —— 看起来像"官方文档全挂"，
     实际是自己的网。重试把这种假信号压掉，剩下的才值得人看。
     """
     result: dict = {}
@@ -238,7 +238,7 @@ def _attempt_once(entry: dict, timeout: float) -> dict:
 
 
 def run_checks(entries: list[dict], timeout: float, workers: int = 8, retries: int = 2) -> list[dict]:
-    """并发查（顺序结果保持不变）。91 条串行最容易在超时上翻车。"""
+    """并发查（顺序结果保持不变）。94 条串行最容易在超时上翻车。"""
     if not entries:
         return []
     with ThreadPoolExecutor(max_workers=max(1, min(workers, len(entries)))) as pool:
