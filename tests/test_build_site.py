@@ -254,19 +254,19 @@ class TestPitfallsPage(unittest.TestCase):
 
     # --- 内容 --------------------------------------------------------------
 
-    def test_page_exists_and_holds_all_253_pitfall_rows(self):
+    def test_page_exists_and_holds_all_pitfall_rows(self):
         self.assertTrue((self.out / "pitfalls.html").is_file())
         self.assertGreater((self.out / "pitfalls.html").stat().st_size, 0)
 
         # 数据行 = `<tr>` 后面直接跟着 `<td>` 的行；表头行是 `<th>`，天然被排除。
         data_rows = re.findall(r"<tr>\s*<td>", self.main)
-        self.assertEqual(len(data_rows), 253)
+        self.assertEqual(len(data_rows), 312)
         # 与解析层对账（**不是**数 `[[src:` 的出现次数：一个单元格里可能有两个标记）
-        self.assertEqual(self.expected_rows, 253)
+        self.assertEqual(self.expected_rows, 312)
         self.assertEqual(len(data_rows), self.expected_rows)
         # 表头行另算：每个阶段一张表 → 一行 `<th>`
         self.assertEqual(len(re.findall(r"<tr>", self.main)), len(data_rows) + len(self.groups))
-        self.assertEqual(len(self.groups), 7)          # 0/1/2/3/4/5/9
+        self.assertEqual(len(self.groups), 8)          # 0/1/2/3/4/5/6/9
 
     def test_table_columns_are_lesson_symptom_cause_fix(self):
         heads = re.findall(r"<th>([^<]+)</th>", self.main)
@@ -275,7 +275,7 @@ class TestPitfallsPage(unittest.TestCase):
     def test_every_lesson_id_appears(self):
         ids = re.findall(r'<a class="xref" href="[^"]+">(L\d+)</a>', self.main)
         self.assertEqual(set(ids), {l["id"] for l in self.lessons})
-        self.assertEqual(len(set(ids)), 32)
+        self.assertEqual(len(set(ids)), 38)
 
     def test_cell_content_is_rendered_not_left_as_markers(self):
         self.assertNotIn("[[", self.main)              # 出处与交叉引用标记都该变成链接
@@ -286,17 +286,17 @@ class TestPitfallsPage(unittest.TestCase):
     # --- 那个坑：课程链接必须带 lessons/ 前缀 -------------------------------
 
     def test_links_back_to_lessons_carry_the_lessons_prefix(self):
-        # 课号总数 = 每行「课」列一个 + 有些格子正文里自己也带交叉引用（本文里 10 处）
+        # 课号总数 = 每行「课」列一个 + 有些格子正文里自己也带交叉引用（本文里 13 处）
         joined = "".join(
             r["symptom"] + r["cause"] + r["fix"]
             for l in self.lessons for r in core.pitfall_rows(l)
         )
         markers = re.findall(r"\[\[(L\d+)\]\]", joined)
-        self.assertEqual(len(markers), 10)          # 格子正文里自带的交叉引用（如「见 [[L24]]」）
+        self.assertEqual(len(markers), 13)          # 格子正文里自带的交叉引用（如「见 [[L24]]」）
 
         hrefs = re.findall(r'<a class="xref" href="([^"]+)"', self.main)
-        self.assertEqual(len(hrefs), 253 + len(markers))   # 每行「课」列一个 + 格子里的
-        self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向 32 个课程页
+        self.assertEqual(len(hrefs), 312 + len(markers))   # 每行「课」列一个 + 格子里的
+        self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向 38 个课程页
         for href in hrefs:
             self.assertTrue(href.startswith("lessons/"), f"合集页在站点根目录，课号必须带前缀：{href}")
             self.assertTrue((self.out / href).is_file(), f"指向不存在的页面：{href}")

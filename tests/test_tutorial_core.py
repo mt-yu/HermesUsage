@@ -89,7 +89,7 @@ class TestLoadLessonsOnRealRepo(unittest.TestCase):
         cls.lessons = core.load_lessons(REPO)
 
     def test_count_matches_repo(self):
-        self.assertEqual(len(self.lessons), 32)
+        self.assertEqual(len(self.lessons), 38)
 
     def test_sorted_by_stage_then_id(self):
         keys = [(l["stage"], l["id"]) for l in self.lessons]
@@ -192,7 +192,7 @@ class TestMapRows(unittest.TestCase):
 
     def test_row_count_matches_lessons(self):
         self.assertEqual(len(self.rows), len(self.lessons))
-        self.assertEqual(len(self.rows), 32)
+        self.assertEqual(len(self.rows), 38)
 
     def test_row_shape(self):
         for row in self.rows:
@@ -259,7 +259,7 @@ class TestPitfallRows(unittest.TestCase):
     """`## 常见坑` 表格 → 行数据：站点「常见错误合集」页的唯一数据来源。
 
     这一段的解析规则要写死在解析层（而不是渲染层）：
-    页面上的 253 行全部来自这里，解析口径一变，页面上就会多出表头、
+    页面上的 312 行全部来自这里，解析口径一变，页面上就会多出表头、
     少掉整张表，而那种错在浏览器里看着「也挺像表格」。
     """
 
@@ -318,8 +318,9 @@ class TestPitfallRows(unittest.TestCase):
                 core.pitfall_section(lesson["body"]).strip(), f"{lesson['id']} 没有「常见坑」小节"
             )
 
-    def test_repo_total_is_253_rows(self):
-        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 253)
+    def test_repo_total_is_312_rows(self):
+        # 阶段 6 六课加入后从 253 涨到 312；这个字面量是金丝雀：内容大批增减时要有人来看一眼
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 312)
 
     def test_capstone_has_15_rows(self):
         self.assertEqual(len(self.repo_rows["L90"]), 15)
@@ -341,8 +342,8 @@ class TestPitfallRows(unittest.TestCase):
 class TestGrouping(unittest.TestCase):
     def test_groups_cover_all_stages(self):
         groups = core.group_by_stage(core.load_lessons(REPO))
-        self.assertEqual([g["stage"] for g in groups], [0, 1, 2, 3, 4, 5, 9])
-        self.assertEqual(sum(len(g["lessons"]) for g in groups), 32)
+        self.assertEqual([g["stage"] for g in groups], [0, 1, 2, 3, 4, 5, 6, 9])
+        self.assertEqual(sum(len(g["lessons"]) for g in groups), 38)
         self.assertEqual(groups[-1]["name"], "毕业项目")
 
     def test_group_keeps_lesson_order(self):

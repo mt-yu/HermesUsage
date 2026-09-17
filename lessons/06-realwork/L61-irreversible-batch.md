@@ -291,7 +291,7 @@ hermes chat -q "只做两件事，各一行，不要解释：1) 用 pwd 打印�
 在 `hermes chat -q`（无人能按批准的会话）里，让它删一个目录：
 
 ```bash
-hermes chat -q "在当前目录里用 rm -r 删掉 <一个一次性目录>" -t terminal -Q --in "<你的临时目录>"
+hermes chat -q "在当前目录里用 rm -r 删掉 l61-throwaway" -t terminal -Q --in "$LOCALAPPDATA/Temp/l61-demo"
 ```
 
 本机真实输出：

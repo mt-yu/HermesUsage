@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1518" viewBox="0 0 1200 1518" role="img" aria-labelledby="rm-title rm-desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1702" viewBox="0 0 1200 1702" role="img" aria-labelledby="rm-title rm-desc">
 <title id="rm-title">Hermes Agent 教程路线图</title>
-<desc id="rm-desc">32 课 / 7 个阶段的学习路线图：每条色带是一个阶段，课号与标题来自课程 frontmatter</desc>
-<rect x="0" y="0" width="1200" height="1518" fill="#0f1115"/>
+<desc id="rm-desc">38 课 / 8 个阶段的学习路线图：每条色带是一个阶段，课号与标题来自课程 frontmatter</desc>
+<rect x="0" y="0" width="1200" height="1702" fill="#0f1115"/>
 <text x="48" y="68" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="32" fill="#e6e8eb" font-weight="700">Hermes Agent 教程路线图</text>
-<text x="48" y="98" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="15" fill="#9aa4b2">32 课 / 7 个阶段 / 约 725 分钟 · 出处基线 hermes v0.21.3（官方文档 05fac10a · 2026-09-16）</text>
+<text x="48" y="98" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="15" fill="#9aa4b2">38 课 / 8 个阶段 / 约 935 分钟 · 出处基线 hermes v0.21.3（官方文档 05fac10a · 2026-09-16）</text>
 <line x1="48" y1="118" x2="1152" y2="118" stroke="#242a33" stroke-width="1.2" stroke-dasharray="7 6" stroke-linecap="round"/>
 <rect x="24" y="140" width="1152" height="166" fill="#161a21" rx="14"/>
 <rect x="24" y="150" width="6" height="146" fill="#3b5bdb" rx="3"/>
@@ -66,19 +66,30 @@
 <g><title>L52 成本与缓存：prompt caching 心法</title><rect x="794" y="1106" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="806" y="1133" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L52</text><text x="839.1" y="1133" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">成本与缓存：prompt caching 心法</text></g>
 <g><title>L53 排障手册：它变笨了 / 工具不见了</title><rect x="46" y="1160" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="58" y="1187" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L53</text><text x="91.1" y="1187" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">排障手册：它变笨了 / 工具不见了</text></g>
 <g><title>L54 升级、备份与迁移</title><rect x="420" y="1160" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="432" y="1187" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L54</text><text x="465.1" y="1187" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">升级、备份与迁移</text></g>
-<rect x="24" y="1244" width="1152" height="112" fill="#161a21" rx="14"/>
-<rect x="24" y="1254" width="6" height="92" fill="#3b5bdb" rx="3"/>
-<text x="46" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="17" fill="#e6e8eb" font-weight="700">阶段 9 · 毕业项目</text>
-<text x="203.1" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#9aa4b2">— 自动化一件你真正在做的活</text>
-<text x="1154" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#7aa2ff" text-anchor="end">1/1 课就绪 · 约 60 分钟</text>
-<g><title>L90 毕业项目：自动化一件你真正在做的活</title><rect x="46" y="1290" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="58" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L90</text><text x="91.1" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">毕业项目：自动化一件你真正在做的活</text></g>
-<rect x="24" y="1378" width="1152" height="116" fill="#161a21" rx="14"/>
-<text x="46" y="1406" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="17" fill="#e6e8eb" font-weight="700">图例</text>
-<rect x="46" y="1422" width="74" height="28" fill="#1b2233" rx="8" stroke="#3b5bdb" stroke-width="1.2"/>
-<text x="56" y="1441" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L15</text>
-<text x="130" y="1441" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">已就绪（本仓库 32 课都已建）</text>
-<rect x="406" y="1422" width="74" height="28" fill="none" rx="8" stroke="#9aa4b2" stroke-width="1.2" stroke-dasharray="5 4"/>
-<text x="416" y="1441" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#9aa4b2" font-weight="600">L99</text>
-<text x="490" y="1441" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#9aa4b2">未建课（课程还没写时是这种虚线灰）</text>
-<text x="46" y="1474" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#9aa4b2">本图由 python scripts/build_roadmap_svg.py 生成，请勿手改 —— 课号 / 阶段 / 标题全部取自课程 frontmatter（scripts/tutorial_core.py）。</text>
+<rect x="24" y="1244" width="1152" height="166" fill="#161a21" rx="14"/>
+<rect x="24" y="1254" width="6" height="146" fill="#3b5bdb" rx="3"/>
+<text x="46" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="17" fill="#e6e8eb" font-weight="700">阶段 6 · 真实工作流案例</text>
+<text x="257.1" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#9aa4b2">— 把前面学的拼成能交付的活</text>
+<text x="1154" y="1276" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#7aa2ff" text-anchor="end">6/6 课就绪 · 约 210 分钟</text>
+<g><title>L60 先把目录看清楚：只读侦察与可核对清单</title><rect x="46" y="1290" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="58" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L60</text><text x="91.1" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">先把目录看清楚：只读侦察与可核对清单</text></g>
+<g><title>L61 不可逆的批量操作怎么安全做</title><rect x="420" y="1290" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="432" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L61</text><text x="465.1" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">不可逆的批量操作怎么安全做</text></g>
+<g><title>L62 盯一件外部变化，只在变的时候通知你</title><rect x="794" y="1290" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="806" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L62</text><text x="839.1" y="1317" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">盯一件外部变化，只在变的时候通知你</text></g>
+<g><title>L63 把一次调研变成一份带出处的报告</title><rect x="46" y="1344" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="58" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L63</text><text x="91.1" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">把一次调研变成一份带出处的报告</text></g>
+<g><title>L64 把这次劳动固化成技能，下次一句话复用</title><rect x="420" y="1344" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="432" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L64</text><text x="465.1" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">把这次劳动固化成技能，下次一句话复用</text></g>
+<g><title>L65 并行委派一批活，并验收子代理的产物</title><rect x="794" y="1344" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="806" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L65</text><text x="839.1" y="1371" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">并行委派一批活，并验收子代理的产物</text></g>
+<rect x="24" y="1428" width="1152" height="112" fill="#161a21" rx="14"/>
+<rect x="24" y="1438" width="6" height="92" fill="#3b5bdb" rx="3"/>
+<text x="46" y="1460" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="17" fill="#e6e8eb" font-weight="700">阶段 9 · 毕业项目</text>
+<text x="203.1" y="1460" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#9aa4b2">— 自动化一件你真正在做的活</text>
+<text x="1154" y="1460" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#7aa2ff" text-anchor="end">1/1 课就绪 · 约 60 分钟</text>
+<g><title>L90 毕业项目：自动化一件你真正在做的活</title><rect x="46" y="1474" width="360" height="44" fill="#1b2233" rx="10" stroke="#3b5bdb" stroke-width="1.2"/><text x="58" y="1501" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L90</text><text x="91.1" y="1501" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">毕业项目：自动化一件你真正在做的活</text></g>
+<rect x="24" y="1562" width="1152" height="116" fill="#161a21" rx="14"/>
+<text x="46" y="1590" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="17" fill="#e6e8eb" font-weight="700">图例</text>
+<rect x="46" y="1606" width="74" height="28" fill="#1b2233" rx="8" stroke="#3b5bdb" stroke-width="1.2"/>
+<text x="56" y="1625" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#7aa2ff" font-weight="600">L15</text>
+<text x="130" y="1625" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#e6e8eb">已就绪（本仓库 32 课都已建）</text>
+<rect x="406" y="1606" width="74" height="28" fill="none" rx="8" stroke="#9aa4b2" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="416" y="1625" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#9aa4b2" font-weight="600">L99</text>
+<text x="490" y="1625" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="14" fill="#9aa4b2">未建课（课程还没写时是这种虚线灰）</text>
+<text x="46" y="1658" font-family="system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="13" fill="#9aa4b2">本图由 python scripts/build_roadmap_svg.py 生成，请勿手改 —— 课号 / 阶段 / 标题全部取自课程 frontmatter（scripts/tutorial_core.py）。</text>
 </svg>
