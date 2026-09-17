@@ -39,6 +39,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -55,7 +56,14 @@ KINDS = ("session", "stage", "fix", "docs", "release")
 # --------------------------------------------------------------------------- 工具
 
 def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, encoding="utf-8", **kw)
+    """跑一条命令并把 cwd 默认设为仓库根。
+
+    cwd 必须**可被调用方覆盖**（`kw.setdefault`）：写成 `subprocess.run(cwd=REPO, **kw)`
+    时，任何调用方再传 cwd 都会 TypeError —— 实测踩过（闸门在真仓库上一跑就崩，
+    而 mock 掉 run 的单元测试完全看不见）。
+    """
+    kw.setdefault("cwd", REPO)
+    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", **kw)
 
 
 def now() -> datetime:
@@ -273,6 +281,105 @@ def rollback_list() -> None:
 
 # --------------------------------------------------------------------------- main
 
+# --- 自动归档的闸门：别把「在途改动」卷进自动提交 ---------------------------
+# 实测踩过 4 次（2026-09-16/17）：cron 的小时级自动归档见到什么就提交什么，
+# 于是子代理写到一半的课/脚本被卷进一个 `session:` 提交 —— 历史里多出
+# 「未验收状态」的提交，而人精心写的那条信息反而落不了地。
+# 两道判据都很便宜，任一命中就静默跳过这一轮（下次 tick 再来）。
+IN_FLIGHT_GRACE_S = 120          # 文件刚被改过多少秒内视为「有人正在写」
+MANIFEST_STALE_S = 6 * 3600      # manifest 这么久还没收工就视为残留，不再阻塞
+TERMINAL_TASK_STATUS = {"completed", "failed", "stopped", "cancelled"}
+
+
+def hermes_home() -> Path:
+    """$HERMES_HOME 优先，否则按平台默认（Windows 是 %LOCALAPPDATA%\\hermes）。"""
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        return Path(env)
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / "hermes"
+    return Path.home() / ".hermes"
+
+
+def changed_paths(repo: Path | None = None) -> list[str]:
+    """工作区变化的路径（用 `-z` 输出，中文与空格路径不会被 git 加引号转义）。
+
+    `repo` 默认在**调用时**解析成 REPO：写成 `repo=REPO` 会让默认值在导入时就绑定，
+    patch 模块级 REPO 就失效了（测试会因此测了个寂寞）。
+    """
+    repo = repo or REPO
+    out = run(["git", "status", "--porcelain", "-z"], cwd=repo).stdout
+    paths: list[str] = []
+    skip_next = False
+    for rec in out.split("\0"):
+        if not rec:
+            continue
+        if skip_next:            # 改名/复制在 -z 里紧跟一条旧路径记录
+            skip_next = False
+            continue
+        if len(rec) < 4:
+            continue
+        status, path = rec[:2], rec[3:]
+        if status[0] in "RC" or status[1] in "RC":
+            skip_next = True
+        paths.append(path)
+    return paths
+
+
+def delegation_in_flight(home: Path | None = None) -> str | None:
+    """有子代理还在跑就返回它的 delegation_id，否则 None。"""
+    live = (home or hermes_home()) / "cache" / "delegation" / "live"
+    if not live.is_dir():
+        return None
+    now_ts = time.time()
+    for manifest in sorted(live.glob("*/manifest.json")):
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if data.get("completed"):
+            continue
+        statuses = [str((t or {}).get("status", "")).lower() for t in (data.get("tasks") or [])]
+        if statuses and all(st in TERMINAL_TASK_STATUS for st in statuses):
+            continue             # 任务都收工了（有些收尾路径不写 completed 字段）
+        try:
+            age = now_ts - manifest.stat().st_mtime
+        except OSError:
+            continue
+        if age > MANIFEST_STALE_S:
+            continue             # 残留 manifest 不该把归档永久卡死
+        return str(data.get("delegation_id") or manifest.parent.name)
+    return None
+
+
+def freshest_change_age(paths: list[str], repo: Path | None = None,
+                        now_ts: float | None = None) -> float | None:
+    """工作区里最近被改过的那个文件是多少秒前（都没有/都不存在则 None）。"""
+    repo = repo or REPO
+    now_ts = time.time() if now_ts is None else now_ts
+    ages: list[float] = []
+    for rel in paths:
+        try:
+            ages.append(now_ts - (repo / rel).stat().st_mtime)
+        except OSError:
+            continue
+    return min(ages) if ages else None
+
+
+def skip_reason(paths: list[str], repo: Path | None = None, home: Path | None = None,
+                now_ts: float | None = None) -> str | None:
+    """该跳过这轮自动归档吗？返回原因字符串（该跳）或 None（可以提交）。"""
+    repo = repo or REPO
+    who = delegation_in_flight(home)
+    if who:
+        return f"有子代理还在跑（{who}）—— 在途改动不自动提交"
+    age = freshest_change_age(paths, repo=repo, now_ts=now_ts)
+    if age is not None and age < IN_FLIGHT_GRACE_S:
+        return f"工作区刚被改过（{age:.0f} 秒前）—— 等写完再归档"
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="会话/阶段总结 → git 提交")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -302,6 +409,8 @@ def main() -> int:
     ac = sub.add_parser("autocommit", help="无人值守归档：有改动才提交（适合 cron）")
     ac.add_argument("--hours", type=int, default=24, help="会话摘要回溯窗口")
     ac.add_argument("--title", default="", help="覆盖自动标题")
+    ac.add_argument("--verbose", action="store_true",
+                    help="被闸门跳过时说明原因（cron 下不要加，静默才是对的）")
 
     args = ap.parse_args()
 
@@ -311,6 +420,13 @@ def main() -> int:
         changed = run(["git", "status", "--porcelain"]).stdout.strip()
         if not changed:
             return 0
+        # 闸门：有子代理在跑、或文件刚被改过 -> 这轮静默跳过（下次 tick 再说）
+        if os.environ.get("HERMESUSAGE_AUTOCOMMIT_FORCE") != "1":
+            reason = skip_reason(changed_paths(), now_ts=time.time())
+            if reason:
+                if getattr(args, "verbose", False):
+                    print(f"[跳过本轮自动归档] {reason}")
+                return 0
         files = len([ln for ln in changed.splitlines() if ln.strip()])
         text, stats = session_digest(args.hours)
         title = args.title or f"自动归档 {now().strftime('%Y-%m-%d %H:%M')}（{files} 个文件变动）"
