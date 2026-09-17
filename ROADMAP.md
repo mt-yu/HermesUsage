@@ -128,6 +128,8 @@ python scripts/progress.py next   # 下一课学什么
 | `v1.4-content` | 出处 89→91、L44 本机复现、`/pitfalls.html` | ✅ |
 | `v1.5-auto` | 外链存活检测 + 文档漂移哨兵 | ✅ |
 | `v2.0-deliverable` | 学习报告导出 + 单文件离线版 | ✅ |
+| `v2.1-ops` | 定时任务真跑起来（cron_ctl 开关）+ Docker 交 CI 验证 + README 路线图 SVG | ✅ |
+| `v3.0-cases` | 阶段 6 真实工作流案例（38 课 / 8 阶段）+ 漂移哨兵进 CI + 自动归档在途闸门 | ✅ |
 
 ## 维护待办（内容层）
 
@@ -137,7 +139,26 @@ python scripts/progress.py next   # 下一课学什么
 > 漂移检测已自动化两处：本机 cron 的「漂移哨兵」（`scripts/drift_watch.py`，比的是**本机装的**
 > Hermes 源码）+ CI 的 `.github/workflows/drift.yml`（每天 09:00，稀疏克隆**上游** docs 再比快照哈希，
 > 有漂移就开 issue，标题前缀去重）。**2026-09-16 首次运行即发现 37 页正文已变**（基线 `05fac10a`
-> → 上游 `816cb379`），见 issue #1 —— 这是待人工复核的内容工作，不自动做。
+> → 上游 `816cb379`），见 issue #1 —— **2026-09-17 完成首次人工复核并关闭该 issue**（复核时上游已走到
+> `36842e63`：39 页 / 486 增 94 删）。
+
+### 官方文档漂移复核（2026-09-17 首次，issue #1 已关闭）
+
+判据只有一条：**那个行为在本机装的 v0.21.3 源码里有没有**。有 → 快照过时，改课程；没有 → 上游在写
+**未发布**内容，只登记，等下一个 release 再对照（版本对照看 `hermes --version` 的 `local …` 与
+`upstream …` 两行；本机 v0.21.3 就是当前最新 release，快照 `05fac10a` 即它的文档提交）。
+
+| 桶 | 页数 | 内容与处理 |
+|---|---|---|
+| 与本机行为不符 → **已改课程** | 2 | `delegation` → **L22**（450s / 1200s 失速线；本机 `tools/delegate_tool.py:77-78` + `delegate_tool_child_run.py` 的 tick）；`bot-mode` → **L32**（`message_agent` 的双条件门控；本机 `tools/bot_mode_probe.py::is_bot_mode_managed`，实测：只有裸 `profile.yaml` → `False`，任一 profile 写空 `ui_meta: {hermes-bots: {}}` → `True`） |
+| 判定为**上游未发布**（本机无对应实现/常量） | 15 | `security`（`security.fake_ip_ranges` —— 正好治本机 Clash fake-IP 那个坑，但 v0.21.3 里 0 命中）、`context-files` + `prompt-assembly`（`SOUL.md` 命中注入模式只警告不阻断；本机 `_scan_context_content` 无 `user_authored` 参数）、`cron`（`[CRON_FAILURE]` 首行标记）、`cli-commands`（`--usage-file` 的 `total_including_auxiliary` / `turn_exit_reason`）、`programmatic`（`session.resume` 的 `inflight`）、`profiles` + `faq`（「裸目录不算 profile」的身份文件规则；本机 `_iter_named_profile_dirs` 只按目录名与墓碑过滤）、`updating`（`hermes update --no-gateway-restart`）、`credential-pools`（Anthropic 429 按模型冷却）、`kanban`（`crashed` 事件新增 `worker_output`）、`desktop` + `skills` + `plugins` + `desktop-plugin-sdk`（桌面端 Capabilities/Browse 改版、CDN 快照 `api/skills.json`、`hermes://` 安装链接） |
+| 其余：已发布但课程未涉及，或纯措辞 | 22 | 例：`browser`（关浏览器的硬性要求**所有平台**都成立，课程没写「仅 Windows」，无需改）、`configuration` + `env-vars`（`UPPER_SNAKE` 一律进 `.env` + 写入黑名单，本机 `hermes_cli/config_env_routing.py`）、`mcp` + `mcp-config`（`lazy` 启动，本机 `tools/mcp_tool_discovery.py:111`）、`heartbeat`（网关侧 `NO_REPLY`/`[SILENT]` 静默，本机 `gateway/stream_consumer.py:556`）、`compression` + `prompt-cache`、`hooks`、`providers`、`sessions`、`slash-commands`、`web-search`、`gateway-messaging`、`goals`、`loops`、`api-server`、`cli`、`curator`、`session-storage`、`fallback-providers`、`tools-reference` |
+
+**诚实边界**：判定粒度是「页面级 + 关键句」——第 3 桶里 `compression`/`prompt-cache` 的冷却下限、
+`hooks` 的重复失败只报一次、`cli-commands` 的一次性运行退出码表只做了「课程是否涉及」的检查，
+没有逐句定版。重放这次复核的方法：稀疏克隆上游 `website/docs` → 逐页按 LF 归一化算 `sha256` 与
+`sources/citations.yaml` 比对 → 与 `sources/cache/<id>.md` 做 `difflib.unified_diff`（构建期产物
+不进仓库，39 页 condensed diff 约 68 KB）。
 - [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 
 ## 维护待办（系统层）

@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L20, L21]
 tags: ["delegation", "并行", "子代理", "context 隔离"]
 sources: [delegation, delegation-patterns, code-execution]
-updated: 2026-09-16
+updated: 2026-09-17
 ---
 
 # L22 · 委派：delegate_task 并行子代理
@@ -97,7 +97,7 @@ delegate_task(
 - 子代理**继承**父会话启用的工具集，模型不能在一次调用里自己加权限；要给它网页/终端/文件能力，先把父会话配好。[[src:delegation-patterns]]
 - 子代理被屏蔽：`delegate_task`、`clarify`、`memory`、`send_message`、`cronjob`；`execute_code` 保留（机械活用它）。[[src:delegation]]
 - 一批默认 10 个并发（`delegation.max_concurrent_children`，下限 1，无硬上限）；每个子代理默认 250 轮迭代预算（`delegation.max_iterations`）。撞上预算会返回 `exit_reason: max_iterations` 和 `truncated: true`。[[src:delegation]]
-- **默认没有墙钟超时**：子代理只会因为 API 错误、工具错误或迭代预算结束而失败，不会被秒表掐死；要硬上限得自己开 `delegation.child_timeout_seconds`。[[src:delegation]]
+- **默认没有墙钟上限，但有一条卡死线**：失败来源是 API 错误、工具错误或迭代预算，不是「跑得久」；要按时长设硬上限得自己开 `delegation.child_timeout_seconds`（下限 30 秒）。另有一条失速判定：**450 秒没有任何进展**（回合之间的空闲，即 15 个 30 秒心跳周期）或 **1200 秒卡在同一个工具上**（40 个周期），心跳就停止刷新父代理的活动时钟，把这次等待交给网关的不活动超时收场 —— 等模型返回本身算进展，慢模型不会被判失速。[[src:delegation]]
 - 并行改同一个仓库会互相踩：`delegation.worktree_isolation: true` 时每个子代理在自己的 git worktree 上干活，结果里带回 `path`/`branch`/`commits`。[[src:delegation]]
 
 ### 结构化回传

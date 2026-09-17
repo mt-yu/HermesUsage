@@ -7,7 +7,7 @@ minutes: 25
 prereq: [L22, L23]
 tags: ["kanban", "多代理", "profiles", "bot mode"]
 sources: [kanban, bot-mode, profiles]
-updated: 2026-09-16
+updated: 2026-09-17
 ---
 
 # L32 · 多代理：kanban 看板与 bot mode
@@ -175,9 +175,14 @@ Current board: default
   不换对话），因为「把关系 fork 成一次性会话」正是 Bot Mode 承诺不发生的。
 - **群聊**是 2–6 个 Bot 一间房，你发一条消息最多触发 **3 轮串行**成员发言；@谁谁答，
   没人被 @ 时大家都答；房间有硬上限（单次最多 10 条消息、3 轮）。
-- Bot 之间用 `message_agent` 互相发消息，这个工具**只**存在于规范 Bot Chat 会话里；
-  普通会话、群聊成员会话、CLI 会话都看不到它。发送是 fire-and-forget：对方稍后作为
-  后台完成通知把回复送回来。
+- Bot 之间用 `message_agent` 互相发消息。这个工具要**同时**满足两件事才出现：① 会话标题
+  **恰好**是 `Bot Chat` —— 普通会话、群聊成员会话、CLI 会话都拿不到；② 这台安装是
+  **Bot-Mode-managed**，也就是**任意一个** profile 的 `profile.yaml` 里带 `ui_meta` 下的
+  `hermes-bots` 块（建 Bot 的桌面端会替你写下它）。所以在**没装桌面端的机器**上（纯 gateway
+  或纯 CLI），即使 `agent.bot_mode_protocol` 是开着的，这个工具也不会出现；要手工补齐这两件事：
+  `hermes -p <bot> chat -c "Bot Chat" --create-if-missing` 建出规范会话，再往该 profile 的
+  `profile.yaml` 写一行 `ui_meta: {hermes-bots: {}}`（空块就够，标记的是整台安装）。
+  发送是 fire-and-forget：对方稍后作为后台完成通知把回复送回来。
 
 本地同时活着几个 Bot 是有上限的：Settings → Advanced → **Warm Bot Backends**，默认 3 个，
 闲置的按超时回收（默认 10 分钟）。要是你在跑大编制（成员多的群聊、跨很多 profile 的 kanban 派发），
