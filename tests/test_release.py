@@ -296,6 +296,22 @@ class TestChangelog(unittest.TestCase):
                         or l.startswith("- session: 自动归档")]
         self.assertFalse(listed_noise, f"CHANGELOG 里不该逐条列归档提交：{len(listed_noise)} 条")
 
+    def test_assume_tag_closes_the_section_and_empties_unreleased(self):
+        real_tags()
+        tag = "v9.9-assume"
+        releases, unreleased = rel.changelog_data(assume_tag=tag)
+        self.assertEqual(releases[-1]["tag"], tag, "假设的 tag 要成为最新一节")
+        self.assertEqual(unreleased, [], "假设它已存在 → 未发布区为空；tag 打上后算法与此完全一致")
+        self.assertEqual(releases[-1]["date"], rel.head_date(), "它的日期就是 HEAD 的 commit 日期")
+        self.assertIn(f"## [{tag}]", rel.changelog_text(tag), "正文里要出现这一节")
+
+    def test_assume_tag_is_ignored_when_the_tag_already_exists(self):
+        real_tags()
+        existing = rel.tag_order(rel.all_tags())[-1]
+        releases, _ = rel.changelog_data(assume_tag=existing)
+        self.assertEqual([r["tag"] for r in releases].count(existing), 1,
+                         "已存在的 tag 不该被重复加一节")
+
     def test_first_difference_finds_the_line(self):
         lineno, want, have = rel.first_difference("a\nb\nc\n", "a\nX\nc\n")
         self.assertEqual((lineno, want, have), (2, "b", "X"))

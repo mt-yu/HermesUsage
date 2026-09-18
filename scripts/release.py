@@ -450,20 +450,39 @@ def render_changelog(releases: list[dict], unreleased: list[dict] | None = None)
     return "\n\n".join(parts) + "\n"
 
 
-def changelog_data() -> tuple[list[dict], list[dict]]:
-    """(升序的 releases, 未发布提交)。releases 每项含 tag/date/commits。"""
+def head_date() -> str:
+    """HEAD 的提交日期（YYYY-MM-DD）—— 用来给「还没打的那个 tag」定日期。"""
+    return _git("log", "-1", "--format=%cs", "HEAD").strip()
+
+
+def changelog_data(assume_tag: str | None = None) -> tuple[list[dict], list[dict]]:
+    """(升序的 releases, 未发布提交)。releases 每项含 tag/date/commits。
+
+    `assume_tag` 服务于「**tag 还没打、但马上要打**」的那一次提交（发布前的收尾提交）：
+    把它当成一个已经存在于 HEAD 的 tag，于是新版本的那一节此刻就写进了 `CHANGELOG.md`；
+    tag 真正打上之后，`changelog --check` 现算的内容与这份文件**逐字相同**（退出 0）。
+
+    不这么做会怎样：先打 tag、再生成，则 tag 里那份 `CHANGELOG.md` 永远缺自己那一节 ——
+    而发布说明里的「完整变更日志」链接正指向 `/blob/<tag>/CHANGELOG.md`，读者点进去
+    看不到本版。2026-09-18 实测就是这个顺序问题（tag 推送会触发 CI，CI 里 `--check` 红）。
+    """
     ordered = tag_order(all_tags())
     releases: list[dict] = []
     prev: str | None = None
     for tag in ordered:
         releases.append({"tag": tag, "date": tag_date(tag), "commits": commits_in(prev, tag)})
         prev = tag
+    if assume_tag and assume_tag not in ordered:
+        # 还没存在的 tag：它的边界就是 HEAD（打上去之后它的 tag_date 正是 HEAD 的 commit 日期），
+        # 所以此刻算出来的这一节与打完 tag 再算**完全一致**；未发布区随之清空。
+        releases.append({"tag": assume_tag, "date": head_date(), "commits": commits_in(prev, "HEAD")})
+        return releases, []
     unreleased = commits_in(prev, "HEAD") if prev else commits_in(None, "HEAD")
     return releases, unreleased
 
 
-def changelog_text() -> str:
-    releases, unreleased = changelog_data()
+def changelog_text(assume_tag: str | None = None) -> str:
+    releases, unreleased = changelog_data(assume_tag)
     return render_changelog(releases, unreleased)
 
 
@@ -943,12 +962,18 @@ def cmd_notes(args: argparse.Namespace) -> int:
 
 def cmd_changelog(args: argparse.Namespace) -> int:
     if args.write:
-        text = changelog_text()
+        assume = getattr(args, "assume_tag", None)
+        text = changelog_text(assume)
         write_text(CHANGELOG, text)
-        releases, unreleased = changelog_data()
+        releases, unreleased = changelog_data(assume)
+        extra = f"（含尚未存在的 {assume}：它的边界取 HEAD）" if assume and assume not in tag_order(all_tags()) else ""
         info(f"已写 {CHANGELOG.name}：{len(releases)} 个 tag 节"
-             f"（倒序）+ 未发布 {len(unreleased)} 条提交", args.quiet)
+             f"（倒序）+ 未发布 {len(unreleased)} 条提交{extra}", args.quiet)
         return 0
+
+    if getattr(args, "assume_tag", None):
+        print("提示：`--assume-tag` 只对 `--write` 有意义（校验永远按磁盘上的 tag 现算），本次忽略。",
+              file=sys.stderr)
 
     if not CHANGELOG.is_file():
         print(f"{CHANGELOG.name} 不存在：先跑 `python scripts/release.py changelog --write` 生成。",
@@ -1356,6 +1381,9 @@ def build_parser() -> argparse.ArgumentParser:
     group = p.add_mutually_exclusive_group()
     group.add_argument("--write", action="store_true", help="写 CHANGELOG.md")
     group.add_argument("--check", action="store_true", help="与磁盘比对（默认）")
+    p.add_argument("--assume-tag", default=None, metavar="TAG",
+                   help="仅 --write：把 TAG 当成已存在于 HEAD 的 tag（发布前那次提交用；"
+                        "这样 tag 里那份 CHANGELOG 才包含自己那一节）")
     p.set_defaults(func=cmd_changelog)
 
     p = sub.add_parser("artifact", parents=[common], help="构建确定性 zip + SHA256SUMS + 构建回执")

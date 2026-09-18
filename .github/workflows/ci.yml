@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 为什么 fetch-depth: 0 —— `scripts/check.py` 的第 4 项（变更日志同步）要用
+          # `git tag -l` 现算 CHANGELOG；浅克隆里没有 tag，会把它误判成「与 git 不一致」。
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
