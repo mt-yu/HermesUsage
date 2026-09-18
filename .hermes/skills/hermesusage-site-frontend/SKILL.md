@@ -1,7 +1,7 @@
 ---
 name: hermesusage-site-frontend
 description: "Use when changing the HermesUsage site frontend: web/, the templates, or the built pages."
-version: 1.0.0
+version: 1.1.0
 author: HermesUsage
 license: MIT
 platforms: [linux, macos, windows]
@@ -53,6 +53,14 @@ a.getBoundingClientRect().height              // 期望 32；103 就是被折了
 悬停态（CDP `CSS.forcePseudoState`）、窄屏抽屉（`Emulation.setDeviceMetricsOverride` 390×844）、
 以及 `window.__errs`（注入 `error` + `unhandledrejection` 监听，别只看控制台刷不刷红）。
 
+**动了顶栏 / 侧栏这类「一行 flex」的容器，必须逐档量宽度**（360 / 400 / 480 / 640 / 900）：
+量每个子元素的 `getBoundingClientRect()` **与站名的行数**（
+`Math.round(brand.getBoundingClientRect().height / parseFloat(getComputedStyle(brand).lineHeight))`），
+比翻截图可靠。判断「是不是我这次改坏的」要在**同一页面隐藏/显示新控件各量一次**：
+2026-09-18 加顶栏 GitHub 标识时，360/400px 下的 2 行站名是**改之前就有的**，
+真正的回归只发生在 480px（1 行 → 2 行、顶栏 50.3 → 73px），处置是收掉进度胶囊。
+不这么做，就会把旧问题当成新 bug 去「修」，或者把真回归放过去。
+
 ## 契约：网格的列数 = 子元素个数
 
 侧栏那条坑的根因，值得当成通用规则：
@@ -64,6 +72,24 @@ a.getBoundingClientRect().height              // 期望 32；103 就是被折了
   **标记里给普通条目「内联 SVG 图标 + `<span class="nav-title">`」的 flex 结构**。
 
 同类检查：写 `grid-template-columns` 之前先数一遍子元素；「图标 + 一行文字」用 flex。
+
+## 契约：顶栏是一行 flex，加一个入口就要重新算宽度
+
+`.topbar` 没有 `flex-wrap` —— **装不下的不是新控件，是站名**（它没有 `nowrap`，会折成 2~3 行，
+顶栏跟着每行长高约 22px）。处置清单：
+
+1. 先量（上面那套 360/400/480/640 逐档 + 隐藏新控件对照量），别先写 CSS；
+2. 宽度不够就**收掉信息量最低的那个**：进度胶囊 `#progress-pill` 在首页有进度卡、
+   课页有「标记本课完成」按钮，别处都有 —— 所以 `@media (max-width: 480px)` 里 `display: none` 它；
+3. 断点取**实测出问题的那一档**，不是随手套一个常见的 640px：560px 以上收胶囊省不出站名的宽度，
+   等于白扔进度信息；
+4. 新入口统一走 `build_site.topbar_values(cfg)`（模板里的 `{{github}}` 这类占位符由它供给，
+   六处 `render_template` 都传 `**topbar_values(cfg)`）—— 漏传一处构建期就报「占位符没填」，
+   不会静默少一枚图标。
+
+指到站外的入口（GitHub 这类）用**实心轮廓**的内联 SVG：`fill="currentColor"`、`aria-hidden="true"`、
+外层 `<a>` 配 `aria-label` 说清点了去哪、一律 `target="_blank"` + `rel="noopener"`。
+配置为空时（例如 `site.json` 没填 `repo_url`）**不渲染**控件，而不是渲染一个点不动的。
 
 图标规矩：内联 SVG（`build_site.NAV_ICONS` + `nav_icon()`），`stroke="currentColor"`
 跟主题、`aria-hidden="true"` 对读屏隐藏、**不许引外链** —— `offline.html` 断网也要能读，
@@ -106,3 +132,9 @@ python scripts/journal.py commit --kind fix --title "…" --scope site \
   但磁盘上的文件它不会替你重建（`--no-build` 时）。
 - **顶层 `const/let` 写在 `boot();` 之后** → 交互全哑且不报错（TDZ + 未处理的 Promise 拒绝）。
   顶层声明一律放在 `boot();` 之前，`tests/js/app-module-order.test.js` 已钉住。
+- **文档正文里写了 `{{某个占位符}}`** → 旧版 `render_template` 是「替换完再全文搜 `{{`」，
+  于是正文里的 `{{github}}` / `{{footer}}` 被当成「模板没填」并让**整站构建失败**
+  （2026-09-18 实测：ROADMAP 里写了一个占位符名就构建报错）。已修：判定只看**模板骨架**，
+  替换用单趟 `re.sub`（注入进来的内容不会再被二次替换，否则正文里同名的 `{{key}}` 会被悄悄改字）。
+  页面级那条断言同样要排除 `<main>`：正文讨论占位符是原文，只有模板骨架
+  （head / 顶栏 / 侧栏 / 目录 / 页脚）残留占位符才算错。
