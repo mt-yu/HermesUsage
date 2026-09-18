@@ -25,6 +25,16 @@ const PREFIX = document.body.dataset.prefix || "";
 const LESSON_ID_RE = /^L\d{2,}$/;
 const EX_ID_RE = /^\d+$/;
 
+/* 主题三态：跟随系统 → 亮 → 暗 → 回到跟随系统。
+   ⚠️ 这三张表必须声明在 `boot()` **之前**：`boot()` 的第一句就是 applyTheme()，
+   而 const 在声明之前处于暂存死区（TDZ）—— 放后面会让 boot() 在第一句就抛
+   ReferenceError，并且是「未处理的 Promise 拒绝」：页面看起来正常，但
+   `boot()` 里的其余接线（搜索、目录高亮、练习打勾、进度按钮）**一条都没跑**。
+   实测踩过一次（真实浏览器里点主题按钮毫无反应才发现），所以留这条注释。 */
+const THEME_CYCLE = ["auto", "light", "dark"];
+const THEME_LABEL = { auto: "跟随系统", light: "亮色", dark: "暗色" };
+const THEME_ICON = { auto: "◐", light: "☀", dark: "☾" };
+
 let lessons = [];
 let state = loadState();
 let exercises = loadExercises();
@@ -422,15 +432,7 @@ function wireCopyButtons() {
 
 /* ---------------------------------------------------------------- 主题与抽屉 */
 
-/* 主题三态：跟随系统 → 亮 → 暗 → 回到跟随系统。
-   为什么不是「亮/暗」两态：多数人的系统主题是按时间自动切的，两态切换会让
-   他每次都得手动追一遍；三态里「跟随系统」是默认值（storage.js 的 fallback）。
-   按钮上的图标与 aria-label 跟着当前状态走 —— 只画一个 ◐ 的按钮，
-   读屏用户听不出它现在是什么、按下去会变成什么。 */
-const THEME_CYCLE = ["auto", "light", "dark"];
-const THEME_LABEL = { auto: "跟随系统", light: "亮色", dark: "暗色" };
-const THEME_ICON = { auto: "◐", light: "☀", dark: "☾" };
-
+/* 三态循环的实现与常量见文件开头（常量必须在那，否则 boot() 会撞 TDZ）。 */
 function resolveTheme(theme) {
   if (theme !== "auto") return theme === "dark" ? "dark" : "light";
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";

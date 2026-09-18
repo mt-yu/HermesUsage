@@ -430,7 +430,34 @@ def render_design_page() -> tuple[str, str]:
             "（design_matrix.render_markdown 与这里的约定漂移了）"
         )
     html = html.replace(marker, f'<figure class="chart-figure">{D.average_chart_svg()}</figure>')
+    html = wrap_tables(html)
     return f'<article class="lesson design-doc">{html}</article>', R.build_toc_html(toc)
+
+
+# 表格包裹层：`.lesson table` 那套 `display:block + overflow-x:auto` 对三列表格够用，
+# 但这一页的矩阵是 **12 列** —— 在手机上会被挤成一根根竖条（每格 30px 宽、表头折成四行）。
+# 所以给这一页的表格加一层真正能横向滚动的容器，并让矩阵表自己有最小宽度。
+# 只包裹这一页：课程页里的表格都是 3~4 列，改它们的行为等于给 40 课换排版。
+TABLE_RE = re.compile(r"(<table>.*?</table>)", re.S)
+MATRIX_MARKER = "← 赢家"
+
+
+def wrap_tables(html: str) -> str:
+    """把每个 `<table>` 包进 `<div class="table-wrap">`，并给矩阵表加 `class="matrix"`。"""
+
+    def repl(m: re.Match[str]) -> str:
+        table = m.group(1)
+        if MATRIX_MARKER in table:
+            table = table.replace("<table>", '<table class="matrix">', 1)
+        return f'<div class="table-wrap">{table}</div>'
+
+    wrapped = TABLE_RE.sub(repl, html)
+    if '<table class="matrix">' not in wrapped:
+        raise R.SiteError(
+            f"设计对比页里没找到矩阵表（判据是表里含 {MATRIX_MARKER!r}）——"
+            " 表格包裹与最小宽度都挂在它身上，找不到就该报错而不是静默不包"
+        )
+    return wrapped
 
 
 def render_pitfalls_page(groups: list[dict], lessons: list[dict], citations: dict) -> tuple[str, str]:

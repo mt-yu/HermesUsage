@@ -1,4 +1,4 @@
-# 发布前手工验收清单（17 条）
+# 发布前手工验收清单（22 条）
 
 自动化能覆盖的（内容门禁、单元测试、站点构建与链接自检）交给 `python scripts/check.py`，
 **这份清单只列自动化盖不住的事**：真实浏览器里的交互与渲染。每次发布前跑一遍。
@@ -26,6 +26,20 @@ python scripts/serve.py --open     # 本地起站；线上版同理（把 URL �
 | 15 | 打开 `/offline.html`（或下载后双击） | 单文件可读、样式生效；顶部目录能跳到对应课；断网也不影响阅读 |
 | 16 | 打开仓库首页首屏的「学习路线图」 | 是一张深色底的图（不是代码块）：中文正常、芯片文字不溢出边框、8 个阶段都带「N/N 课就绪」；失败时先跑 `python scripts/build_roadmap_svg.py --check`（应为 0） |
 | 17 | 改任意一课的标题后跑 `python scripts/check.py` | 报「路线图 SVG 同步」失败并打印差异；跑 `python scripts/build_roadmap_svg.py` 后重回 6 项全绿 |
+| 18 | 侧栏「入口」点「设计对比」，看 `/design.html` | 平均分条图 12 条（前 10 条实心、后 2 条虚线框）、矩阵表 **10 个方案 × 10 个维度 + 2 行参考**、令牌表的取值链与对比度表 8 行全部「✅ 通过」；把窗口拖到 390px 宽，页面本身**不出现**横向滚动条，矩阵表在自己的框里横向滑动 |
+| 19 | 连点顶栏主题按钮三次 | 跟随系统 → 亮 → 暗 → 跟随系统；按钮图标与 `aria-label` 每次都跟着变（`主题：亮色（点击切到暗色）`）；刷新后仍是上次的选择 |
+| 20 | 系统切到暗色后刷新页面（且没手动选过主题） | 第一帧就是暗的：**看不到白底闪一下**（主题脚本排在样式表之前）；地址栏配色也跟着变（`theme-color`） |
+| 21 | 系统开启「减少动态效果」后刷新，打开搜索面板 | 过渡与动画全部归零（DevTools 里 `transition-duration` 是 `1e-05s`）；面板不再有淡入缩放，但照样能用 |
+| 22 | 只用键盘：`Tab` 走一遍顶栏、侧栏、正文链接 | 焦点环始终可见（2px 实线强调色）；用鼠标点击同一批控件时**不**画焦点环（`:focus-visible`）；课页顶部有一条随滚动增长的进度线 |
 
 > 第 13 条可以脚本化：注入
 > `addEventListener('error',e=>__errs.push(e.message))` 与 `unhandledrejection` 监听后再做上面 1-12 条。
+>
+> 第 18–22 条（视觉系统）也能脚本化，本次就是用 CDP 跑的，四行现成命令：
+> `Emulation.setDeviceMetricsOverride`（390×844 手机视口，查 `documentElement.scrollWidth` 与
+> 表格容器的 `scrollWidth`）、`Emulation.setEmulatedMedia`（加 `prefers-reduced-motion: reduce`
+> 后读 `getComputedStyle(...).transitionDuration`）、`Input.dispatchKeyEvent`（发一个 `Tab`，
+> 读 `document.activeElement` 的 `outlineWidth`/`matches(':focus-visible')`）、
+> 以及 `Page.addScriptToEvaluateOnNewDocument`（在页面脚本之前挂错误监听，才能抓到
+> **未处理的 Promise 拒绝** —— v3.1 那个 TDZ 坑就是靠它现形的：页面渲染正常、控制台不刷红，
+> 但 `boot()` 在第一句就抛了，搜索/打勾/进度按钮全都没接线）。

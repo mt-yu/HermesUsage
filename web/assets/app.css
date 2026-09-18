@@ -446,6 +446,14 @@ h1 { font-size: var(--step-3); line-height: var(--leading-tight); margin: var(--
 .chart-figure { margin: var(--space-4) 0; overflow-x: auto; scrollbar-width: thin; }
 .chart { display: block; width: 100%; min-width: 560px; height: auto; }
 
+/* 宽表容器（只有 /design.html 用得上）：`.lesson table` 的
+   `display:block + overflow-x:auto` 对 3~4 列的表格够用，但设计对比页的矩阵是
+   12 列 —— 在手机上会被挤成竖条。这里给格子加一层真能横向滚动的壳，
+   并让矩阵表自己有个最小宽度；其余表格的行为一个字都不动。 */
+.table-wrap { margin: var(--space-4) 0; overflow-x: auto; scrollbar-width: thin; }
+.table-wrap > table { margin: 0; }
+.lesson table.matrix { display: table; width: 100%; min-width: 720px; }
+
 /* 练习方框：渲染期的静态 <span>，app.js 升级成真 checkbox。
    交互样式只动边框和轮廓：display 保持行内块，否则练习文字会被挤到下一行。 */
 .task-box {

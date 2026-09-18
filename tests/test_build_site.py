@@ -14,6 +14,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
 import build_site  # noqa: E402
+import design_matrix as D  # noqa: E402
 import site_render as R  # noqa: E402
 import tutorial_core as core  # noqa: E402
 
@@ -495,8 +496,39 @@ class TestDesignPage(unittest.TestCase):
         # 结论句里的平均分也必须与现算值一致（正文里没有任何手写数字）
         self.assertIn(f"**{D.score(D.winner()):.2f}**", D.render_markdown(self.css))
 
+    def matrix_table_html(self) -> str:
+        """页面里那张**矩阵表**的 HTML。
+
+        判据是「包含『← 赢家』」而不是「第三张表」或者「第一个 <table>」：页面上共有
+        五张表（方案清单 / 维度说明 / 矩阵 / 赢家与差距 / 改造前后），其中「赢家与差距」
+        与「改造前后」的行也以 **加粗** 或 *斜体* 开头 —— 不限定范围去数行数，
+        数出来的是「所有表格里首格加粗的行」（实测 23 行而不是 12 行）。
+        """
+        for table in re.findall(r"<table[^>]*>.*?</table>", self.main, re.S):
+            if "← 赢家" in table:
+                return table
+        raise AssertionError("页面里找不到矩阵表（没有带「← 赢家」的表格）")
+
+    def test_wide_tables_are_wrapped_so_they_can_scroll_on_a_phone(self):
+        """12 列的矩阵在手机上必须能横向滚动，而不是被挤成竖条。
+
+        做法是给这一页的每张表套一层 `.table-wrap`（真正的滚动容器），
+        并给矩阵表本身一个最小宽度（`table.matrix`）。包没包上在浏览器里
+        一眼能看出来，但「漏包了哪一张」在构建期只有断言能发现。
+        """
+        tables = len(re.findall(r"<table[^>]*>", self.main))
+        # 八张表：方案清单 / 维度说明 / 矩阵 / 赢家与差距 / 采纳清单 / 令牌表 / 对比度 / 改造前后
+        self.assertEqual(tables, 8)
+        self.assertEqual(self.main.count('<div class="table-wrap">'), tables)
+        self.assertEqual(self.main.count('class="matrix"'), 1)
+        self.assertIn('<table class="matrix">', self.main)
+        # 矩阵表是那张宽表：其余表格不该拿到最小宽度（那会让手机上也出现滚动条）
+        for table in re.findall(r"<table[^>]*>", self.main):
+            if "matrix" not in table:
+                self.assertEqual(table, "<table>", table)
+
     def test_matrix_has_a_row_per_system_plus_two_reference_rows(self):
-        rows = re.findall(r'<tr>\s*<td>(?:\*\*|<em>)', self.main)
+        rows = re.findall(r"<tr>\s*<td>(?:<strong>|<em>)", self.matrix_table_html())
         self.assertEqual(len(rows), len(D.SYSTEMS) + 2)
         for system in D.SYSTEMS:
             self.assertIn(system["name"], self.main, system["key"])
@@ -504,9 +536,10 @@ class TestDesignPage(unittest.TestCase):
         self.assertIn("改造后", self.main)
 
     def test_every_dimension_header_is_rendered(self):
-        heads = re.findall(r"<th>([^<]+)</th>", self.main)
-        matrix_heads = heads[:len(D.DIM_KEYS) + 2]
-        self.assertEqual(matrix_heads, ["方案"] + [D.SHORT[k] for k in D.DIM_KEYS] + ["平均"])
+        self.assertEqual(
+            re.findall(r"<th>([^<]+)</th>", self.matrix_table_html()),
+            ["方案"] + [D.SHORT[k] for k in D.DIM_KEYS] + ["平均"],
+        )
 
     def test_token_table_matches_app_css(self):
         for item in D.APPLIED_TOKENS:
@@ -534,8 +567,10 @@ class TestDesignPage(unittest.TestCase):
         self.assertIn('role="img"', self.main)
 
     def test_chart_placeholder_never_reaches_the_reader(self):
+        # 占位符必须已被换成 SVG；页面上任何一处都不该残留 {{…}} 形态的模板标记
         self.assertNotIn(D.CHART_PLACEHOLDER, self.page)
-        self.assertNotIn("{", self.page.split("<body")[0].split("dataset.theme")[0])
+        self.assertNotIn("{{", self.page)
+        self.assertIn("<svg", self.main)
 
     def test_no_markdown_markers_left_in_the_body(self):
         self.assertNotIn("[[", self.main)
@@ -602,14 +637,15 @@ class TestDesignPage(unittest.TestCase):
 
     def test_offline_page_stays_self_contained_and_does_not_inline_this_page(self):
         offline = (self.out / "offline.html").read_text(encoding="utf-8")
-        for needle in ("<link ", "<script", 'src="', "design.html"):
+        for needle in ("<link ", "<script", 'src="', 'href="design.html"'):
             self.assertNotIn(needle, offline, f"离线版不该出现 {needle}")
-        # 它内联的那份样式表里当然**有** .chart 那几条规则（逐字内联），
-        # 但它自己不含 SVG 图：离线版是「32 课正文」，不含这一页。
+        # 它内联的那份样式表里当然**有** .chart 那几条规则、注释里也提了 /design.html
+        # （逐字内联就是这个意思），但它自己不含这张图，也没有指向这一页的链接：
+        # 离线版是「40 课正文」，不是整站。
         self.assertNotIn("<svg", offline)
 
 
-
+class TestSiteReachability(unittest.TestCase):
     """v1.2 站点可达性：canonical / og / sitemap / robots / skip-link。
 
     这些元信息错了在浏览器里**完全看不出来**（页面照常渲染），只能靠断言。
@@ -713,6 +749,52 @@ class TestDesignPage(unittest.TestCase):
 
     def test_check_seo_is_clean(self):
         self.assertEqual(build_site.check_seo(self.out, self.cfg), [])
+
+    # --- 主题：首帧不闪白 + 键名只有一份 -----------------------------------
+
+    def test_theme_bootstrap_runs_before_the_stylesheet(self):
+        """暗色用户在首帧不该看到白屏：主题脚本必须在样式表**之前**、且同步执行。
+
+        这不是「感觉更快」的问题：`<link rel=stylesheet>` 一到，浏览器就可能
+        画出第一帧。主题脚本排在它后面，暗色用户就会先看到一帧白底再跳黑（FOUC）。
+        内联脚本不能带 `src`/`defer`/`async` —— 那三样都会把执行时机推到解析之后，
+        等于没修。
+        """
+        for rel in ("index.html", "lessons/L15-skills.html", "design.html", "repo/roadmap.html"):
+            html = (self.out / rel).read_text(encoding="utf-8")
+            script_at = html.index('localStorage.getItem("hermes-usage:theme:v1")')
+            sheet_at = html.index('<link rel="stylesheet"')
+            self.assertLess(script_at, sheet_at, rel)
+            script_tag = html[:script_at].rsplit("<script", 1)[1]
+            for needle in ("defer", "async", "src="):
+                self.assertNotIn(needle, script_tag, rel)
+            # 浏览器 UI 也跟着主题走（地址栏/状态栏配色）
+            self.assertEqual(html.count('<meta name="theme-color"'), 2, rel)
+
+    def test_theme_storage_key_is_the_same_string_in_both_places(self):
+        """内联脚本必须与 storage.js 用同一个键名。
+
+        键名写错的表现是「切了主题、刷新回到默认」——而页面不会报任何错。
+        所以直接拿 storage.js 里的 THEME_KEY 去比对（它是唯一权威）。
+        """
+        storage = (REPO / "web" / "assets" / "lib" / "storage.js").read_text(encoding="utf-8")
+        key = re.search(r'export const THEME_KEY = "([^"]+)"', storage)
+        self.assertIsNotNone(key, "storage.js 里找不到 THEME_KEY")
+        for rel in ("index.html", "lessons/L15-skills.html", "design.html"):
+            html = (self.out / rel).read_text(encoding="utf-8")
+            self.assertIn(f'localStorage.getItem("{key.group(1)}")', html, rel)
+            app = (self.out / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertGreaterEqual(app.count("THEME_CYCLE"), 2)      # 常量 + 使用处
+        self.assertNotIn("THEME_CYCLE = [", app.split("boot();")[1].split("\n")[0])  # 别搬回后面
+
+    def test_theme_toggle_is_labelled_for_screen_readers(self):
+        """切主题的按钮要说清「现在是什么、按下去会变成什么」。"""
+        html = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="theme-toggle"', html)
+        self.assertIn('aria-label="切换主题"', html)      # 无 JS 时的静态标签
+        app = (self.out / "assets" / "app.js").read_text(encoding="utf-8")
+        for label in ("跟随系统", "亮色", "暗色"):
+            self.assertIn(label, app, label)
 
     def test_check_seo_flags_a_page_missing_its_meta(self):
         """自检本身要能抓到问题：把一个页面的 og 标签删掉，它必须报出来。"""
