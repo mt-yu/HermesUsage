@@ -134,6 +134,7 @@ python scripts/progress.py next   # 下一课学什么
 | `v3.0-cases` | 阶段 6 真实工作流案例（38 课 / 8 阶段）+ 漂移哨兵进 CI + 自动归档在途闸门 | ✅ |
 | `v3.1-ui` | 设计对比页（10 方案 × 10 维度等权平均）+ 语义 token 视觉系统 + 主题三态 | ✅ |
 | `v3.3-topbar` | 顶栏 GitHub 入口（内联 SVG 标识，新标签页打开）+ 480px 以下收进度胶囊 | ✅ |
+| `v3.4-release` | 发布体系：14 个 tag 全部有 release（确定性资产 + CHANGELOG + 不可变发布 + CI 自动发版） | ✅ |
 
 ## 维护待办（内容层）
 
@@ -381,6 +382,43 @@ Python 测试 45 → 59 条。
   前端 75 条不变；站点产物仍是 52 页 / 70 文件。
 - 一条既有断言按新契约改写：`TestDesignPage` 里「离线版不含 `<svg`」改成「不含 `.chart` / `.nav-icon`、
   且内联 SVG 恰好一枚（页脚那枚标识）」—— 旧写法会把「页脚多一枚图标」误报成「离线版开始内联整站」。
+
+### v3.4 · 发布体系（约半天，2026-09-18）
+
+- [x] `scripts/release.py` 五个动词：`notes` / `changelog` / `artifact` / `create` / `audit`
+      （不依赖 `gh` CLI，脚本自己走 REST；令牌复用 `drift_watch.get_token()`）
+- [x] 确定性资产：`zip_dir` 固定条目顺序 + `date_time=(1980,1,1,0,0,0)` + Unix `create_system`，
+      构建时刻换成 tag 的 commit 时间 → 同一棵树两次打包字节相同（实测 v1.1-web 两次同哈希）
+- [x] 资产 = `hermesusage-site-<tag>.zip` + 单版本 `SHA256SUMS`（GNU 两空格，`sha256sum -c` 可校验）
+- [x] `CHANGELOG.md`（Keep a Changelog 1.1.0，脚本生成、倒序）；`check.py` 6 项 → **7 项**（新增「变更日志同步」）
+- [x] `.github/workflows/release.yml`：推 `v*` tag → 跑 `check.py` → `release.py create`
+- [x] 13 个历史 tag 全部回填 release（v0.2/v0.3 是 prerelease；v0.2/v0.3/v1.0 无站点、不附资产）
+- [x] 仓库级「不可变发布」打开；`v3.4-release` 由 CI 建出并实测 `immutable: true`
+
+**验收**（已全部通过，2026-09-18 实测）：
+
+- `python scripts/check.py` → **7 项全绿**；`python -m unittest tests.test_release` → **66 条全绿**。
+- `python scripts/release.py audit --check` → **退出 0（0 差异，本地 14 个 tag 与远端一致）**，
+  每个有站点的 tag 都报「哈希一致」。
+- 确定性：`artifact --tag v1.1-web --out A` / `--out B` 两次 zip 的 sha256 相同；
+  `v3.3-topbar` 的包与另一位代理早先构建的那份**也字节一致**。
+- 不可变发布：`PUT /repos/mt-yu/HermesUsage/immutable-releases` → 204，`GET` → `{"enabled": true}`；
+  CI 建的 `v3.4-release` → `immutable: true`、资产 sha256 与本机重建一致、
+  `DELETE …/releases/assets/<id>` → **422 `Cannot delete asset from an immutable release`**、
+  release 页面出现 `Immutable` 标记。
+- 诚实边界：**attestation 未验证**（REST 端点对两个资产都 404，本机无 `gh` CLI）；
+  不给历史 tag 做 GPG 签名（本机无密钥）。两条都写进了 `docs/releases.md` 的「已知限制」。
+
+**执行中真踩到的四个坑（都已修掉并补测试）**：
+
+1. `GET /releases/tags/<tag>` **看不到草稿** → 上传中断（本机 TLS 抖）留下的空草稿谁也看不见，
+   重跑还会再建一个。改为读带令牌的 `GET /releases` 列表 + `releases_for_tag()`，
+   并让 `create` 在失败时**回滚自己刚建的草稿**、成功后清掉同 tag 的多余草稿。
+2. 给草稿发 `make_latest` → `422 Latest release cannot be draft or prerelease`，挪到转正那一步。
+3. 搁置太久的草稿转正后 `tag_name` 留在 `untagged-…` 占位名（还顺手在远端建了一个同名占位 tag，
+   让 CI 的 `changelog --check` 变红）→ 转正时显式重发 `tag_name`，并在读回核验失败时退出 2。
+4. `CHANGELOG` 的循环依赖：生成它的那次提交本身不可能出现在它生成的文件里 →
+   加 `--assume-tag`（发布前就把本版那一节写进去）+ 把 `changelog:` 前缀当噪声。
 
 ### v2.0 · 让「学过」变成可交付（按需启动）
 

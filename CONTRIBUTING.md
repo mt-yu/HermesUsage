@@ -85,10 +85,12 @@ python scripts/check.py                  # 快照哈希与 citations.yaml 必须
 1. 读 [`.hermes.md`](.hermes.md)（Hermes 会自动注入，其他 agent 请手动读）。
 2. 读本文件 + [`ROADMAP.md`](ROADMAP.md) 找 `⬜` 的工作队列。
 3. `python scripts/check.py` 确认当前状态健康，再动手。
-4. 项目技能 [`.hermes/skills/`](.hermes/skills/) 里有两份可加载的操作手册：
+4. 项目技能 [`.hermes/skills/`](.hermes/skills/) 是可加载的操作手册（`hermes skills trust .` 后生效）：
    - `hermes-tutorial-authoring` —— 怎么写一课
    - `session-journal` —— 怎么归档一次会话
-   安装：`hermes skills trust .`（项目级技能默认不加载，防投毒）
+   - `hermesusage-site-frontend` —— 改前端（渲染层的坑只在浏览器里看得见）
+   - `source-drift-review` —— 官方文档漂移怎么复核
+   - `release-and-versioning` —— 怎么发版（tag → Release、CHANGELOG、不可变发布）
 5. 不确定 Hermes 的行为时，优先查这三处（权威性从高到低）：
    `hermes <command> --help` → `sources/cache/` → `$HERMES_HOME/hermes-agent/website/docs/`。
 

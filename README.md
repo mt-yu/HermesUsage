@@ -180,7 +180,7 @@ git log --oneline -- sources/cache/      # 看官方文档是在哪次提交之�
 | AI 知道自己改得对不对 | [`scripts/verify.py`](scripts/verify.py) 12 条硬规则：引用是否可解析、8 小节是否齐全、前置是否可点击、索引是否同步、快照哈希是否一致…… |
 | AI / 你都能一次读全目录 | [`llms.txt`](llms.txt) 机器可读索引（沿用 Hermes 官方文档自己的做法） |
 | 每次改动可回滚 | `journal/` 一记录一提交 + 阶段 tag，见 [`scripts/journal.py`](scripts/journal.py) |
-| 能力可扩展 | [`.hermes/skills/`](.hermes/skills/) 两个项目技能：写课程、归档会话（`hermes skills trust .` 后生效） |
+| 能力可扩展 | [`.hermes/skills/`](.hermes/skills/) 项目技能：写课程、归档会话、前端渲染层、文档漂移复核、发布与版本（`hermes skills trust .` 后生效） |
 
 **目录结构**
 

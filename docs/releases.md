@@ -7,8 +7,11 @@
 本文只讲**规范与操作**：做了什么、为什么这么做、出错怎么查。它**不进站点**
 （`site.json` 的 `repo_docs` 里没有任何 `docs/` 下的文件，`docs/deploy.md` 同样不在）。
 
-> 状态：**待回填** —— 由 `2026-09-18-release-system.md` 步骤 8 的实测结论替换本行。
-<!-- 待回填：CI 建 release 与不可变发布的实测证据（主代理步骤 8） -->
+> 状态（2026-09-18 实测）：**14 个 tag 全部有 release**，`python scripts/release.py audit --check` 退出 0；
+> 仓库级「不可变发布」开关已打开（`GET /repos/mt-yu/HermesUsage/immutable-releases` → `{"enabled": true}`）。
+> 第一条**由 CI 建出**的 release 是 `v3.4-release`（推 tag 触发 `release` 工作流，成功）：
+> `immutable: true`、资产 sha256 与本机重新构建的字节一致、删除资产被 GitHub 拒（422
+> `Cannot delete asset from an immutable release`）。attestation 未验证，见文末「已知限制」第 6 条。
 
 ---
 
@@ -34,8 +37,8 @@
 
 所有子命令**按脚本自身的位置定位仓库根**，在任何目录下跑都指向同一个仓库 —— 不要写「先 `cd` 到仓库根」。
 
-> 状态：**待回填** —— `scripts/release.py` 已冻结的接口见 `.hermes/plans/2026-09-18-release-system.md` 第 2 节；
-> 脚本落地后，本节的命令行为以 `--help` 与 `tests/test_release.py` 为准。
+> 状态（2026-09-18 实测）：脚本已落地并通过 **66 条单测**（`python -m unittest tests.test_release`）。
+> 本节的命令行为以 `python scripts/release.py <动词> --help` 与 `tests/test_release.py` 为准。
 
 ---
 
@@ -51,12 +54,16 @@ semver 形式，也不用日期。
 
 打 tag 之前，工作区必须是干净的，且 `python scripts/check.py` 退出 0（见下节第 1 步）。
 
-**当前 13 个 tag**（`git tag -l` 可直接列出）：
+**当前 14 个 tag**（`git tag -l` 可直接列出）：
 
 ```
 v0.2-orient  v0.3-core  v1.0-tutorial  v1.1-web  v1.2-seo  v1.3-site  v1.4-content
 v1.5-auto    v2.0-deliverable  v2.1-ops  v3.0-cases  v3.1-ui  v3.3-topbar
+v3.4-release
 ```
+
+**远端的 tag 必须与本地一致**：`git ls-remote --tags origin` 里多出任何一个名字（哪怕长得像
+`untagged-e51889b73d0a…` 这种占位名）都会让 CI 的 `changelog --check` 红 —— 见「排障」。
 
 **历史 tag 不改名**，即使命名口径后来变了：
 
@@ -77,23 +84,40 @@ python scripts/check.py
 # 2. 归档这次改动（提交粒度 = 一个可回滚的语义单元）
 python scripts/journal.py commit --kind stage --title "阶段X 完成" --scope L30,L31
 
-# 3. 打注释 tag（-a，不要轻量 tag；release 的标题会取 tag 对象的 subject）
+# 3. 把「本版」那一节写进 CHANGELOG —— 此刻 tag 还没打，用 --assume-tag 按「已存在」算
+python scripts/release.py changelog --write --assume-tag v3.4-release
+git commit -am "changelog: 收进 v3.4-release 这一节"
+
+# 4. 打注释 tag（-a，不要轻量 tag；release 的标题会取 tag 对象的 subject）
 git tag -a v3.4-release -m "发布体系：Release + CHANGELOG + 不可变发布"
 
-# 4. 推 tag（只推 tag，不推分支）
-git push origin v3.4-release
+# 5. 先推 tag、再推 main（顺序有讲究：main 的 CI 也要看得到这个 tag）
+git push origin v3.4-release && git push origin main
 
-# 5. 之后什么都不用做：CI 看到 tag 自己建 release
+# 6. 之后什么都不用做：CI 看到 tag 自己建 release
 ```
+
+**第 3 步为什么不能省、也不能换个顺序**（2026-09-18 实测踩过一轮）：
+
+- 先生成再打 tag 是**错**的：tag 里那份 `CHANGELOG.md` 会缺「自己」这一节，而发布说明里的
+  「完整变更日志」链接正指向 `/blob/<tag>/CHANGELOG.md`；
+- 先打 tag 再生成，`changelog --check` 会红 —— 生成的文件不可能包含「生成它的那次提交」；
+- 所以那次提交的前缀**必须是 `changelog:`**：脚本把 `changelog:` 当前缀当噪声（与 `journal:` 同类），
+  两侧算出来的内容才逐字相同。换成 `docs:` 就又红了。
 
 第 5 步由 `.github/workflows/release.yml` 承担：`push: tags: ["v*"]` 触发，跑
 `check.py` → `python scripts/release.py create --tag "<刚推的 tag>"`。工作流不引第三方 action、
 不用 `gh` CLI —— 建 release 的 REST 调用在 `release.py` 里（本机没有 `gh`，CI 里也不用）。
 
-> 状态：**待回填** —— 由 `2026-09-18-release-system.md` 步骤 8 的实测结论替换本行。
-<!-- 待回填：CI 建 release 与不可变发布的实测证据（主代理步骤 8） -->
+> 状态（2026-09-18 实测）：工作流已落地。`v3.4-release` 这一条**就是 CI 建出来的** ——
+> 推送 tag 后 `release` 工作流跑绿灯，release 对象 `immutable: true`。
+> 第一次跑是**红的**，原因值得记住：远端当时残留一个占位名 tag
+> （`untagged-e51889b73d0a…`，见「排障」第 4 行），CI 取全 tag 后 `changelog --check` 判不一致。
+> 删掉那个 tag、重跑同一次工作流即绿。
 
-**本地补建 / 回填一条 tag**：CI 没跑、或者要重建 13 条历史 release 时，同一件事在本地做：
+---
+
+## 本地补建 / 回填一条 tag
 
 ```bash
 python scripts/release.py create --tag v1.1-web --dry-run   # 先看请求体，不动远端
@@ -258,8 +282,14 @@ python scripts/release.py artifact --tag v1.1-web --out /tmp/b
 >    甚至仓库删掉重建也拦着）。所以建 release 一律走官方推荐的三步：
 >    **建草稿 → 传齐全部资产 → 再发布**。名字在这里是**一次性**的。
 >
-> 状态：**待回填** —— 由 `2026-09-18-release-system.md` 步骤 8 的实测结论替换本行。
-<!-- 待回填：不可变发布开关打开后的实测证据（主代理步骤 8：immutable 字段、资产哈希、attestation、删除被拒） -->
+> 状态（2026-09-18 实测）：开关**已打开**（`PUT /repos/mt-yu/HermesUsage/immutable-releases` → `204`，
+> 随后 `GET` → `{"enabled": true, "enforced_by_owner": false}`）。打开之后由 CI 建的第一条
+> `v3.4-release` 实测：`immutable: true`；资产 `sha256` 与本机 `artifact` 重新构建的**字节完全一致**；
+> 直接 `DELETE /repos/…/releases/assets/<id>` 被拒 —— `422 Cannot delete asset from an immutable release`；
+> release 页面标题下方出现 `Immutable` 标记。
+> ⚠️ **attestation 未验证**：官方文档说不可变发布会自动生成 release attestation，但本机拿不到 ——
+> `GET /repos/mt-yu/HermesUsage/attestations/<资产 sha256>` 对两个资产都返回 `404`，本机又没有 `gh` CLI
+> （`gh release verify` 跑不了）。它可能是按别的 subject 摘要存的，我们没有可验证的路径，所以这里**不断言它存在**。
 
 ---
 
@@ -308,8 +338,8 @@ gh release verify-asset <tag> <文件路径>  # 确认本地文件与 release �
 # 官方注意：源码包（GitHub 自动生成的 zip/tar.gz）不能用它校验，因为那是"被请求时才生成"的
 ```
 
-> 状态：**待回填** —— 已有的 13 条 release 的 `audit --check` 结果，由
-> `2026-09-18-release-system.md` 步骤 7 的实测结论替换本行。
+> 状态（2026-09-18 实测）：14 个 tag 全部有 release 后 `audit --check` 退出 **0**（0 差异）；
+> 每个有站点的 tag 都报「哈希一致」，`v3.3-topbar` 是 `latest`，`v0.2-orient` / `v0.3-core` 是 prerelease。
 
 ---
 
@@ -365,7 +395,13 @@ gh release verify-asset <tag> <文件路径>  # 确认本地文件与 release �
 4. **本机没有 `gh` CLI**：官方的 `gh release verify` / `gh release verify-asset` 在本机跑不了，
    只能用本文件「校验与对账」里的 REST + `sha256sum` 路线。
 5. **发布脚本与 CI 工作流的状态以实测为准**：`scripts/release.py` 与 `.github/workflows/release.yml`
-   的落地情况、以及不可变开关的开启状态，见本文各处的「待回填」标记。
+   的落地情况、以及不可变开关的开启状态，见本文各处的「状态（2026-09-18 实测）」。
+6. **release attestation 拿不到**：官方说不可变发布会自动生成 release attestation，
+   但本机两条路都走不通 —— `GET /repos/mt-yu/HermesUsage/attestations/<资产 sha256>` 对两个资产
+   都返回 `404`（可能按别的 subject 摘要存），`gh release verify` 因为本机没有 `gh` CLI 跑不了。
+   **所以我们不宣称它存在**，也不把「可验证的来源证明」写成已完成项。
+7. **`changelog --check` 依赖本地的 tag 集合**：浅克隆（没有 tag）会让它把一切都算成「未发布」而失真。
+   `ci.yml` / `release.yml` 因此都加了 `fetch-depth: 0`；你在别处跑这条检查时也要保证 tag 取全。
 
 ---
 
@@ -383,3 +419,8 @@ gh release verify-asset <tag> <文件路径>  # 确认本地文件与 release �
 | 打包两次哈希不同 | 没走 `zip_dir` 的确定性打包（或者用的是系统 zip 工具） | 只用 `python scripts/release.py artifact`；它固定条目顺序与时间戳 `(1980,1,1,0,0,0)` |
 | 发布说明里出现空的小标题，或少了某条提交 | 前缀不在映射表里（落进 `internal`），或它是 `journal:` / `session: 自动归档 …` 噪声 | 空分类不打印是设计；噪声不逐条列是设计。真要出现在正文里，就改提交前缀，别改脚本 |
 | 中文乱码 / 文件里多个 `^M` | 写文件时用了默认编码或 CRLF | 一律 UTF-8 无 BOM + LF（Python 写文件显式 `encoding="utf-8"`、`newline="\n"`） |
+| **`audit` 说某个 tag「缺 release」，但你在网页上明明见过它** | 那次发布**只建了草稿、没转正**（或转正后 `tag_name` 仍是占位名）。草稿既不在 `GET /releases` 里（公开视角），也不能用 `GET /releases/tags/<tag>` 找到 —— 只能用**带令牌**的 `GET /releases` 列表看 | `audit` 已把「只有草稿」单独标出来并给出 id；删掉重跑 `create` 即可（脚本现在会自动沿用旧草稿、发布成功后清掉多余草稿） |
+| 上传中途 TLS 断（`SSL: UNEXPECTED_EOF_WHILE_READING` / `远程主机强迫关闭了一个现有的连接`），重跑会不会残留垃圾 | 不会：`create` 在**建完草稿后任何一步失败**都会当场回滚自己刚建的那条草稿，并在输出里写「已删除本次新建的草稿（失败回滚）」 | 直接重跑同一条命令；本机 TLS 常抖，重跑两三次是常态（实测 v3.4-release 第一次就是抖掉的） |
+| `create` 报 `422 Latest release cannot be draft or prerelease.` | 给**草稿**发了 `make_latest`（GitHub 不允许草稿/prerelease 当 latest） | 脚本已把它挪到「转正」那一步（`publish_payload`），你不需要手动处理；自己写脚本时注意这条 |
+| 远端多出一个像 `untagged-e51889b73d0a…` 的 tag，CI 的 `changelog --check` 因此变红 | 那是「草稿被转正但 `tag_name` 没关联上」时 GitHub 建的占位 tag（转正时显式带上 `tag_name` 已能避免） | `git push origin --delete untagged-…` 删掉它，然后重跑同一次工作流；`git ls-remote --tags origin` 应与本地 14 个 tag 一致 |
+| 打完 tag 后 `changelog --check` 报「首个不同行在 `## [未发布]` 附近」 | 打 tag 前没跑 `changelog --write --assume-tag <tag>`；或者那次提交的前缀不是 `changelog:` | 按「发布流程」第 3 步重来：`--write --assume-tag` → 用 `changelog:` 前缀提交 → 再打 tag |
