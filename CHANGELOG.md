@@ -17,6 +17,10 @@
 ### 新增
 - stage: 发布体系：13 个 tag 全部有 release（确定性资产 + CHANGELOG + 不可变发布）（`71d0027`）
 
+### 修复
+- fix: changelog: 前缀算噪声（CHANGELOG 的循环依赖）（`b5ee88d`）
+- fix: CHANGELOG 收进本版那一节（--assume-tag）+ CI 取全 tag（`edd61d7`）
+
 ### 文档
 - docs: 把顶栏入口的实测结论写进技能与手工验收清单（`5d57e54`）
 
