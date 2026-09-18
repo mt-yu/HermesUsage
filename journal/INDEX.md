@@ -5,6 +5,7 @@
 
 | 日期 | 类型 | 范围 | 标题 | 提交 |
 |---|---|---|---|---|
+| 2026-09-18 | fix | release | [changelog: 前缀算噪声（CHANGELOG 的循环依赖）](2026-09-18-09-changelog-前缀算噪声（CHANGELOG-的循环依赖）.md) | `b5ee88d` |
 | 2026-09-18 | fix | release | [CHANGELOG 收进本版那一节（--assume-tag）+ CI 取全 tag](2026-09-18-08-CHANGELOG-收进本版那一节（-assume-tag）+-CI-取全-ta.md) | `edd61d7` |
 | 2026-09-18 | stage | release | [发布体系：13 个 tag 全部有 release（确定性资产 + CHANGELOG + 不可变发布）](2026-09-18-07-发布体系：13-个-tag-全部有-release（确定性资产-+-CHANGE.md) | `71d0027` |
 | 2026-09-18 | docs | docs,skills | [把顶栏入口的实测结论写进技能与手工验收清单](2026-09-18-06-把顶栏入口的实测结论写进技能与手工验收清单.md) | `5d57e54` |
