@@ -187,16 +187,35 @@ git log --oneline -- sources/cache/      # 看官方文档是在哪次提交之�
 ```
 lessons/          课程正文（00-orient → 06-capstone）
 sources/          出处体系：registry.yaml(人工) + cache/ + citations.yaml(自动)
-scripts/          门禁、索引、出处同步、归档、进度、站点构建
+scripts/          门禁、索引、出处同步、归档、进度、发布、站点构建
 web/              站点前端源码（模板 / CSS / 原生 ES 模块；无 npm 依赖）
 tests/            Python 单测（unittest）与前端单测（tests/js，node --test）
 site/             站点构建产物（由 build_site.py 生成，不进 git）
+dist/             发布资产与构建回执（由 release.py 生成，不进 git）
+CHANGELOG.md      更新日志（由 release.py 从 git 提交记录生成，禁止手改）
 templates/        课程 / 归档模板（= 校验规范的可读版本）
 journal/          每次对话与阶段的自我总结（倒序索引）
 progress/         学习者打勾清单（个人状态不进 git）
 .hermes/skills/   项目自带技能
 .hermes.md        项目宪章（Hermes 自动注入）
 ```
+
+---
+
+## 版本与发布
+
+每个阶段收尾打一个注释 tag（`v<主>.<次>-<slug>`），**推 tag 就是发布**：
+`.github/workflows/release.yml` 会跑一次全量检查，然后由
+[`scripts/release.py`](scripts/release.py) 走 REST API 建一条 GitHub Release —
+说明按提交前缀归类生成，资产是该 tag 下站点的**确定性 zip** + `SHA256SUMS`
+（同一棵树在任何机器打包，字节都相同，可被 `sha256sum -c` 校验）。
+
+- 看**每个版本改了什么**：[CHANGELOG.md](CHANGELOG.md)（Keep a Changelog 格式，倒序）
+- 看**下载与逐版对照**：<https://github.com/mt-yu/HermesUsage/releases>
+- 规范、校验、回滚、排障：[docs/releases.md](docs/releases.md)
+
+发布不是「网页上点一下」：`python scripts/release.py notes --tag <tag>` 可离线重放说明，
+`python scripts/release.py audit --check` 会把本地应有的每条 release 与远端逐条对账。
 
 ---
 

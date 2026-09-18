@@ -4,10 +4,15 @@
 顺序是有意的，从便宜到贵、从内容到产物：
   1. 内容门禁（verify.py 的 12 条规则）
   2. 索引同步（llms.txt 是否与课程集一致）
-  3. Python 单元测试（解析层 / 渲染层 / 构建器）
-  4. 前端单元测试（Node 内置测试器；没装 node 就跳过并提示）
-  5. 站点构建自检（临时目录构建 + 站内链接全解析）
-  6. 路线图 SVG 同步（docs/roadmap.svg 是否还与课程集合一致）
+  3. 路线图 SVG 同步（docs/roadmap.svg 是否还与课程集合一致）
+  4. 变更日志同步（CHANGELOG.md 是否还与 git 提交记录一致）
+  5. Python 单元测试（解析层 / 渲染层 / 构建器）
+  6. 前端单元测试（Node 内置测试器；没装 node 就跳过并提示）
+  7. 站点构建自检（临时目录构建 + 站内链接全解析）
+
+为什么「变更日志同步」放在这一档：它和 2、3 同类 —— 校验一份**由脚本生成、必须与
+git 记录一致**的产物。`CHANGELOG.md` 手改过、或打完 tag 忘了重跑 `changelog --write`，
+都在这里红，与远端有没有 release 无关（那件事归 `release.py audit --check`，要网）。
 
 用法
 ----
@@ -44,6 +49,7 @@ def main() -> int:
         ("内容门禁 verify.py", [PY, "scripts/verify.py", "--quiet"]),
         ("索引同步 build_index.py", [PY, "scripts/build_index.py", "--check"]),
         ("路线图 SVG 同步 build_roadmap_svg.py", [PY, "scripts/build_roadmap_svg.py", "--check"]),
+        ("变更日志同步 release.py changelog", [PY, "scripts/release.py", "changelog", "--check"]),
         ("Python 单元测试", [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-p", "test_*.py"]),
         ("站点构建自检 build_site.py --check", [PY, "scripts/build_site.py", "--check"]),
     ]

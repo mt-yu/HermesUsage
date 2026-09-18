@@ -1,0 +1,59 @@
+name: release
+
+# 打 tag 时自动建 GitHub Release —— CI 版。
+#
+# 为什么要有它：本机没有 gh CLI，发布也不该由人在本地手搓。把「打一个 v* tag」
+# 当成唯一触发器，让 CI 跑完整条链路：跑门禁 → 建产物 → 调 scripts/release.py create。
+# 脚本自己走 GitHub REST API（不依赖 gh），令牌用 Actions 自带的 secrets.GITHUB_TOKEN，
+# 所以顶层 permissions 必须给 contents: write；id-token: write 留给产物来源证明（attestation）。
+#
+# 手动补发 / 重试：用 workflow_dispatch 填 tag（例如 v3.4-release），逻辑与 push tag 完全一致。
+
+on:
+  push:
+    tags: ["v*"] # 只有 v 开头的 tag 才发布
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要发布的 tag（例如 v3.4-release），必须已存在于远端"
+        required: true
+        type: string
+
+permissions:
+  contents: write # 建 release、上传资产
+  id-token: write # 产物来源证明（attestation）
+
+concurrency:
+  group: "release-${{ github.ref_name }}"
+  cancel-in-progress: false # 发布过程被中途取消会留下半个 release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # push 触发时 tag 就是 ref_name；手动触发时取输入值。只在这一处区分两条路径，后面所有步骤共用。
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 为什么 fetch-depth: 0 —— 要按 tag 建产物：release.py 需要「上一个 tag 到本 tag 之间」
+          # 的完整提交历史来生成发布说明，也要保证这个 tag 本身就在本地（浅克隆够不到）。
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: python -m pip install -r requirements.txt
+
+      - name: 门禁（scripts/check.py；不过就绝不发版）
+        # 为什么门禁在前：release 一旦建出来就有对外可见性，坏内容进了 release 只能靠删版补救。
+        # 所以先全量检查（内容门禁 / 索引同步 / 单测 / 站点自检），全绿才允许走到建 release 那一步。
+        run: python scripts/check.py
+
+      - name: 建 GitHub Release（scripts/release.py create，脚本自己走 REST API）
+        # 不打印、不回显 GITHUB_TOKEN —— 只把它作为环境变量交给脚本。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/release.py create --tag "$TAG"

@@ -85,7 +85,7 @@ python -c "import sys,os; sys.path.insert(0,os.getcwd()); from tools.bot_mode_pr
 - `ROADMAP.md`「官方文档漂移复核（<日期> 首次）」小节：三分桶表格 + 诚实边界（哪些页只做了
   「课程是否涉及」的检查、没逐句定版）+ 重放方法。
 - issue 评论分类结论后**手动关闭**（漂移哨兵只保证开一次，不会替你关）。
-- `python scripts/check.py` 六项全绿 → `python scripts/journal.py commit --kind session ...` → push。
+- `python scripts/check.py` 全绿 → `python scripts/journal.py commit --kind session ...` → push。
 
 ## 坑
 
