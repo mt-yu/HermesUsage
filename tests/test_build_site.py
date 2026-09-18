@@ -85,6 +85,30 @@ class TestBuildOutput(unittest.TestCase):
         self.assertIn('class="page-toc"', page)
         self.assertIn("hermes-agent.nousresearch.com", page)
 
+    def test_prereq_is_clickable_on_lesson_page_and_offline(self):
+        """两处「前置」都要是链接：正文行（渲染期）与页脚（构建期由 frontmatter 生成）。"""
+        page = (self.out / "lessons" / "L11-tools-and-toolsets.html").read_text(encoding="utf-8")
+        self.assertIn('<p class="lesson-meta">前置：'
+                      '<a class="xref" href="L02-what-happens-in-a-turn.html">L02</a>、'
+                      '<a class="xref" href="L10-models-and-providers.html">L10</a>', page)
+        self.assertIn('<a class="xref" href="L02-what-happens-in-a-turn.html">L02</a>', page)
+        self.assertIn('href="L02-what-happens-in-a-turn.html"', page)
+
+        offline = (self.out / "offline.html").read_text(encoding="utf-8")
+        self.assertIn('<a class="xref" href="#L02">L02</a>', offline)   # 单文件里是文档内锚点
+        self.assertIn('<p class="lesson-meta">前置：无', offline)        # L00 无前置仍是纯文字
+
+    def test_every_lesson_page_has_linkable_prereq(self):
+        """所有课程页一起去查：有前置的课，页脚「前置：」后面必须紧跟 <a>。"""
+        lessons = core.load_lessons(REPO)
+        for lesson in lessons:
+            page = (self.out / "lessons" / lesson["page"]).read_text(encoding="utf-8")
+            if lesson["prereq"]:
+                self.assertIn('<p class="lesson-meta">前置：<a class="xref"',
+                              page, lesson["id"])
+            else:
+                self.assertIn('<p class="lesson-meta">前置：无 ·', page, lesson["id"])
+
     def test_repo_doc_pages_rendered(self):
         self.assertTrue((self.out / "repo" / "hermes-md.html").is_file())
         self.assertTrue((self.out / "repo" / "sources-readme.html").is_file())

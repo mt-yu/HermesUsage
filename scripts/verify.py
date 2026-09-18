@@ -17,6 +17,7 @@
   R9  ROADMAP.md 覆盖全部课程
   R10 sources/cache 快照与 citations.yaml 的 sha256 一致（且工作区必须是 LF——CRLF 会让 CI 上的哈希对不上）
   R11 文件是 UTF-8 且无 BOM、无 CRLF（Windows 上的老坑）
+  R12 正文「前置」行必须写成可点击的 `[[Lxx]]`，且与 frontmatter 的 prereq 一致
 
 用法
 ----
@@ -54,6 +55,8 @@ FM_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 SRC_RE = re.compile(r"\[\[src:([A-Za-z0-9_.\-]+)\]\]")
 XREF_RE = re.compile(r"\[\[(L\d{2,})\]\]")
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)#\s]+\.(?:md|yaml|json|py|html))\)")
+# 「前置」行：`**前置**：[[L02]]、[[L10]] · **预计耗时**：20 分钟`
+PREREQ_LINE_RE = re.compile(r"^\*\*前置\*\*：(.*)$", re.M)
 ID_RE = re.compile(r"^L\d{2,}$")
 
 errors: list[str] = []
@@ -202,6 +205,41 @@ def check_cross_refs(ls: dict, ids: set[str], planned: set[str]) -> None:
             "确认课程 id；要么先写它，要么在 ROADMAP.md 里登记")
 
 
+def check_prereq(ls: dict, ids: set[str], planned: set[str]) -> None:
+    """前置行必须是可点击的 `[[Lxx]]`，且与 frontmatter 的 `prereq` 完全一致。
+
+    读者看到的「前置」有两处，都由 id 拼链接：正文里这一行（渲染期把 `[[Lxx]]`
+    变成回原课的链接），和课程页页脚那条（构建期由 frontmatter 的 prereq 生成）。
+    写错的后果在浏览器里只表现为「一个点不动的链接」—— 没人会逐课去点它，
+    所以这里把「写法」和「两处一致」一起钉住，让它在门禁上就红。
+    """
+    rel, fm, body = ls["rel"], ls["fm"], ls["body"]
+    m = PREREQ_LINE_RE.search(body)
+    if not m:
+        err("R12", rel, "正文里找不到 `**前置**：…` 行",
+            "照 templates/lesson.md 在「你将学会」末尾补一行")
+        return
+    line = m.group(1)
+    listed = XREF_RE.findall(line)
+    bare = re.findall(r"\bL\d{2,}\b", XREF_RE.sub("", line))
+    if not listed and not bare and "无" not in line:
+        err("R12", rel, "前置行里既没有 [[Lxx]] 也没有「无」",
+            "没有前置条件时写 `**前置**：无`，有前置就用 [[L02]] 这样的交叉引用")
+    if bare:
+        err("R12", rel, f"前置行里的 {'、'.join(sorted(set(bare)))} 不是可点击的交叉引用",
+            "写成 [[L02]]、[[L10]] —— 站点会渲染成回原课的链接")
+    declared = [str(x) for x in (fm.get("prereq") or [])]
+    if sorted(set(listed)) != sorted(set(declared)):
+        err("R12", rel,
+            f"前置行 [[{'、'.join(listed) or '无'}]] 与 frontmatter prereq: "
+            f"[{'、'.join(declared) or '空'}] 不一致",
+            "两处必须一致：frontmatter 决定页脚的前置链接，正文行决定读者先看到的那一行")
+    for pid in declared:
+        if pid not in ids and pid not in planned:
+            err("R12", rel, f"frontmatter 的 prereq 里有不存在的课程 {pid}",
+                "改成真实课程 id；还没写的课在 ROADMAP.md 里登记")
+
+
 def check_links(ls: dict) -> None:
     for target in set(LINK_RE.findall(ls["text"])):
         if target.startswith(("http://", "https://", "mailto:")):
@@ -286,6 +324,7 @@ def main() -> int:
         check_sections(ls)
         check_sources(ls, citations)
         check_cross_refs(ls, ids, planned)
+        check_prereq(ls, ids, planned)
         check_links(ls)
     check_global(lessons, citations)
 

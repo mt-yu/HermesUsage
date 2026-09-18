@@ -581,7 +581,7 @@ def render_offline_html(lessons: list[dict], groups: list[dict], citations: dict
         )
         out.append(html)
         out.append(
-            f'<p class="lesson-meta">前置：{R.escape("、".join(ls["prereq"]) or "无")} · '
+            f'<p class="lesson-meta">前置：{R.prereq_links(ls["prereq"], offline_of, where)} · '
             '<a href="#offline-toc">回到目录</a></p>'
         )
         out.append("</article>")
@@ -595,8 +595,7 @@ def render_offline_html(lessons: list[dict], groups: list[dict], citations: dict
     return "\n".join(out) + "\n"
 
 
-def render_lesson_article(ls: dict, html: str, toc_html: str, prev, nxt, link_for) -> str:
-    prereq = "、".join(ls["prereq"]) if ls["prereq"] else "无"
+def render_lesson_article(ls: dict, html: str, prereq_html: str, toc_html: str, prev, nxt, link_for) -> str:
     nav = ['<nav class="prevnext">']
     nav.append(
         f'<a class="btn" href="{link_for(prev)}">← {prev["id"]} {R.escape(prev["title"])}</a>'
@@ -611,7 +610,7 @@ def render_lesson_article(ls: dict, html: str, toc_html: str, prev, nxt, link_fo
         f'<article class="lesson" data-lesson="{ls["id"]}">',
         html,
         '<p class="lesson-meta">'
-        f'前置：{R.escape(prereq)} · {ls["minutes"]} 分钟 · {R.escape(ls["level"])} · '
+        f'前置：{prereq_html} · {ls["minutes"]} 分钟 · {R.escape(ls["level"])} · '
         f'更新于 {R.escape(ls["updated"])} · 源码 <code>{R.escape(ls["rel"])}</code></p>',
         '<p class="lesson-actions">'
         f'<button class="btn primary" id="mark-done" data-lesson="{ls["id"]}">标记本课完成</button>'
@@ -857,7 +856,8 @@ def build(out: Path, cfg: dict) -> dict:
                 "lesson_id": ls["id"],
                 "sidebar": render_sidebar(groups, ls["id"], link_sibling, cfg, "../"),
                 "content": render_lesson_article(
-                    ls, html, "", lessons[i - 1] if i else None,
+                    ls, html, R.prereq_links(ls["prereq"], id_to_page, where),
+                    "", lessons[i - 1] if i else None,
                     lessons[i + 1] if i + 1 < len(lessons) else None, link_sibling,
                 ),
                 "toc": R.build_toc_html(toc),

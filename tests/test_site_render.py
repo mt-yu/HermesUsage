@@ -180,6 +180,44 @@ class TestMarkers(unittest.TestCase):
         self.assertIn("whoops", str(ctx.exception))
 
 
+class TestPrereqLinks(unittest.TestCase):
+    """`prereq_links`：frontmatter 的 prereq → 可点击的「前置」串。
+
+    读者看到的「前置」有两处（正文行、课程页页脚/离线页脚注），链接目标随页面层级
+    变化，所以这里只断言函数本身；页面级断言在 test_build_site.py。
+    """
+
+    URLS = {"L02": "L02-what-happens-in-a-turn.html",
+            "L10": "L10-models-and-providers.html"}
+
+    def test_each_prereq_becomes_a_link_to_its_page(self):
+        self.assertEqual(
+            R.prereq_links(["L02", "L10"], self.URLS, "L11"),
+            '<a class="xref" href="L02-what-happens-in-a-turn.html">L02</a>、'
+            '<a class="xref" href="L10-models-and-providers.html">L10</a>',
+        )
+
+    def test_real_lessons_all_render_links(self):
+        lessons = core.load_lessons(REPO)
+        url_of = {l["id"]: l["page"] for l in lessons}
+        for lesson in lessons:
+            out = R.prereq_links(lesson["prereq"], url_of, lesson["id"])
+            if lesson["prereq"]:
+                self.assertNotIn(lesson["id"], out)
+            else:
+                self.assertEqual(out, "无", lesson["id"])
+            for pid in lesson["prereq"]:
+                self.assertIn(f'href="{url_of[pid]}"', out, lesson["id"])
+
+    def test_empty_prereq_is_plain_wu(self):
+        self.assertEqual(R.prereq_links([], self.URLS, "L00"), "无")
+
+    def test_unknown_prereq_raises_instead_of_silent_text(self):
+        with self.assertRaises(R.SiteError) as ctx:
+            R.prereq_links(["L99"], self.URLS, "L11")
+        self.assertIn("L99", str(ctx.exception))
+
+
 class TestRepoDocSlug(unittest.TestCase):
     def test_slug_is_ascii_and_readable(self):
         self.assertEqual(R.repo_doc_slug(".hermes.md"), "hermes-md")
@@ -235,6 +273,36 @@ class TestCountExercises(unittest.TestCase):
                 len(R.TASKLIST_RE.findall(lesson["body"])),
                 lesson["id"],
             )
+
+
+class TestPrereqLinesAreLinkable(unittest.TestCase):
+    """正文「前置」行的内容侧回归：课号必须带 [[ ]] 标记，且能解析成真实课程页。
+
+    与门禁 R12（写法 + 与 frontmatter 一致）分工不同：这里钉的是**渲染结果** ——
+    读者点得动。一个写成裸 `L02` 的前置行在浏览器里就是一段普通文字，
+    页面看起来完全正常，只有人去点才发现跳不了。
+    """
+
+    PREREQ_RE = re.compile(r"^\*\*前置\*\*：(.*)$", re.M)
+
+    def test_every_lesson_uses_markers_not_bare_ids(self):
+        for lesson in core.load_lessons(REPO):
+            m = self.PREREQ_RE.search(lesson["body"])
+            self.assertIsNotNone(m, f"{lesson['id']} 没有前置行")
+            line = R.XREF_RE.sub("", m.group(1))
+            self.assertIsNone(re.search(r"L\d{2,}", line),
+                              f"{lesson['id']} 的前置行有裸课号：{m.group(1)}")
+
+    def test_markers_resolve_to_existing_lesson_pages(self):
+        lessons = core.load_lessons(REPO)
+        url_of = {l["id"]: l["page"] for l in lessons}
+        for lesson in lessons:
+            html, _ = R.render_markdown(lesson["body"])
+            html = R.linkify_xrefs(html, url_of, lesson["rel"])
+            m = self.PREREQ_RE.search(lesson["body"])
+            for tid in R.XREF_RE.findall(m.group(1)):
+                self.assertIn(f'<a class="xref" href="{url_of[tid]}">{tid}</a>',
+                              html, f"{lesson['id']} → {tid}")
 
 
 class TestLessonContentIsRenderable(unittest.TestCase):

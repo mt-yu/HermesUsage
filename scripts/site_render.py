@@ -267,6 +267,31 @@ def linkify_xrefs(fragment: str, id_to_page: dict[str, str], where: str) -> str:
     return _outside_code(fragment, lambda s: XREF_RE.sub(repl, s))
 
 
+def prereq_links(prereq: list[str], url_of: dict[str, str], where: str) -> str:
+    """frontmatter 的 `prereq` → 可点击的「前置」串（`L02、L10`，为空时 `无`）。
+
+    为什么放在渲染层：读者看到的两处「前置：…」（课程页底部、离线单页每课末尾）
+    都从这里出，而链接目标随**页面所在层级**变化 —— 课程页指向同级文件名
+    （`L02-….html`），离线单页指向文档内锚点（`#L02`）。所以目标映射由调用方给，
+    函数只负责「有链接」这件事。
+
+    查不到目标 id 直接报错，不静默降级成纯文字：一个点了 404 的「前置」链接
+    比没有链接更坏，而静默降级在浏览器里根本看不出来。
+    """
+    if not prereq:
+        return "无"
+    links: list[str] = []
+    for lid in prereq:
+        url = url_of.get(str(lid))
+        if not url:
+            raise SiteError(
+                f"{where}: frontmatter 的 prereq 里有不存在的课程 {lid}"
+                "（前置链接会指向 404）"
+            )
+        links.append(f'<a class="xref" href="{escape(url)}">{escape(str(lid))}</a>')
+    return "、".join(links)
+
+
 def repo_doc_slug(rel: str) -> str:
     """'.hermes.md' -> 'hermes-md'；'sources/README.md' -> 'sources-readme'。
 

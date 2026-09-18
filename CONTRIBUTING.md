@@ -21,13 +21,15 @@ python scripts/journal.py commit --kind docs --title "新增 L21" --scope L21 \
 
 ## 1. 内容规范（写死在门禁里）
 
-11 条硬规则由 [`scripts/verify.py`](scripts/verify.py) 执行，详细说明在
-[`.hermes.md`](.hermes.md)。最容易踩的四条：
+12 条硬规则由 [`scripts/verify.py`](scripts/verify.py) 执行，详细说明在
+[`.hermes.md`](.hermes.md)。最容易踩的五条：
 
 1. **8 个小节缺一不可**：你将学会 / 先动手 / 原理 / 亲手验证 / 常见坑 / 试一试 / 下一步 / 出处。
 2. **引用三方绑定**：正文 `[[src:id]]` ⟷ frontmatter `sources:` ⟷ 文末 `## 出处`，必须完全一致。
 3. **不凭记忆写 Hermes 的行为**。先读 `sources/cache/<id>.md`（官方文档快照）。
 4. **编码 UTF-8 无 BOM + LF**。Windows 上用 Python 写文件要显式 `encoding="utf-8"`、`newline="\n"`。
+5. **前置要能点**：正文写成 `**前置**：[[L02]]、[[L10]]`（无前置写「无」），与 frontmatter 的
+   `prereq` 一致（R12）—— 裸课号在站点上是点不动的死文字。
 
 ## 2. 新增一课的标准流程
 

@@ -1,7 +1,7 @@
 ---
 name: hermes-tutorial-authoring
 description: "Use when adding or editing a lesson in the HermesUsage tutorial repo. Enforces the 8-section template, citation binding, and the verify gate before commit."
-version: 1.0.0
+version: 1.1.0
 author: HermesUsage
 license: MIT
 platforms: [linux, macos, windows]
@@ -18,14 +18,16 @@ metadata:
 当你要在这个仓库里**新增、改写、翻译、校订一门课程**，或者用户说
 “补一课 / 更新课程 / 同步官方文档”时。
 
-## 铁律（先记住这四条，其余都是细节）
+## 铁律（先记住这五条，其余都是细节）
 
 1. **不凭记忆写 Hermes 的行为。** 先读 `sources/cache/<id>.md`（官方文档快照），
    或者直接读 `$HERMES_HOME/hermes-agent/website/docs/` 下的原文。
 2. **每个事实性断言后面跟 `[[src:<id>]]`**，且该 id 必须同时出现在
    frontmatter 的 `sources:` 与文末 `## 出处`。三处不一致 = 门禁失败。
 3. **先动手，后原理。** `## 先动手` 必须 3 分钟内跑出可见结果。
-4. **没跑 `python scripts/verify.py` 且全绿的改动，不算改完。**
+4. **前置要能点**：`**前置**：[[L02]]、[[L10]]`（无前置条件写「无」），课号集合与
+   frontmatter 的 `prereq` 一致。裸课号在站点上只是普通文字，点不动（门禁 R12 查这条）。
+5. **没跑 `python scripts/verify.py` 且全绿的改动，不算改完。**
 
 ## 步骤
 
@@ -86,7 +88,7 @@ cp templates/lesson.md lessons/<阶段目录>/<ID>-<slug>.md
 
 | 小节 | 判据（达不到就别提交） |
 |---|---|
-| 你将学会 | 每条都是「动词 + 可验证结果」，不写“了解/熟悉/掌握” |
+| 你将学会 | 每条都是「动词 + 可验证结果」，不写“了解/熟悉/掌握”。本节末尾必须有前置行：`**前置**：[[L02]]、[[L10]]`（无前置写「无」），与 frontmatter `prereq` 完全一致 —— 站点把它渲染成回原课的链接，裸课号点不动（门禁 R12） |
 | 先动手 | 复制粘贴一条命令就能看到东西；附真实输出片段 |
 | 原理 | 读者不动手、只读这一节，也能向别人解释这个机制 |
 | 亲手验证 | 让读者主动制造一次**失败或边界情况**并观察反应 |
@@ -122,6 +124,10 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
 ```
 
 ## 坑
+
+- **前置行写成裸课号**（`**前置**：L02、L10`）：站点上它只是一段普通文字，点不动，
+  而页面看起来完全正常。写 `[[L02]]`、`[[L10]]`（渲染期才变成链接），并且让 frontmatter
+  的 `prereq` 与它一致（页脚那条「前置」由 frontmatter 生成，两处不一致也报 R12）。
 
 - **`sources/cache/` 和 `citations.yaml` 是自动生成的**，手改会被门禁的哈希校验抓到。
   要更新内容就重跑 `sync_sources.py`。

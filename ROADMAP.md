@@ -198,12 +198,13 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 | 学习地图 | ✅ | 站点 `/map.html`（v1.3）；`docs/learning-map.html` 仍在，作为本地单文件版 |
 | 设计对比（10 方案 × 10 维度评分矩阵 + 落地令牌表） | ✅ | 站点 `/design.html`（v3.1）；数据源 `scripts/design_matrix.py` |
 | 主题三态（跟随系统 / 亮 / 暗）+ 首帧不闪白 | ✅ | `web/partials/layout.html` 的内联主题脚本 + `web/assets/app.js`（v3.1） |
+| 前置一键跳转（正文行与页脚都指向原课） | ✅ | `scripts/site_render.py::prereq_links`（v3.2）；门禁 R12 保证写法与 frontmatter 一致 |
 
 ---
 
 ## 下一阶段路线图（v1.2 → v3.1）
 
-现状（2026-09-17 实测）：内容 40 课全部就绪、门禁 11 条 + `check.py` 六项、CI 与 Pages 双绿、
+现状（2026-09-17 实测）：内容 40 课全部就绪、门禁 12 条 + `check.py` 六项、CI 与 Pages 双绿、
 站点已公开。下面各条**都必须能用一条命令验收**，否则不许进这个列表。
 
 ### v1.2 · 让公开站点能被搜到、能被分享（约半天，优先做）
@@ -319,6 +320,27 @@ Python 测试 45 → 59 条。
 单测与构建期检查全绿，是真实浏览器里点主题按钮毫无反应才暴露的。
 现在有一条结构守卫（`tests/js/app-module-order.test.js`：顶层 `const/let` 必须早于 `boot();`）
 和一条注释钉住它。
+
+### v3.2 · 前置一键跳转（约 20 分钟，2026-09-18）
+
+用户的要求是「教程里每个『前置：Lxx』都要能点着跳过去」。原先「前置」在页面上是两处纯文字：
+正文「你将学会」末尾那一行、以及课程页页脚那条（构建期由 frontmatter 的 `prereq` 生成）。
+
+- [x] 正文 40 课的前置行改用交叉引用标记：`**前置**：[[L02]]、[[L10]]`（渲染期变成
+      `<a class="xref" href="L02-what-happens-in-a-turn.html">L02</a>`）。走 `[[Lxx]]` 而不是
+      相对 Markdown 链接是刻意的：这是仓库既有的课间引用机制，`build_site` 的链接改写器只认
+      已登记仓库文档，写 `[L02](L02-….md)` 反而会让构建停下。
+- [x] `scripts/site_render.py::prereq_links()`：frontmatter `prereq` → 链接串，由调用方给目标映射
+      （课程页给同级文件名、单文件离线版给页内锚点 `#L02`）。查不到课号**直接报错**，
+      不静默退化成纯文字 —— 死链在浏览器里没人会发现。页脚与 `offline.html` 两处都改用它。
+- [x] 门禁新增 **R12**：前置行必须写成 `[[Lxx]]`（裸课号即失败）、且与 frontmatter 的 `prereq`
+      完全一致、`prereq` 里的课号必须真实存在。规范写在脚本里，否则下一课又会写回裸课号。
+- [x] `templates/lesson.md` 同步改写；`.hermes.md` 补这条硬规则与坑表一行。
+
+**验收**（已全部通过）：`python scripts/check.py` 六项全绿；`python scripts/verify.py` 报
+「40 课全部合规（0 个警告）」；Python 测试 316 → **324 条**（新增 8 条：`prereq_links` 四个用例、
+正文前置行两条内容回归、构建产物两页断言）；站点产物仍是 52 页 / 70 文件。
+反例也实测过：把 `[[L00]]` 改回裸 `L00`、或只改正文不改 frontmatter，R12 都会红并指出是哪一课。
 
 ### v2.0 · 让「学过」变成可交付（按需启动）
 
