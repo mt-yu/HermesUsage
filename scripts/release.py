@@ -263,7 +263,14 @@ def classify(subject: str) -> str:
 
 
 def is_noise(subject: str) -> bool:
-    """归档镜像与自动提交：`journal:` 一律是噪声；`session:` 里只有「自动归档」那种才是。
+    """不逐条列出的提交：`journal:` / `changelog:` 前缀，以及 `session:` 里「自动归档」那种。
+
+    * `journal:` 是归档镜像（内容与 `journal/` 里的文件重复）；
+    * `session: 自动归档 …` 是无人值守自动提交；
+    * `changelog:` 是**重新生成 `CHANGELOG.md` 的那次提交本身** —— 它必须算噪声，否则
+      发布流程自己绕不出来：`--assume-tag` 生成的文件里不可能包含「生成这个文件的提交」，
+      而那一次提交又在 tag 的区间内，于是 `changelog --check` 永远红一行。把它当噪声，
+      两侧算出来的内容才逐字相同（2026-09-18 实测：`v3.4-release` 就是这么卡住的）。
 
     `session: 加一课` 是正经会话记录，不能当噪声吞掉。
     """
@@ -271,7 +278,7 @@ def is_noise(subject: str) -> bool:
     if not m:
         return False
     prefix = m.group(1).lower()
-    if prefix == "journal":
+    if prefix in ("journal", "changelog"):
         return True
     return prefix == "session" and "自动归档" in subject
 

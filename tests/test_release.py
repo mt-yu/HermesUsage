@@ -100,6 +100,11 @@ class TestNoise(unittest.TestCase):
     def test_session_auto_archive_is_noise(self):
         self.assertTrue(rel.is_noise("session: 自动归档 2 个文件变动"))
 
+    def test_changelog_prefix_is_noise(self):
+        # 重新生成 CHANGELOG.md 的那次提交必须在两侧都消失 —— 否则发布流程自己绕不出来
+        # （`--assume-tag` 生成的文件不可能包含「生成这个文件的提交」，而那一次提交又在 tag 的区间内）
+        self.assertTrue(rel.is_noise("changelog: 收进 v3.4-release 这一节"))
+
     def test_plain_session_commit_is_not_noise(self):
         self.assertFalse(rel.is_noise("session: 加一课"))
 
