@@ -270,6 +270,10 @@ code, pre, kbd { font-family: var(--font-mono); }
 .github-link svg { display: block; width: 17px; height: 17px; }
 .footer-repo { display: inline-flex; align-items: center; gap: var(--space-1); }
 .footer-repo svg { display: block; }
+/* 页脚里的当前版本：与旁边几段同一档灰，链接继承颜色只保留下划线 ——
+   它是一条「去看看这个版本」的入口，不该比正文标题还抢眼。 */
+.footer-version { display: inline-flex; align-items: center; gap: var(--space-1); }
+.footer-version a { color: inherit; }
 
 /* 搜索入口做成一枚「像输入框」的按钮：读者一眼知道它可以打字 */
 .search-btn {

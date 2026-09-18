@@ -205,9 +205,18 @@ def search_data(lessons: list[dict]) -> dict:
     }
 
 
-def manifest_data(lessons: list[dict], baseline: dict) -> dict:
-    """构建清单：让「这个站点是哪次内容构建出来的」这件事可核对。"""
-    return {
+def manifest_data(lessons: list[dict], baseline: dict, release: dict | None = None) -> dict:
+    """构建清单：让「这个站点是哪次内容构建出来的」这件事可核对。
+
+    `release` 是当前版本（见 `current_release()`），也写进清单 —— 读者下载
+    `data/manifest.json` 就能核对「这份产物属于哪个 release」。
+
+    `release` 为空时**不加这个键**（而不是加一个空对象）：`v3.4-release` 之前的历史 tag
+    里没有 `CHANGELOG.md`，它们重建出来的 `manifest.json` 必须与当年那份逐字节相同，
+    否则 `audit --check` 会对 10 个历史版本报「哈希不一致」—— 那等于为了一个新字段
+    把已发布的资产全部作废。
+    """
+    data = {
         "built_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "baseline": baseline,
         "lessons": [
@@ -215,6 +224,9 @@ def manifest_data(lessons: list[dict], baseline: dict) -> dict:
             for l in lessons
         ],
     }
+    if release:
+        data["release"] = release
+    return data
 
 
 # --------------------------------------------------------------------------- 页面片段
@@ -872,17 +884,63 @@ def render_repo_doc(rel: str, cfg: dict, layout: str, groups: list[dict]) -> tup
     return slug, page
 
 
-def render_footer(cfg: dict) -> str:
+def render_footer(cfg: dict, release: dict | None = None) -> str:
     """页脚：全站同一份。仓库链接带 GitHub 标识 —— 与顶栏是同一枚图标、同一份标记，
-    读者在任何位置（含单文件离线版）都能一眼认出「这里是源码」。"""
+    读者在任何位置（含单文件离线版）都能一眼认出「这里是源码」。
+
+    **版本号**取自 `cfg["_release"]`（`build()` 里用 `current_release()` 现读一次），
+    链接指向该版本的 Release 页面与 `CHANGELOG.md`。为什么放在页脚而不是顶栏：
+    顶栏是一行 flex，加控件会在窄屏把站名挤折行（见 `.hermes.md` 坑表）；
+    页脚是 flex-wrap，多一段只会换行。
+    """
+    release = release if release is not None else (cfg.get("_release") or None)
     parts = [f'<span>{R.escape(cfg["title"])}</span>',
              '<span class="muted">内容 CC BY 4.0 · 代码 MIT</span>']
+    repo_url = (cfg.get("repo_url") or "").rstrip("/")
+    if release and release.get("tag"):
+        tag = release["tag"]
+        if repo_url:
+            version_html = (f'<a href="{R.escape(repo_url)}/releases/tag/{R.escape(tag)}"'
+                            f' target="_blank" rel="noopener">{R.escape(tag)}</a>')
+            log_html = (f' · <a href="{R.escape(repo_url)}/blob/main/CHANGELOG.md"'
+                        ' target="_blank" rel="noopener">更新日志</a>')
+        else:
+            version_html, log_html = f"<b>{R.escape(tag)}</b>", ""
+        parts.append(f'<span class="footer-version">本站版本 {version_html}{log_html}</span>')
     if cfg.get("repo_url"):
         parts.append(
             f'<a class="footer-repo" href="{R.escape(cfg["repo_url"])}" target="_blank"'
             ' rel="noopener">' + github_icon(14) + '在 GitHub 上查看仓库</a>'
         )
     return '<div class="footer-inner">' + "".join(parts) + "</div>"
+
+
+# `CHANGELOG.md` 里每个版本节的标题由 `scripts/release.py` 生成，形状固定：
+# `## [<tag>] - <YYYY-MM-DD>`（最早那节是 `## [未发布]`，没有日期）。
+RE_RELEASE_HEADING = re.compile(r"^## \[(?P<tag>[^\]]+)\](?: - (?P<date>\d{4}-\d{2}-\d{2}))?\s*$", re.M)
+UNRELEASED_TAGS = frozenset({"未发布", "Unreleased", "unreleased"})
+
+
+def current_release(repo: Path = REPO) -> dict | None:
+    """当前版本：`CHANGELOG.md` 里第一个**已发布**的版本节。读不到就返回 `None`。
+
+    为什么不用 `git describe --tags`：Pages 的 CI 是浅克隆（`pages.yml` 的 checkout 不取 tag），
+    那里 `git describe` 要么失败要么给出错值；而 `CHANGELOG.md` 就在仓库里，且按发布流程
+    必须与最新 tag 同步 —— `scripts/check.py` 第 4 项（变更日志同步）守着这件事。
+
+    为什么读不到不报错：这个函数也会被 `scripts/release.py artifact` 用来**重建历史 tag 的站点**，
+    而 `v3.4-release` 之前的 tag 里根本没有 `CHANGELOG.md` —— 那些版本本来就没有版本号可显示，
+    少一行是诚实，印一个猜出来的值才是错。
+    """
+    path = Path(repo) / "CHANGELOG.md"
+    if not path.is_file():
+        return None
+    for m in RE_RELEASE_HEADING.finditer(path.read_text(encoding="utf-8")):
+        tag = m.group("tag").strip()
+        if tag in UNRELEASED_TAGS:
+            continue
+        return {"tag": tag, "date": m.group("date") or ""}
+    return None
 
 
 def build_sitemap(entries: list[tuple[str, str]]) -> str:
@@ -915,6 +973,9 @@ def build_robots(cfg: dict) -> str:
 
 def build(out: Path, cfg: dict) -> dict:
     base = site_base(cfg)   # base_url 没填就在这里停下，别产出「看着没问题」的站
+    # 当前版本只在这里读一次，塞进 cfg 供页脚（所有页面）与构建清单共用 ——
+    # 别在 render_footer 里现读文件：那样每次调用都要读一遍 CHANGELOG.md。
+    cfg["_release"] = current_release(REPO)
     today = datetime.now().strftime("%Y-%m-%d")
     lessons = core.load_lessons(REPO)
     if not lessons:
@@ -1098,7 +1159,7 @@ def build(out: Path, cfg: dict) -> dict:
     write_json(site / "data" / "index.json", index_data(lessons))
     write_json(site / "data" / "citations.json", citations_data(citations))
     write_json(site / "data" / "search.json", search_data(lessons))
-    write_json(site / "data" / "manifest.json", manifest_data(lessons, baseline))
+    write_json(site / "data/manifest.json", manifest_data(lessons, baseline, cfg.get("_release")))
     # 设计对比的机器可读版本：与 /design.html 同一个数据源（design_matrix），
     # 分数、排名、token 取值链、对比度都带上，供脚本或好奇的读者直接消费。
     write_json(site / "data" / "design.json",

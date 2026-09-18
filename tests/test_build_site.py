@@ -574,9 +574,9 @@ class TestPitfallsPage(unittest.TestCase):
 
         # 数据行 = `<tr>` 后面直接跟着 `<td>` 的行；表头行是 `<th>`，天然被排除。
         data_rows = re.findall(r"<tr>\s*<td>", self.main)
-        self.assertEqual(len(data_rows), 334)
+        self.assertEqual(len(data_rows), 340)
         # 与解析层对账（**不是**数 `[[src:` 的出现次数：一个单元格里可能有两个标记）
-        self.assertEqual(self.expected_rows, 334)
+        self.assertEqual(self.expected_rows, 340)
         self.assertEqual(len(data_rows), self.expected_rows)
         # 表头行另算：每个阶段一张表 → 一行 `<th>`
         self.assertEqual(len(re.findall(r"<tr>", self.main)), len(data_rows) + len(self.groups))
@@ -589,7 +589,7 @@ class TestPitfallsPage(unittest.TestCase):
     def test_every_lesson_id_appears(self):
         ids = re.findall(r'<a class="xref" href="[^"]+">(L\d+)</a>', self.main)
         self.assertEqual(set(ids), {l["id"] for l in self.lessons})
-        self.assertEqual(len(set(ids)), 40)
+        self.assertEqual(len(set(ids)), 41)
 
     def test_cell_content_is_rendered_not_left_as_markers(self):
         self.assertNotIn("[[", self.main)              # 出处与交叉引用标记都该变成链接
@@ -609,8 +609,8 @@ class TestPitfallsPage(unittest.TestCase):
         self.assertEqual(len(markers), 13)          # 格子正文里自带的交叉引用（如「见 [[L24]]」）
 
         hrefs = re.findall(r'<a class="xref" href="([^"]+)"', self.main)
-        self.assertEqual(len(hrefs), 334 + len(markers))   # 每行「课」列一个 + 格子里的
-        self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向 40 个课程页
+        self.assertEqual(len(hrefs), 340 + len(markers))   # 每行「课」列一个 + 格子里的
+        self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向 41 个课程页
         for href in hrefs:
             self.assertTrue(href.startswith("lessons/"), f"合集页在站点根目录，课号必须带前缀：{href}")
             self.assertTrue((self.out / href).is_file(), f"指向不存在的页面：{href}")
@@ -1352,3 +1352,70 @@ class TestLinkRewriterIgnoresCode(unittest.TestCase):
         self.assertIn('href="contributing.html"', out)        # 真链接被改写成规范页
         # 取链接也必须跳过代码区，否则文档里讨论 href 就会变成假断链
         self.assertEqual(B.link_targets(html), ["CONTRIBUTING.md"])
+
+
+class TestSiteVersion(unittest.TestCase):
+    """站点上的「当前版本」必须来自 CHANGELOG.md，且页脚 / 构建清单 / 离线版三处一致。
+
+    为什么值得测：版本号是**构建期**从 `CHANGELOG.md` 现读的（见 `build_site.current_release`）。
+    它一旦与 tag 漂移，读者就会看到「页脚写着 v3.2、文件其实来自 v9.9」这种没人会发现的事 ——
+    所以这里断言的不是「页脚里有某个字符串」，而是「页脚里的版本 == CHANGELOG 里最新的那个版本节」。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls.tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        build_site.build(cls.out, cls.cfg)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def _expected_tag(self) -> str:
+        text = (REPO / "CHANGELOG.md").read_text(encoding="utf-8")
+        for m in build_site.RE_RELEASE_HEADING.finditer(text):
+            if m.group("tag") not in build_site.UNRELEASED_TAGS:
+                return m.group("tag")
+        self.fail("CHANGELOG.md 里没有任何版本节")
+
+    def test_current_release_is_the_newest_published_section(self):
+        rel = build_site.current_release(REPO)
+        self.assertIsNotNone(rel, "仓库里的 CHANGELOG.md 应当能读出版本")
+        self.assertEqual(rel["tag"], self._expected_tag())
+        self.assertRegex(rel["date"], r"^\d{4}-\d{2}-\d{2}$", "版本日期应当来自版本节标题")
+
+    def test_missing_changelog_is_not_an_error(self):
+        # v3.4-release 之前的历史 tag 里没有 CHANGELOG.md；重建它们的站点不能因此报错，
+        # 只是不显示版本号（少一行是诚实，猜一个值是错）
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(build_site.current_release(Path(tmp)))
+
+    def test_footer_without_release_has_no_version_span(self):
+        html = build_site.render_footer({"title": "T", "repo_url": "https://example.invalid/x"}, None)
+        self.assertNotIn("footer-version", html)
+
+    def test_every_page_with_a_footer_shows_the_version_and_links(self):
+        tag = self._expected_tag()
+        pages = sorted(self.out.rglob("*.html"))
+        self.assertTrue(pages)
+        checked = 0
+        for page in pages:
+            text = page.read_text(encoding="utf-8")
+            if 'class="footer-inner"' not in text:
+                continue
+            checked += 1
+            self.assertIn("footer-version", text, f"{page.name} 的页脚缺版本号")
+            self.assertIn(tag, text, f"{page.name} 的页脚版本号不是 CHANGELOG 里最新的那个")
+            self.assertIn(f"/releases/tag/{tag}", text, f"{page.name} 的版本号没有指向 Release 页")
+            self.assertIn("/blob/main/CHANGELOG.md", text, f"{page.name} 的页脚缺「更新日志」链接")
+        self.assertGreater(checked, 30, "几乎所有页面都该带页脚")
+
+    def test_offline_single_file_also_shows_the_version(self):
+        text = (self.out / "offline.html").read_text(encoding="utf-8")
+        self.assertIn('class="footer-version"', text, "单文件离线版也要能看出这是哪个版本")
+
+    def test_manifest_records_the_release(self):
+        manifest = json.loads((self.out / "data" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["release"]["tag"], self._expected_tag())
