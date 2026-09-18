@@ -48,7 +48,7 @@
 
 ## 学习路线图
 
-![学习路线图：40 课 / 8 个阶段](docs/roadmap.svg)
+![学习路线图：41 课 / 8 个阶段](docs/roadmap.svg)
 
 > 这张图由 `python scripts/build_roadmap_svg.py` 从课程 frontmatter 生成（课号、阶段名、时长都取自课程本身）。
 > **别手改 `docs/roadmap.svg`** —— 改了课程就重跑脚本；`python scripts/check.py` 会校验它是否同步。
@@ -125,7 +125,7 @@ python -m pip install -r requirements.txt   # PyYAML + Markdown，都是纯 Pyth
 python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8000/
 ```
 
-站点能力：按阶段浏览 40 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
+站点能力：按阶段浏览 41 课、全站搜索（`Ctrl+K`，支持中文）、进度打勾与导出/导入 JSON、
 练习打勾（与课程完成分开记）、学习地图与常见错误合集两个聚合页、学习报告导出（markdown）、
 [**设计对比**](https://mt-yu.github.io/HermesUsage/design.html)（10 套 UI 方案 × 10 个维度的评分矩阵 + 落地令牌表）、
 课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、主题三态（跟随系统 / 亮 / 暗，首帧不闪白）、
