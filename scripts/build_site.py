@@ -56,6 +56,22 @@ DEFAULT_CONFIG: dict = {
 # 只需在这里加一项，对账逻辑与测试都跟着走。
 EXCLUDED_FROM_SITEMAP = frozenset({"404.html", "offline.html"})
 
+# 侧栏普通条目（「入口」「规范与出处」）的图标：内联 SVG 的 14×14 线稿路径，
+# 颜色靠 `currentColor` 跟着主题走。见 `nav_icon()` 里为什么不用图标字体/emoji。
+NAV_ICONS: dict[str, str] = {
+    # 学习地图：折起来的地图
+    "map": '<path d="M1.4 3.7 5 2.1l4 1.6 3.6-1.6v8.6L9 12.3l-4-1.6-3.6 1.6z"/>'
+           '<path d="M5 2.1v8.6"/><path d="M9 3.7v8.6"/>',
+    # 常见错误合集：警告三角（感叹号）
+    "alert": '<path d="M7 1.8 12.6 11.7H1.4z"/><path d="M7 5.4v3.1"/>'
+             '<circle cx="7" cy="10.2" r="0.62" fill="currentColor" stroke="none"/>',
+    # 设计对比：评分条
+    "bars": '<path d="M2.2 12V7.6"/><path d="M5.9 12V3.6"/>'
+            '<path d="M9.6 12V9.2"/><path d="M13 12V2.4"/>',
+    # 规范与出处：文档
+    "doc": '<path d="M3.2 1.7h4.6l2.9 2.9v7.7H3.2z"/><path d="M7.8 1.7v2.9h2.9"/>',
+}
+
 
 # --------------------------------------------------------------------------- 配置与数据
 
@@ -207,6 +223,21 @@ def link_from_repo(lesson: dict) -> str:
     return "../lessons/" + lesson["page"]
 
 
+def nav_icon(name: str) -> str:
+    """侧栏普通条目的图标：内联 SVG，14px 线稿，颜色跟随 `currentColor`。
+
+    为什么不引图标字体/雪碧图：本站要能**离线**用（`offline.html` 内联同一份
+    CSS，断网也能读），外链一旦失效就是一个空方块；emoji 又依赖系统字体
+    （🗺 在 Windows 与 macOS 上的字号、基线都不一样）。所以一笔一笔画进来。
+    """
+    return (
+        '<svg class="nav-icon" viewBox="0 0 14 14" width="14" height="14" fill="none" '
+        'stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" '
+        'stroke-linecap="round" aria-hidden="true" focusable="false">'
+        f'{NAV_ICONS[name]}</svg>'
+    )
+
+
 def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, prefix: str) -> str:
     """侧栏导航：阶段列表 + 「入口」 + 「规范与出处」。
 
@@ -218,6 +249,11 @@ def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, pre
     `/map.html` 也在站点根目录、但它在侧栏里没有「当前课」，反推会拼成
     `repo/hermes-md.html`（实际在 `repo/` 子目录里，从根目录点就是死链）。
     「这一页在第几层」是调用方本来就知道的事实，不该由另一个参数去猜。
+
+    两组的条目都写成「图标 + `<span class="nav-title">` 文字」，**不留裸文本节点**：
+    课程行是四列网格（`○ / 课号 / 标题 / 分钟`），普通条目落进 14px 的第一列会被
+    逐字折行（竖排）。CSS 侧已把网格限定在 `li[data-lesson]`，这里的 span 是第二道
+    保险 —— `tests/test_build_site.py` 会断言侧栏里没有裸文本子节点。
     """
     out = ['<nav class="nav-lessons" aria-label="课程导航">']
     for g in groups:
@@ -239,18 +275,23 @@ def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, pre
             )
         out.append("</ul></section>")
     out.append('<section class="nav-stage"><h2 class="nav-stage-title">'
-               '<span>入口</span></h2><ul>'
-               f'<li><a href="{prefix}map.html">学习地图</a></li>'
-               f'<li><a href="{prefix}pitfalls.html">常见错误合集</a></li>'
-               f'<li><a href="{prefix}design.html">设计对比</a></li>'
-               "</ul></section>")
+               '<span>入口</span></h2><ul>')
+    for slug, icon, label in (
+        ("map.html", "map", "学习地图"),
+        ("pitfalls.html", "alert", "常见错误合集"),
+        ("design.html", "bars", "设计对比"),
+    ):
+        out.append(f'<li><a href="{prefix}{slug}">{nav_icon(icon)}'
+                   f'<span class="nav-title">{label}</span></a></li>')
+    out.append("</ul></section>")
     if cfg.get("repo_docs"):
         out.append('<section class="nav-stage nav-repo"><h2 class="nav-stage-title">'
                    '<span>规范与出处</span></h2><ul>')
         for rel in cfg["repo_docs"]:
             slug = R.repo_doc_slug(rel)
             href = prefix + f"repo/{slug}.html"
-            out.append(f'<li><a href="{href}"><span class="nav-title">{R.escape(rel)}</span></a></li>')
+            out.append(f'<li><a href="{href}">{nav_icon("doc")}'
+                       f'<span class="nav-title">{R.escape(rel)}</span></a></li>')
         out.append("</ul></section>")
     out.append("</nav>")
     return "".join(out)

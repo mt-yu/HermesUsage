@@ -8,6 +8,7 @@ import re
 import sys
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -149,6 +150,90 @@ def main_region(html: str) -> str:
     return m.group(1)
 
 
+def sidebar_region(html: str) -> str:
+    """取出 `<aside class="sidebar">` 里的侧栏（全站每一页都是同一份）。"""
+    m = re.search(r'<aside class="sidebar"[^>]*>(.*?)</aside>', html, re.S)
+    assert m, "页面里没有侧栏"
+    return m.group(1)
+
+
+# 会被折进「14px 第一列」的文字 = `<a>` 元素的**直接文本子节点**。
+# 用 html.parser 而不是正则：文字归属跟着 `<a>` 的深度变，正则数不清嵌套。
+VOID_TAGS = frozenset({"area", "base", "br", "col", "embed", "hr", "img",
+                       "input", "link", "meta", "source", "track", "wbr"})
+
+
+class SidebarAnchorTextCollector(HTMLParser):
+    """收集侧栏 `<li><a>` 的直接文本子节点（裸文本 = 会变成竖排的那种）。"""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._stack: list[str] = []
+        self._aside_left: int | None = None      # 侧栏起点所处的深度
+        self._anchor_depth: int | None = None    # <a> 外面的深度
+        self.anchors = 0
+        self.bare: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in VOID_TAGS:
+            return
+        if tag == "aside" and "sidebar" in (dict(attrs).get("class") or "").split():
+            self._aside_left = len(self._stack)
+        elif self._aside_left is not None and tag == "a":
+            self.anchors += 1
+            self._anchor_depth = len(self._stack)
+        self._stack.append(tag)
+
+    def handle_endtag(self, tag):
+        if tag in VOID_TAGS or not self._stack or self._stack[-1] != tag:
+            return
+        self._stack.pop()
+        if self._aside_left is not None and len(self._stack) == self._aside_left:
+            self._aside_left = None
+        if self._anchor_depth is not None and len(self._stack) == self._anchor_depth:
+            self._anchor_depth = None
+
+    def handle_data(self, data):
+        if (data.strip() and self._anchor_depth is not None
+                and len(self._stack) == self._anchor_depth + 1):
+            self.bare.append(data.strip())
+
+
+# 侧栏普通条目里那一枚内联图标的完整形状（见 build_site.nav_icon）：
+# 14×14、线稿跟随 currentColor、对读屏隐藏。**外链一律不许有** ——
+# offline.html 断网也要能读，图标字体/CDN 在无网时就是一个空方块。
+NAV_ICON_RE = re.compile(
+    r'\A<svg class="nav-icon" viewBox="0 0 14 14" width="14" height="14" fill="none" '
+    r'stroke="currentColor" stroke-width="[\d.]+" stroke-linejoin="round" '
+    r'stroke-linecap="round" aria-hidden="true" focusable="false">.+?</svg>'
+    r'<span class="nav-title">([^<]+)</span>\Z',
+    re.S,
+)
+
+
+def assert_sidebar_entry(case: unittest.TestCase, page: str, href: str, label: str, where: str = "") -> None:
+    """断言侧栏里指向 `href` 的那一条是「图标 + 文字」。
+
+    为什么连标记形状一起断言：**布局靠它撑着**。课程行是
+    `grid-template-columns: 14px 34px 1fr auto`（列数是按 ○ / 课号 / 标题 / 分钟
+    四个 span 定的），普通条目要是只剩一个裸文本节点，文字就落进 14px 的第一列被
+    逐字折行 —— 浏览器里看起来是「竖排」，而构建、门禁、链接自检全绿。
+    所以这里的断言必须落在 `<svg>` 与 `<span class="nav-title">` 上，不能只对 href。
+    """
+    m = re.search(
+        rf'<li><a href="{re.escape(href)}">(.*?)</a></li>', sidebar_region(page), re.S
+    )
+    case.assertIsNotNone(m, f"{where}: 侧栏里没有指向 {href} 的条目")
+    inner = m.group(1)
+    icon = NAV_ICON_RE.match(inner)
+    case.assertIsNotNone(
+        icon,
+        f'{where}: 侧栏条目 {href} 必须是「图标 + <span class="nav-title">」'
+        f"（裸文本会被折成竖排；实际是 {inner[:90]!r}）",
+    )
+    case.assertEqual(icon.group(1), label, where)
+
+
 class TestMapPage(unittest.TestCase):
     """v1.3 学习地图页 `/map.html`：与桌面部件同源，但用站点自己的模板渲染。
 
@@ -223,7 +308,7 @@ class TestMapPage(unittest.TestCase):
             ("repo/roadmap.html", "../map.html"),
         ):
             page = (self.out / rel).read_text(encoding="utf-8")
-            self.assertIn(f'<li><a href="{href}">学习地图</a></li>', page, rel)
+            assert_sidebar_entry(self, page, href, "学习地图", rel)
 
     def test_sidebar_prefix_is_explicit_and_still_right_for_other_groups(self):
         """前缀改成显式参数后，其余三组页面的侧栏链接必须和以前一样。
@@ -247,6 +332,86 @@ class TestMapPage(unittest.TestCase):
         self.assertIn('href="../lessons/L15-skills.html"', repo)
         self.assertIn('href="../map.html"', repo)
         self.assertNotIn('href="repo/', lesson)          # 课程页的前缀必须是 ../
+
+
+class TestSidebarEntriesAreNotVertical(unittest.TestCase):
+    """侧栏条目不许退回「竖排」—— 纯渲染层的坑，构建期全绿也照样踩。
+
+    `.nav-stage li a` 原先是 `display: grid; grid-template-columns: 14px 34px 1fr auto`：
+    列数是按**课程行**的四个 span（○ / 课号 / 标题 / 分钟）定的。普通条目
+    （「入口」三条、「规范与出处」六条）只有一个文本节点，落进 14px 的第一列就被
+    **逐字折行** —— 真实浏览器里「学习地图」占 4 行 / 103px 高、「常见错误合集」占
+    6 行 / 150px 高，看起来像竖排。而门禁、单测、链接自检全绿：它们只看链接与文本，
+    不看谁落在哪一列。
+
+    所以这一组断言必须落在**标记与 CSS 的契约**上：
+    - 四列网格只许出现在 `li[data-lesson]` 的规则里；
+    - 侧栏每个 `<li><a>` 内不许有裸文本子节点（文字一律包进 span）。
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        build_site.build(cls.out, cls.cfg)
+        cls.css = (REPO / "web" / "assets" / "app.css").read_text(encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tmp.cleanup()
+
+    @staticmethod
+    def css_block(css: str, selector: str) -> str:
+        """取某条选择器的声明块（够用即可：这两条规则都没有嵌套）。"""
+        m = re.search(re.escape(selector) + r"\s*\{([^{}]*)\}", css)
+        assert m, f"样式表里没有 `{selector}` 规则"
+        return m.group(1)
+
+    def test_grid_columns_are_scoped_to_lesson_rows(self):
+        """四列网格属于课程行；普通条目必须是「图标 + 一行文字」的 flex。"""
+        plain = self.css_block(self.css, ".nav-stage li a")
+        self.assertIn("display: flex", plain)
+        self.assertNotIn(
+            "grid-template-columns", plain,
+            "普通条目（只有一个 span）套四列网格 → 文字落进 14px 的第一列被逐字折行",
+        )
+        rows = self.css_block(self.css, ".nav-stage li[data-lesson] a")
+        self.assertIn("grid-template-columns: 14px 34px minmax(0, 1fr) auto", rows)
+        self.assertEqual(
+            self.css.count("grid-template-columns: 14px 34px"), 1,
+            "四列网格只该有一份定义（两份就是又要走偏了）",
+        )
+
+    def test_no_bare_text_inside_a_sidebar_anchor(self):
+        """侧栏条目的文字必须全在 span 里：裸文本就是网格的第一列（14px 宽）。"""
+        for rel in ("index.html", "map.html", "pitfalls.html", "design.html",
+                    "lessons/L15-skills.html", "repo/roadmap.html"):
+            page = (self.out / rel).read_text(encoding="utf-8")
+            collector = SidebarAnchorTextCollector()
+            collector.feed(page)
+            self.assertGreaterEqual(
+                collector.anchors, 40, f"{rel}: 没扫到侧栏条目（选择器或结构变了？）"
+            )
+            self.assertEqual(
+                collector.bare, [],
+                f"{rel}: 侧栏条目里有裸文本（会落进 14px 的第一列被逐字折行）",
+            )
+
+    def test_plain_entry_icons_are_inline_theme_aware_and_offline_safe(self):
+        """图标是内联 SVG：跟随主题色、对读屏隐藏、**不引任何外链**。
+
+        外链很重要：`offline.html` 是内联同一份样式表的单文件版，断网也要能读；
+        图标字体/CDN 在无网时就是一个空方块，而页面看起来「只是少了个小图形」。
+        """
+        page = (self.out / "index.html").read_text(encoding="utf-8")
+        icons = re.findall(r'<svg class="nav-icon".*?</svg>', sidebar_region(page), re.S)
+        expected = len(self.cfg["repo_docs"]) + 3          # 规范与出处 + 入口三条
+        self.assertEqual(len(icons), expected, "侧栏每个普通条目都该有一枚图标")
+        for svg in icons:
+            self.assertIn('stroke="currentColor"', svg)
+            self.assertIn('aria-hidden="true"', svg)
+            self.assertNotIn("http", svg, "图标不许引外链（离线版会变成空方块）")
 
 
 class TestPitfallsPage(unittest.TestCase):
@@ -365,7 +530,7 @@ class TestPitfallsPage(unittest.TestCase):
             ("repo/roadmap.html", "../pitfalls.html"),
         ):
             page = (self.out / rel).read_text(encoding="utf-8")
-            self.assertIn(f'<li><a href="{href}">常见错误合集</a></li>', page, rel)
+            assert_sidebar_entry(self, page, href, "常见错误合集", rel)
 
     def test_build_fails_loudly_when_a_pitfall_cites_an_unregistered_source(self):
         """未登记的出处必须让构建报错，而不是渲染成一个点了就 404 的标记。
@@ -650,7 +815,7 @@ class TestDesignPage(unittest.TestCase):
             ("repo/roadmap.html", "../design.html"),
         ):
             page = (self.out / rel).read_text(encoding="utf-8")
-            self.assertIn(f'<li><a href="{href}">设计对比</a></li>', page, rel)
+            assert_sidebar_entry(self, page, href, "设计对比", rel)
 
     def test_no_broken_links_from_this_page(self):
         self.assertEqual(

@@ -321,9 +321,15 @@ code, pre, kbd { font-family: var(--font-mono); }
 .nav-stage-no { color: var(--accent); font-variant-numeric: tabular-nums; }
 .nav-stage-why { margin: 0 0 var(--space-2); color: var(--fg-muted); font-size: 12px; }
 .nav-stage ul { list-style: none; margin: 0; padding: 0; }
+/* 侧栏条目分两种，布局必须分开写：
+   - 课程行（li[data-lesson]）是四列网格：○ / 课号 / 标题 / 分钟；
+   - 普通条目（「入口」「规范与出处」）是「图标 + 一行文字」的 flex。
+
+   把网格套在只有一个 span 的普通条目上，文字会落进 14px 的第一列被**逐字折行** ——
+   看起来像竖排，其实是列宽装不下一个汉字（实测「学习地图」= 4 行 / 103px，
+   「常见错误合集」= 6 行 / 150px）。所以网格只属于课程行。 */
 .nav-stage li a {
-  display: grid; grid-template-columns: 14px 34px 1fr auto;
-  gap: var(--space-2); align-items: baseline;
+  display: flex; align-items: center; gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   border-left: 2px solid transparent;
@@ -331,6 +337,12 @@ code, pre, kbd { font-family: var(--font-mono); }
   transition: background var(--dur-fast) var(--ease-standard),
               color var(--dur-fast) var(--ease-standard);
 }
+.nav-stage li[data-lesson] a {
+  display: grid; grid-template-columns: 14px 34px minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+.nav-stage li a .nav-icon { flex: none; color: var(--fg-muted); }
+.nav-stage li a:hover .nav-icon { color: var(--accent); }
 .nav-stage li a:hover {
   background: var(--card); text-decoration: none;
   border-left-color: var(--line);
