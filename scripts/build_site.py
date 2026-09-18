@@ -72,6 +72,22 @@ NAV_ICONS: dict[str, str] = {
     "doc": '<path d="M3.2 1.7h4.6l2.9 2.9v7.7H3.2z"/><path d="M7.8 1.7v2.9h2.9"/>',
 }
 
+# GitHub 标识：官方 mark 的 16×16 实心轮廓路径，取自 Primer 的 Octicons
+# （`mark-github`，MIT，https://github.com/primer/octicons）。
+# 与 NAV_ICONS 同样**内联进页面**，不用 <img>/图标字体：本站必须能离线用
+# （offline.html 把样式与标记都内联在一个文件里），外链资源在断网时就是一个空方块。
+# 用法边界：这枚标识是 GitHub 的商标，只用来指向本仓库（顶栏入口与页脚那条链接），
+# 不要拿它当通用装饰 —— 官方 brand 指南要求标识只用于「回到 GitHub」这件事。
+GITHUB_MARK_PATH = (
+    '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 '
+    '0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15'
+    '-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51'
+    '-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 '
+    '.67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 '
+    '1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 '
+    '1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>'
+)
+
 
 # --------------------------------------------------------------------------- 配置与数据
 
@@ -236,6 +252,45 @@ def nav_icon(name: str) -> str:
         'stroke-linecap="round" aria-hidden="true" focusable="false">'
         f'{NAV_ICONS[name]}</svg>'
     )
+
+
+def github_icon(size: int = 16, cls: str = "github-icon") -> str:
+    """GitHub 标识的内联 SVG（实心轮廓，颜色跟随 `currentColor`，对读屏隐藏）。"""
+    return (
+        f'<svg class="{cls}" viewBox="0 0 16 16" width="{size}" height="{size}" '
+        f'fill="currentColor" aria-hidden="true" focusable="false">{GITHUB_MARK_PATH}</svg>'
+    )
+
+
+def github_link(cfg: dict) -> str:
+    """顶栏最右侧的 GitHub 入口：一枚标识 + 无障碍名，整块 34px 可点。
+
+    位置与形态照开源项目的通行做法：顶栏右端一枚图标，点了在新标签页打开仓库
+    （`target="_blank"` 必须配 `rel="noopener"`，否则新页面能通过 `window.opener`
+    把这一页导航走）。图标本身是装饰，可访问名靠 `aria-label` 给 —— 只读屏的
+    读者听到的是「在 GitHub 上查看本站源码」，而不是「链接」。
+
+    `repo_url` 没配（site.json 里留空）时返回空串：宁可不放，也不要留一个点不动
+    或指向 `#` 的图标 —— 那种「看着能用、点了没反应」的控件比没有更糟。
+    空串仍是合法的模板值，`render_template` 只在**占位符还在**时才报错。
+    """
+    url = str(cfg.get("repo_url", "")).strip()
+    if not url:
+        return ""
+    return (
+        f'<a class="icon-btn github-link" href="{R.escape(url)}" target="_blank" rel="noopener"'
+        ' aria-label="在 GitHub 上查看本站源码（新标签页打开）" title="在 GitHub 上查看源码">'
+        f'{github_icon()}</a>'
+    )
+
+
+def topbar_values(cfg: dict) -> dict[str, str]:
+    """每页都有的顶栏片段（`web/partials/layout.html` 里的 `{{github}}`）。
+
+    单独抽一个函数而不是在六处 `render_template` 里各写一遍：顶栏以后再添一个入口
+    （star 数、语言切换…）只改这里；漏传一个值的后果是构建直接失败，不会静默漏项。
+    """
+    return {"github": github_link(cfg)}
 
 
 def render_sidebar(groups: list[dict], current_id: str, link_for, cfg: dict, prefix: str) -> str:
@@ -803,6 +858,7 @@ def render_repo_doc(rel: str, cfg: dict, layout: str, groups: list[dict]) -> tup
             "title": f"{title} · {cfg['title']}",
             "desc": f"仓库文件 {rel}",
             **page_meta(site_base(cfg), f"repo/{slug}.html", "article", title, f"仓库文件 {rel}"),
+            **topbar_values(cfg),
             "prefix": "../",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -817,10 +873,15 @@ def render_repo_doc(rel: str, cfg: dict, layout: str, groups: list[dict]) -> tup
 
 
 def render_footer(cfg: dict) -> str:
+    """页脚：全站同一份。仓库链接带 GitHub 标识 —— 与顶栏是同一枚图标、同一份标记，
+    读者在任何位置（含单文件离线版）都能一眼认出「这里是源码」。"""
     parts = [f'<span>{R.escape(cfg["title"])}</span>',
              '<span class="muted">内容 CC BY 4.0 · 代码 MIT</span>']
     if cfg.get("repo_url"):
-        parts.append(f'<a href="{R.escape(cfg["repo_url"])}" target="_blank" rel="noopener">在 GitHub 上查看仓库</a>')
+        parts.append(
+            f'<a class="footer-repo" href="{R.escape(cfg["repo_url"])}" target="_blank"'
+            ' rel="noopener">' + github_icon(14) + '在 GitHub 上查看仓库</a>'
+        )
     return '<div class="footer-inner">' + "".join(parts) + "</div>"
 
 
@@ -892,6 +953,7 @@ def build(out: Path, cfg: dict) -> dict:
                     base, ls["url"], "article",
                     f'「{ls["id"]} · {ls["title"]}」', ls["summary"] or ls["title"],
                 ),
+                **topbar_values(cfg),
                 "prefix": "../",
                 "site_title": R.escape(cfg["title"]),
                 "lesson_id": ls["id"],
@@ -916,6 +978,7 @@ def build(out: Path, cfg: dict) -> dict:
             "title": cfg["title"],
             "desc": cfg.get("tagline", ""),
             **page_meta(base, "", "website", cfg["title"], cfg.get("tagline", "")),
+            **topbar_values(cfg),
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -939,6 +1002,7 @@ def build(out: Path, cfg: dict) -> dict:
                 base, "map.html", "website", f"学习地图 · {cfg['title']}",
                 f"{len(lessons)} 课的可点击学习地图：点圆圈打勾，点课程名读正文。",
             ),
+            **topbar_values(cfg),
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -966,6 +1030,7 @@ def build(out: Path, cfg: dict) -> dict:
                 base, "pitfalls.html", "article", f"常见错误合集 · {cfg['title']}",
                 f"{len(lessons)} 课里「常见坑」小节的全量汇总，共 {pitfall_rows_total} 条，点课号可跳回原课。",
             ),
+            **topbar_values(cfg),
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",
@@ -995,6 +1060,7 @@ def build(out: Path, cfg: dict) -> dict:
                 f"{len(D.SYSTEMS)} 套 UI 方案的横向对比（{len(D.DIMENSIONS)} 维度等权平均）："
                 f"赢家 {D.winner()['name']}，含落地令牌表与对比度实测。",
             ),
+            **topbar_values(cfg),
             "prefix": "",
             "site_title": R.escape(cfg["title"]),
             "lesson_id": "",

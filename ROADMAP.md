@@ -342,6 +342,43 @@ Python 测试 45 → 59 条。
 正文前置行两条内容回归、构建产物两页断言）；站点产物仍是 52 页 / 70 文件。
 反例也实测过：把 `[[L00]]` 改回裸 `L00`、或只改正文不改 frontmatter，R12 都会红并指出是哪一课。
 
+### v3.3 · 顶栏 GitHub 入口（约 30 分钟，2026-09-18）
+
+用户的要求是「界面上要有一个点一下就跳到 GitHub 仓库的标识，按市面上大多数开源项目的做法实现」。
+
+- [x] `scripts/build_site.py`：新增 `GITHUB_MARK_PATH`（GitHub 官方 mark，取自 Primer 的 Octicons，MIT）
+      + `github_icon()` / `github_link()` / `topbar_values()`；`web/partials/layout.html` 的顶栏右侧加
+      `{{github}}`，位置在主题按钮之后（即顶栏最右端，开源项目放这个入口的通行位置）。
+      六处 `render_template` 调用统一传 `**topbar_values(cfg)` —— 少传一处就会在构建期报「模板占位符没填」，
+      不会静默少一枚图标。
+- [x] 图标是**内联 SVG**（`fill="currentColor"`、`aria-hidden="true"`、不含任何外链）：断网也在，
+      单文件离线版里那份也在。不用 `<img>` / 图标字体 —— 外链在无网时就是一个空方块，
+      而页面看起来「只是少了个小图形」。
+- [x] 链接属性：`target="_blank"` + `rel="noopener"`（新标签页打开，且新页面拿不到 `window.opener`）
+      + `aria-label="在 GitHub 上查看本站源码（新标签页打开）"`；`site.json` 的 `repo_url` 留空时
+      **不渲染**图标 —— 宁可不放，也不留一个点不动的控件。
+- [x] 页脚那条「在 GitHub 上查看仓库」复用同一枚标识（`render_footer`），离线版跟着一起有。
+- [x] 窄屏配套：`app.css` 新增 `@media (max-width: 480px)` 收掉进度胶囊。原因见下面的实测数字。
+
+**验收**（已全部通过）：
+
+- 真实浏览器（Chromium + `python scripts/serve.py`，CDP 改视口）在 1280 / 900 / 640 / 560 / 480 / 400 / 360px
+  七档下实测：页面级零横向溢出；入口恒定 **34×24px**（复用 `.icon-btn` 的 34px 方形与
+  `--target-min` 的 24px 指针目标下限）；图标 17×17px；svg 的 `computed fill` 与 `--fg` 一致
+  （亮色 `oklch(0.209…)` / 暗色 `oklch(0.934…)`，切主题跟着换）；悬停 `text-decoration-line: none`
+  （没有那条凭空多出来的下划线）；键盘 `:focus-visible` 有 2px 焦点环 + 2px offset。
+- 点击实测：新开一个标签页且**只**新开一个，标题就是 `GitHub - mt-yu/HermesUsage: …`，
+  当前页 `location.href` 不变（没有把读者从课程页顶走）。
+- 窄屏那一档的原始数字（同一页面隐藏/显示这枚按钮对比量出来的）：
+  360/400px 下站名本来就是 **2 行**（改这一版之前也是，不是这一版引入的 —— 但加上按钮会变成 3 行）；
+  480px 是这一版唯一的真回归点（站名 1 行 → 2 行、顶栏 50.3 → 73px）。
+  收掉进度胶囊后 480px 回到 1 行、顶栏 50.3px，360/400px 也回到「和改之前一样高」。
+  560px 以上胶囊并不挤占站名宽度，所以**不**把断点开到常见的 640px —— 那等于白扔进度信息。
+- `python scripts/check.py` 六项全绿；Python 测试 327 → **334 条**（`TestGithubEntrypoint` 7 条）；
+  前端 75 条不变；站点产物仍是 52 页 / 70 文件。
+- 一条既有断言按新契约改写：`TestDesignPage` 里「离线版不含 `<svg`」改成「不含 `.chart` / `.nav-icon`、
+  且内联 SVG 恰好一枚（页脚那枚标识）」—— 旧写法会把「页脚多一枚图标」误报成「离线版开始内联整站」。
+
 ### v2.0 · 让「学过」变成可交付（按需启动）
 
 - [x] 学习报告导出：`web/assets/lib/report.js` 纯函数 → 首页/地图页「导出学习报告」按钮 → `hermes-usage-report.md`

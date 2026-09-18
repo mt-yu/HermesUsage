@@ -157,6 +157,13 @@ def sidebar_region(html: str) -> str:
     return m.group(1)
 
 
+def topbar_region(html: str) -> str:
+    """取出 `<header class="topbar">` 里的顶栏（全站每一页都是同一份）。"""
+    m = re.search(r'<header class="topbar">(.*?)</header>', html, re.S)
+    assert m, "页面里没有顶栏"
+    return m.group(1)
+
+
 # 会被折进「14px 第一列」的文字 = `<a>` 元素的**直接文本子节点**。
 # 用 html.parser 而不是正则：文字归属跟着 `<a>` 的深度变，正则数不清嵌套。
 VOID_TAGS = frozenset({"area", "base", "br", "col", "embed", "hr", "img",
@@ -412,6 +419,108 @@ class TestSidebarEntriesAreNotVertical(unittest.TestCase):
             self.assertIn('stroke="currentColor"', svg)
             self.assertIn('aria-hidden="true"', svg)
             self.assertNotIn("http", svg, "图标不许引外链（离线版会变成空方块）")
+
+
+class TestGithubEntrypoint(unittest.TestCase):
+    """顶栏右端的 GitHub 标识（v3.3）：全站每页一枚、指向仓库、新标签页打开。
+
+    为什么这些细节都要断言：图标是最容易在「改样式 / 换模板」时被顺手弄坏的东西，
+    而坏掉之后**在联网的浏览器里看着完全正常** —— 换成 `<img src>` 断网才变成空方块、
+    href 写成相对地址或漏掉 `rel="noopener"` 也照样「点了能跳」。
+    所以断言落在标记形状与属性上，逐页查一遍（顶栏是全站同一份，但模板填值各页不同）。
+    """
+
+    PAGES = ("index.html", "map.html", "pitfalls.html", "design.html",
+             "lessons/L15-skills.html", "repo/roadmap.html")
+
+    # 一整块：<a class="icon-btn github-link" …>内联 SVG</a>
+    LINK_RE = re.compile(
+        r'<a class="icon-btn github-link" href="([^"]+)" target="_blank" rel="noopener"'
+        r' aria-label="([^"]+)" title="([^"]+)">(<svg class="github-icon".*?</svg>)</a>',
+        re.S,
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls._tmp.name) / "site"
+        cls.cfg = build_site.load_config()
+        build_site.build(cls.out, cls.cfg)
+        cls.pages = {rel: (cls.out / rel).read_text(encoding="utf-8") for rel in cls.PAGES}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def test_every_page_has_one_github_link_in_the_topbar(self):
+        for rel, page in self.pages.items():
+            hits = self.LINK_RE.findall(topbar_region(page))
+            self.assertEqual(len(hits), 1, f"{rel}: 顶栏该有且只有一枚 GitHub 标识")
+            href, aria, title, svg = hits[0]
+            self.assertEqual(href, self.cfg["repo_url"], rel)
+            self.assertIn("GitHub", aria, f"{rel}: 可访问名要说清点了去哪")
+            self.assertTrue(title, rel)
+            self.assertTrue(svg, rel)
+
+    def test_icon_is_inline_svg_and_fetches_nothing(self):
+        """内联 SVG、跟随主题色、对读屏隐藏、不含任何外链。
+
+        与侧栏图标同一条硬约束：`offline.html` 把同一份标记内联进单文件，断网也要能读；
+        `<img src>` / 图标字体在无网时就是一个空方块，而页面看起来「只是少了个小图形」。
+        """
+        svg = self.LINK_RE.findall(topbar_region(self.pages["index.html"]))[0][3]
+        self.assertIn('fill="currentColor"', svg)
+        self.assertIn('aria-hidden="true"', svg)
+        self.assertIn("<path d=", svg)
+        self.assertNotIn("http", svg)
+        for bad in ("<img", "<use", "xlink:href"):
+            self.assertNotIn(bad, svg, bad)
+
+    def test_link_is_the_rightmost_topbar_control(self):
+        """位置：在主题按钮之后（顶栏最右端）—— 开源项目的通行位置，读者会去那儿找。"""
+        page = self.pages["index.html"]
+        bar = topbar_region(page)
+        self.assertIn('id="theme-toggle"', bar)
+        self.assertLess(bar.index('id="theme-toggle"'), bar.index("github-link"))
+        self.assertLess(bar.index('class="search-btn"'), bar.index("github-link"))
+        # 尾随的下划线只对文字有意义，图标上是一条凭空多出来的线
+        css = (REPO / "web" / "assets" / "app.css").read_text(encoding="utf-8")
+        self.assertIn(".github-link, .github-link:hover { text-decoration: none; }", css)
+
+    def test_narrow_viewports_shed_the_progress_pill(self):
+        """480px 以下收掉进度胶囊 —— 这是「顶栏多了一枚按钮」的配套决定。
+
+        单测量不出布局，所以这条断言落在样式表文本上；真实浏览器实测的数字记在
+        `ROADMAP.md` 的 v3.3 一节：480px 视口下站名会从 1 行折成 2 行、顶栏 50.3 → 73px，
+        收掉胶囊后回到 1 行；360/400px 下站名本来就是 2 行（改这一版之前也是），
+        所以那一档不做别的处理。谁把这条规则删了，480px 上的折行会悄悄回来。
+        """
+        css = (REPO / "web" / "assets" / "app.css").read_text(encoding="utf-8")
+        self.assertIn("@media (max-width: 480px) {", css)
+        self.assertIn(".progress-pill { display: none; }", css)
+
+    def test_footer_reuses_the_same_mark(self):
+        """页脚那条「在 GitHub 上查看仓库」用同一枚标识、同一个地址。"""
+        page = self.pages["lessons/L15-skills.html"]
+        m = re.search(
+            r'<a class="footer-repo" href="([^"]+)" target="_blank" rel="noopener">'
+            r'(<svg class="github-icon".*?</svg>)在 GitHub 上查看仓库</a>',
+            page, re.S,
+        )
+        self.assertIsNotNone(m, "页脚的仓库链接该带同一枚 GitHub 标识")
+        self.assertEqual(m.group(1), self.cfg["repo_url"])
+        self.assertIn('fill="currentColor"', m.group(2))
+
+    def test_offline_page_carries_the_mark_and_stays_self_contained(self):
+        """单文件离线版没有顶栏，但页脚的那枚标识必须在，且仍然是纯内联标记。"""
+        offline = (self.out / "offline.html").read_text(encoding="utf-8")
+        self.assertIn('class="footer-repo" href="' + self.cfg["repo_url"] + '"', offline)
+        self.assertNotIn("<img", offline)
+
+    def test_missing_repo_url_renders_nothing_instead_of_a_dead_icon(self):
+        """site.json 没配仓库地址时不放图标 —— 点了没反应的控件比没有更糟。"""
+        self.assertEqual(build_site.github_link({"repo_url": ""}), "")
+        self.assertEqual(build_site.topbar_values({"repo_url": ""}), {"github": ""})
 
 
 class TestPitfallsPage(unittest.TestCase):
@@ -831,7 +940,13 @@ class TestDesignPage(unittest.TestCase):
         # 它内联的那份样式表里当然**有** .chart 那几条规则、注释里也提了 /design.html
         # （逐字内联就是这个意思），但它自己不含这张图，也没有指向这一页的链接：
         # 离线版是「40 课正文」，不是整站。
-        self.assertNotIn("<svg", offline)
+        # 唯一的例外是页脚那一枚 GitHub 标识（内联 SVG，v3.3）：它不属于任何一页的正文，
+        # 而是全站页脚的一部分，单文件版也该带着它。所以断言写成「这张图表不在、侧栏图标
+        # 也不在、内联 SVG 只有那一枚」，而不是「一个 svg 都没有」——后者会把
+        # 「页脚长出一枚图标」误报成「离线版开始内联整站」。
+        self.assertNotIn('<svg class="chart"', offline)
+        self.assertNotIn('<svg class="nav-icon"', offline)
+        self.assertEqual(offline.count("<svg"), 1, "离线版里只该有页脚那一枚 GitHub 标识")
 
 
 class TestSiteReachability(unittest.TestCase):

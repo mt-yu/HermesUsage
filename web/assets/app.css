@@ -262,6 +262,15 @@ code, pre, kbd { font-family: var(--font-mono); }
 .btn.primary:hover { color: var(--bg); background: var(--accent); opacity: .92; }
 .icon-btn { width: 34px; justify-content: center; padding: 0; font-size: 15px; }
 
+/* GitHub 入口：顶栏最右侧的一枚图标按钮（开源项目的通行位置），页脚那条仓库
+   链接共用同一枚标识。视觉完全复用 .icon-btn（34px 方形 + 24px 最小指针目标），
+   这里只补两件它管不到的事：图标尺寸，以及这个**链接**不要出现下划线 ——
+   图标没有文字，下划线只会在悬停时凭空多出一条线。 */
+.github-link, .github-link:hover { text-decoration: none; }
+.github-link svg { display: block; width: 17px; height: 17px; }
+.footer-repo { display: inline-flex; align-items: center; gap: var(--space-1); }
+.footer-repo svg { display: block; }
+
 /* 搜索入口做成一枚「像输入框」的按钮：读者一眼知道它可以打字 */
 .search-btn {
   min-width: 240px; color: var(--fg-muted);
@@ -611,6 +620,16 @@ h1 { font-size: var(--step-3); line-height: var(--leading-tight); margin: var(--
   :root { --step-3: 1.5rem; }
   .topbar { padding: var(--space-2) var(--space-3); }
   .card { padding: var(--space-3) var(--space-4); }
+}
+
+/* 480px 以下顶栏要装下五个控件（汉堡 / 站名 / 搜索 / 主题 / GitHub 标识），宽度不够了。
+   进度胶囊是这里面唯一「别处也有」的信息（首页有进度卡、课页有「标记本课完成」按钮），
+   所以只在这一档收掉它，把宽度让给站名 —— 否则站名会多折一行、顶栏凭空长高 22px
+   （真实浏览器实测：480px 视口下站名 1 行 → 2 行；收掉胶囊后回到 1 行）。
+   再往下（360~400px）站名本来就会折成两行，这一档帮不上，但至少不会因为多了一个
+   控件再折一行。断点取 480 而不是常见的 640：640 时胶囊并不占站名的宽度，收掉纯属白扔信息。 */
+@media (max-width: 480px) {
+  .progress-pill { display: none; }
 }
 
 /* 对比度偏好：把细线加重，让低视力用户在强光下也能看出边界 */
