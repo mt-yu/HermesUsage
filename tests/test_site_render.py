@@ -179,6 +179,27 @@ class TestMarkers(unittest.TestCase):
             R.render_template("<p>{{whoops}}</p>", {}, "index.html")
         self.assertIn("whoops", str(ctx.exception))
 
+    def test_render_template_leaves_braces_that_came_from_content_alone(self):
+        """正文里合法出现的 `{{…}}` 不许被当成占位符，也不许被替换掉。
+
+        两个方向都会真的伤人：
+
+        - **误报**：文档在讲模板语法时写一句 `{{github}}`（`ROADMAP.md` 里就有），
+          旧实现「替换完再全文搜 `{{`」会把整站构建打停 —— 实测踩过一次；
+        - **静默改字**：逐 key 地对拼好的字符串再 `str.replace`，注入进来的内容里
+          同名的 `{{key}}` 会被换成值 —— 书上写什么、页面上变成别的东西，还没人会看。
+        """
+        # 内容里带一个与模板同名的占位符，还有一个模板里没有的
+        out = R.render_template("<h1>{{title}}</h1>{{content}}",
+                                {"title": "T", "content": "示例：{{title}} 与 {{footer}}"},
+                                "index.html")
+        self.assertEqual(out, "<h1>T</h1>示例：{{title}} 与 {{footer}}")
+        # 只有模板骨架里的占位符才参与判定
+        self.assertEqual(
+            R.render_template("{{body}}", {"body": "{{nope}}", "unused": "x"}, "index.html"),
+            "{{nope}}",
+        )
+
 
 class TestPrereqLinks(unittest.TestCase):
     """`prereq_links`：frontmatter 的 prereq → 可点击的「前置」串。

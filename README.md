@@ -129,6 +129,7 @@ python scripts/serve.py --open              # 构建并打开 http://127.0.0.1:8
 练习打勾（与课程完成分开记）、学习地图与常见错误合集两个聚合页、学习报告导出（markdown）、
 [**设计对比**](https://mt-yu.github.io/HermesUsage/design.html)（10 套 UI 方案 × 10 个维度的评分矩阵 + 落地令牌表）、
 课间 `←/→` 键盘导航、8 小节目录跳转、代码块一键复制、主题三态（跟随系统 / 亮 / 暗，首帧不闪白）、
+顶栏与页脚各一枚 GitHub 标识（内联 SVG，点开即到仓库源码，离线版里也在）、
 `src:…` 出处徽标悬停显示官方版本与快照哈希（共 95 条官方来源）。
 
 想一次性带走？[**单文件离线版**](https://mt-yu.github.io/HermesUsage/offline.html)（882 KB，内联样式、

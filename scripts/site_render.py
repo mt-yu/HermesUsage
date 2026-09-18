@@ -307,16 +307,24 @@ def repo_doc_slug(rel: str) -> str:
 def render_template(template: str, values: dict[str, str], where: str) -> str:
     """极简 {{占位符}} 替换。
 
-    残留占位符必须报错：模板少填一个值，页面上就会出现 {{footer}} 这种字面量，
-    靠肉眼巡检 33 个页面发现不了。
+    残留占位符必须报错：模板少填一个值，页面上就会出现 `{{footer}}` 这种字面量，
+    靠肉眼巡检几十个页面发现不了。
+
+    两条实现细节都是踩过坑才定下来的：
+
+    1. **判定只看模板骨架，不看替换结果。** 早先的写法是替换完再全文搜 `{{` ——
+       于是**正文内容**里合法出现的 `{{…}}`（文档在讲模板语法、或描述某个占位符名，
+       例如 `ROADMAP.md` 里那句 `{{github}}`）会被当成「模板没填」，整站构建直接失败。
+       内容是从 `values` 进来的，不该参与这次判定。
+    2. **只做一遍替换、只替换模板里的那些。** 逐 key 地对已拼好的字符串再
+       `str.replace`，会顺手把**注入内容**里同名的 `{{key}}` 也换成值 ——
+       那比报错更坏：文档里写什么、页面上就变成别的东西，而且没人会去看。
+       所以用 `re.sub` 在**原始模板**上一次性替换：注入进来的内容再也不会被二次扫描。
     """
-    out = template
-    for key, value in values.items():
-        out = out.replace("{{" + key + "}}", value)
-    left = PLACEHOLDER_RE.search(out)
-    if left:
-        raise SiteError(f"{where}: 模板占位符没有被填充：{left.group(1)}")
-    return out
+    missing = [name for name in PLACEHOLDER_RE.findall(template) if name not in values]
+    if missing:
+        raise SiteError(f"{where}: 模板占位符没有被填充：{missing[0]}")
+    return PLACEHOLDER_RE.sub(lambda m: values[m.group(1)], template)
 
 
 def search_text(body: str) -> str:

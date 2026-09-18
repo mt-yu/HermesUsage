@@ -123,10 +123,24 @@ class TestBuildOutput(unittest.TestCase):
     def test_no_broken_links(self):
         self.assertEqual(build_site.check_links(self.out), [])
 
-    def test_no_unfilled_placeholders_in_pages(self):
+    def test_no_unfilled_layout_placeholders_reach_a_page(self):
+        """页面的**模板骨架**（`<main>` 之外：head / 顶栏 / 侧栏 / 目录 / 页脚）不许残留占位符。
+
+        为什么把 `<main>` 排除在外：正文里会**讨论**占位符 —— `.hermes.md` 的坑表写了
+        `{{footer}}`、`ROADMAP.md` 写了 `{{github}}`，那是原文，出现在页面正文里是对的。
+        早先的宽判据（「页面里还有没有 `{{`」）把这种正文当成「模板没填」，整站构建直接停下
+        （实测踩过一次，见 `site_render.render_template` 的注释）。
+        正文里的 `{{content}}` 要是真没被填，`render_template` 在构建期就抛错了
+        （`tests/test_site_render.py` 有专门用例），所以这一条不必再管正文。
+        """
+        names = set(R.PLACEHOLDER_RE.findall(
+            (REPO / "web" / "partials" / "layout.html").read_text(encoding="utf-8")
+        ))
+        self.assertGreaterEqual(len(names), 5, "布局模板里没扫到占位符（选择器或结构变了？）")
         for page in self.out.rglob("*.html"):
-            text = page.read_text(encoding="utf-8")
-            self.assertNotIn("{{", text, page.as_posix())
+            chrome = re.sub(r"<main\b.*?</main>", "", page.read_text(encoding="utf-8"), flags=re.S)
+            for name in names:
+                self.assertNotIn("{{" + name + "}}", chrome, page.as_posix())
 
 
 LOC_RE = re.compile(r"<loc>([^<]+)</loc>")

@@ -133,6 +133,7 @@ python scripts/progress.py next   # 下一课学什么
 | `v2.1-ops` | 定时任务真跑起来（cron_ctl 开关）+ Docker 交 CI 验证 + README 路线图 SVG | ✅ |
 | `v3.0-cases` | 阶段 6 真实工作流案例（38 课 / 8 阶段）+ 漂移哨兵进 CI + 自动归档在途闸门 | ✅ |
 | `v3.1-ui` | 设计对比页（10 方案 × 10 维度等权平均）+ 语义 token 视觉系统 + 主题三态 | ✅ |
+| `v3.3-topbar` | 顶栏 GitHub 入口（内联 SVG 标识，新标签页打开）+ 480px 以下收进度胶囊 | ✅ |
 
 ## 维护待办（内容层）
 
@@ -199,6 +200,7 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 | 设计对比（10 方案 × 10 维度评分矩阵 + 落地令牌表） | ✅ | 站点 `/design.html`（v3.1）；数据源 `scripts/design_matrix.py` |
 | 主题三态（跟随系统 / 亮 / 暗）+ 首帧不闪白 | ✅ | `web/partials/layout.html` 的内联主题脚本 + `web/assets/app.js`（v3.1） |
 | 前置一键跳转（正文行与页脚都指向原课） | ✅ | `scripts/site_render.py::prereq_links`（v3.2）；门禁 R12 保证写法与 frontmatter 一致 |
+| GitHub 入口（顶栏最右一枚标识 + 页脚同一枚，均内联 SVG、新标签页打开） | ✅ | `scripts/build_site.py::github_link` / `github_icon`（v3.3）；模板占位符 `{{github}}` 由 `topbar_values()` 统一供给 |
 
 ---
 
