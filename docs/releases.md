@@ -105,6 +105,18 @@ git push origin v3.4-release && git push origin main
 - 所以那次提交的前缀**必须是 `changelog:`**：脚本把 `changelog:` 当前缀当噪声（与 `journal:` 同类），
   两侧算出来的内容才逐字相同。换成 `docs:` 就又红了。
 
+**平时（不打 tag 的日子）也要跑一次**：`CHANGELOG.md` 里有一节「未发布」，列的是**最新 tag 之后
+的真实提交**。所以往 main 推了普通改动之后，同样要
+
+```bash
+python scripts/release.py changelog --write
+git commit -am "changelog: 收进本次改动"     # 前缀同样必须落 changelog:
+```
+
+忘了它，CI 的「变更日志同步」就红（本仓库故意让它红：CHANGELOG 是给读者看的，不许悄悄过时）。
+`journal:`、`changelog:`、`session: 自动归档 …` 这三类噪声提交不改变这一节 —— 所以小时级的
+自动归档任务不会天天把门禁弄红。
+
 第 5 步由 `.github/workflows/release.yml` 承担：`push: tags: ["v*"]` 触发，跑
 `check.py` → `python scripts/release.py create --tag "<刚推的 tag>"`。工作流不引第三方 action、
 不用 `gh` CLI —— 建 release 的 REST 调用在 `release.py` 里（本机没有 `gh`，CI 里也不用）。

@@ -54,6 +54,9 @@ python scripts/release.py audit --check                          # ⑥ 事后 0 
 6. **历史 tag 不改名、不重打、不 force push**；出错就发新 tag，并接受旧的那条留在列表里。
 7. **不可变发布（immutable releases）一开，资产与 tag 就锁死**，且删掉 release 后**同名 tag 不能再用**。
    所以顺序永远是「先建完、`audit --check` 0 差异，最后才开开关」。
+8. **每次往 main 推真实提交（非 `journal:`/`changelog:`/`session: 自动归档` 噪声）后，都要
+   `changelog --write` 并用 `changelog:` 前缀提交一次**：CHANGELOG 的「未发布」节就是最新 tag
+   之后的真实提交列表，忘了它就红 CI。
 
 ## 坑（每条都真踩过）
 
