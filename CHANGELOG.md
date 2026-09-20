@@ -10,6 +10,12 @@
 
 ## [未发布]
 
+### 新增
+- session: 官方文档漂移第二次复核：86 页漂移 → 改课 1 处、登记 14 条（判据改成 release tag）（`df8aed5`）
+
+### 修复
+- fix: journal.py 归档崩在 summary 以数字开头（re.sub 替换串别插用户文本）（`7858685`）
+
 ### 文档
 - docs: docs/releases.md 的 tag 清单同步到 15（v3.5-release 已发）（`fd1ecb2`）
 - docs: 发布技能补三条实测细节（notes 要本地 tag / 单版本 SHA256SUMS 由 create 写 / --out 用原生路径）（`7a3eb50`）
