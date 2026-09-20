@@ -272,5 +272,34 @@ class TestAutocommitWiring(unittest.TestCase):
             self.assertIn("跳过", buf.getvalue())
 
 
+class TestRenderEntry(unittest.TestCase):
+    """render_entry 的替换是 re.sub —— 用户文本绝不能被当成替换串解释。
+
+    实际踩过：summary 以数字开头（「86 页漂移…」）时，替换串变成 ``\\186``，
+    re 直接抛 `invalid group reference 18`，归档在提交之后崩掉（工作已提交、条目丢失）。
+    """
+
+    def _render(self, **kw):
+        args = dict(title="t", kind="session", scope="L14", summary="", learned="", extra="",
+                    day="2026-09-20", work_sha="abc1234")
+        args.update(kw)
+        return J.render_entry(**args)
+
+    def test_summary_starting_with_a_digit_is_literal(self):
+        out = self._render(summary="86 页漂移 → 改课 1 处")
+        self.assertIn("86 页漂移 → 改课 1 处", out)
+
+    def test_learned_starting_with_a_digit_is_literal(self):
+        out = self._render(learned="15 条属未发布，只登记")
+        self.assertIn("15 条属未发布，只登记", out)
+
+    def test_backslash_sequences_are_literal(self):
+        out = self._render(summary=r"路径 C:\Users\me\hermes 与 \1 都原样保留")
+        self.assertIn(r"\1 都原样保留", out)
+
+    def test_group_refs_in_summary_do_not_raise(self):
+        self._render(summary=r"\1\2\18 不该当组引用")  # 不抛异常即通过
+
+
 if __name__ == "__main__":
     unittest.main()

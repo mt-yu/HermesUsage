@@ -219,10 +219,15 @@ def render_entry(title: str, kind: str, scope: str, summary: str, learned: str,
     body = body.replace("commit: (由 scripts/journal.py 自动回填)",
                         f"commit: {work_sha or '(工作区无改动)'}")
     if summary:
-        body = re.sub(r"(## 实际做了什么\n\n)(?:.*?)(\n## )", rf"\1{summary}\n\2", body, flags=re.S)
+        # 别把 summary 插进替换串：它会和前面的 \1 粘成 \186 这种非法组引用
+        # （实测：summary 以数字开头时报 "invalid group reference 18"）。用函数式替换。
+        body = re.sub(r"(## 实际做了什么\n\n)(?:.*?)(\n## )",
+                      lambda m: m.group(1) + summary + "\n" + m.group(2),
+                      body, flags=re.S)
     if learned:
         body = re.sub(r"(> 什么踩坑了、什么反直觉、哪条命令救了我。\n\n)(?:.*?)(\n## )",
-                      rf"\1{learned}\n\2", body, flags=re.S)
+                      lambda m: m.group(1) + learned + "\n" + m.group(2),
+                      body, flags=re.S)
     if extra:
         body = body.replace("## 下一步", f"{extra}\n\n## 下一步")
     return body
