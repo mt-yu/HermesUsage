@@ -33,6 +33,17 @@ hermes --version
 hermes --help | head -40
 ```
 
+> **暂时不想装 Git Bash？** 把管道那一段换成 PowerShell 的写法也能跑
+> （`Select-Object -First N`、`Select-String` 本机 PowerShell 实测可用；`cmd` 没有对应的轻量写法，用 Git Bash）：
+
+```powershell
+hermes --version
+hermes --help | Select-Object -First 40
+```
+
+记住这一条替换就够了：`| head -N` → `| Select-Object -First N`。本教程后面的命令都按 bash 写，
+留在 PowerShell 的话按「常见坑」第 1 行的对照表逐个换。
+
 你应该看到（我在 hermes v0.21.3 上跑出来的真实输出）：
 
 ```
@@ -157,7 +168,7 @@ cd "$HERMES_HOME/hermes-agent" && git log -1 --format="%h %ci"
 
 | 现象 | 真实原因 | 怎么解决 |
 |---|---|---|
-| `head : 无法将“head”项识别为 cmdlet、函数、脚本文件或可运行程序的名称`（`grep`、`wc` 同理） | 在 **PowerShell / cmd** 里跑了本教程的 bash 管道 —— `head`、`grep`、`wc` 都是 Git Bash 自带的外部命令，PowerShell 里不存在 | 换到 **Git Bash** 里跑（推荐，本教程全程用 bash）；非要留在 PowerShell 就把管道换掉：`| head -40` → `| Select-Object -First 40`，`| grep -E "a|b"` → `| Select-String "a|b"` |
+| `head : 无法将“head”项识别为 cmdlet、函数、脚本文件或可运行程序的名称`（`grep`、`wc` 同理） | 在 **PowerShell / cmd** 里跑了本教程的 bash 管道 —— `head`、`grep`、`wc` 都是 Git Bash 自带的外部命令，PowerShell 里不存在 | 换到 **Git Bash** 里跑（推荐，本教程全程用 bash）；非要留在 PowerShell 就把管道换掉：`| head -40` → `| Select-Object -First 40`，`| grep -E "a|b"` → `| Select-String "a|b"`；数行（`| wc -l`）没有同口径的替代，回 Git Bash 数 |
 | `hermes: command not found` | 安装后没重载 shell | `source ~/.bashrc`（zsh 用 `~/.zshrc`）；Windows 重开 Git Bash |
 | 以为「换到桌面 App 就是另一个产品」 | 把外壳当内核 | 记住模型三：会话/技能/记忆是共享的 |
 | 以为装很多技能会拖慢对话 | 不了解渐进式披露 | 技能只在被用到时读全文，装多了不心疼 |

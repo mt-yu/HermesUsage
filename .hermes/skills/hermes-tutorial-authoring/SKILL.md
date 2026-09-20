@@ -134,6 +134,10 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
   **多显示一个反斜杠**，读者照着复制得到一条跑不通的命令（踩过：L01 的安装命令、L12 的
   `/compress`）。管道写在 code span 内就直接写裸管道 —— `tutorial_core._table_cells` 按
   code span 切格，裸管道不会切坏行；只有单元格散文里的管道才写 `\|`。
+- **在引用块（`>`）里贴围栏代码块**：站点上不会变成 `<pre>`，而是被解析成一段挤在一行的
+  行内代码（踩过：L00 的 PowerShell 对照写法）。Python-Markdown 的 fenced_code 不处理
+  blockquote 内的围栏。围栏代码块一律写在顶层、引用块外面；`check.py` 不会报这种错，
+  改完课要瞄一眼构建出的 HTML（`site/lessons/<课>.html`）。
 
 - **前置行写成裸课号**（`**前置**：L02、L10`）：站点上它只是一段普通文字，点不动，
   而页面看起来完全正常。写 `[[L02]]`、`[[L10]]`（渲染期才变成链接），并且让 frontmatter
