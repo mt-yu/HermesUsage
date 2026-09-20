@@ -147,7 +147,9 @@ python scripts/progress.py next   # 下一课学什么
 > Hermes 源码）+ CI 的 `.github/workflows/drift.yml`（每天 09:00，稀疏克隆**上游** docs 再比快照哈希，
 > 有漂移就开 issue，标题前缀去重）。**2026-09-16 首次运行即发现 37 页正文已变**（基线 `05fac10a`
 > → 上游 `816cb379`），见 issue #1 —— **2026-09-17 完成首次人工复核并关闭该 issue**（复核时上游已走到
-> `36842e63`：39 页 / 486 增 94 删）。
+> `36842e63`：39 页 / 486 增 94 删）。**2026-09-18 CI 又开了 issue #2（45 项）—— 2026-09-20 完成第二次
+> 复核并关闭**，结论见下一小节：86 页漂移里只有 1 处该改课程，其余 14 条是「上游已写、release 里还没有」，
+> 按规矩只登记。
 
 ### 官方文档漂移复核（2026-09-17 首次，issue #1 已关闭）
 
@@ -166,6 +168,62 @@ python scripts/progress.py next   # 下一课学什么
 没有逐句定版。重放这次复核的方法：稀疏克隆上游 `website/docs` → 逐页按 LF 归一化算 `sha256` 与
 `sources/citations.yaml` 比对 → 与 `sources/cache/<id>.md` 做 `difflib.unified_diff`（构建期产物
 不进仓库，39 页 condensed diff 约 68 KB）。
+
+### 官方文档漂移复核（2026-09-20 第二次，issue #2 已关闭）
+
+**这次的前提变了 —— 也是本次最重要的结论**：本机安装树这次跟踪的是 **main**（`3adc1787`，文档
+`0818892db3`，2026-09-19），比最新 release **`v2026.9.14`** 新若干天。于是「本机源码里有」不再等于
+「读者装得到」——**判据必须换成 release tag**（`raw.githubusercontent.com/NousResearch/hermes-agent/v<tag>/<path>`
+逐文件 grep），否则会把未发布的行为写进课程。上次复核时本机恰好就是 release 状态，所以没暴露这个坑。
+
+**漂移规模与三分桶**（86 页，其中被课程引用 82 页）：
+
+| 桶 | 页数 | 处理 |
+|---|---|---|
+| 纯链接重写（`](/user-guide/x)` → `](../user-guide/x.md)`） | 27 | 逐行验过：只有链接目标在变，与课程无关，不动 |
+| 正文真变化 | 59 | 其中被课程引用 51 页、未被引用 8 页 |
+| ↳ 与 release 行为不符 → **改课程** | **1** | **L14**：原文「所有上下文文件…是**内容**被拦，不是整个文件被拦」是错的 —— release 的 `agent/prompt_builder.py` 与快照 `context-files.md:181` 都写明命中即**整份**文件被顶掉（`[BLOCKED: … Content not loaded.]`）。已改成「整份失效 + `/context` 里看到的字样」（`updated: 2026-09-20`） |
+| ↳ 上游已写、release 里**还**没有 → 只登记 | 14 条 | 见下表，等下一个 release 一次性刷快照 + 改课 |
+| ↳ 课程未涉及 / 纯措辞与示例 | 其余 | 不动 |
+
+**待下一个 release 对照的 14 条**（判据 = release tag 的源码/文档里 grep 不到 → 按「未发布」处理）：
+
+| # | 页面 | 上游写了什么 | release 探针结果（`v2026.9.14`） |
+|---|---|---|---|
+| 1 | `profiles` | OAuth 登录「从不复制」+ 新增「Every profile owns its credentials」：命名 profile 只认自己的 `auth.json`，不再回落读根库 | `hermes_cli/auth.py` 里 `111724` **0 命中**；快照仍写 `shared, not copied` → 未发布 |
+| 2 | `multi-profile-gateways` | `gateway.multiplex_profiles` 默认改为 `true`（未设置时由启动预检决定） | release 里仍是 `Optional[bool] = None` + 文档写 `off by default` → 未发布 |
+| 3 | `bot-mode` | 新建 Bot 默认「复制主 profile 的静态 API key」，OAuth 不复制 | release 无 `mirror_credentials`；快照写 `Shared keys … shares one OAuth/token pool` → 未发布 |
+| 4 | `compression` | `compression.threshold_tokens` 默认从 `None` 改成 `256000`（触发点取比例与它的**较低**者） | release 默认值是 **`None`**（纯比例），快照第 388 行的「always `threshold × context_length`」对 release 仍然成立 → 机制没变、**默认值变了** |
+| 5 | `cron` | 同一错误签名不再每次 ping：`cron.failure_repeat_alert_hours`（默认 6h）到期补一条提醒，`ack` 变永久静音 | release 里 `failure_repeat_alert_hours` / `DEFAULT_FAILURE_REPEAT_ALERT_HOURS` **0 命中**（有 `withheld` 逻辑但没有这个配置键） → 未发布 |
+| 6 | `cron` | `hermes cron doctor` 把「历史迟到 / 补跑」也算 finding，一次成功补跑不会立刻清告警 | 快照无此句 → 未发布 |
+| 7 | `delegation` | 失速改为**中断 + 放弃等待**（`status: "timeout"`），一次性运行同样生效 | 450s/1200s 阈值常量 release 里已有（`delegate_tool.py`），但处置方式改成中断是本版新增 → 未发布 |
+| 8 | `delegation` | `/stop` 之后被停子代理**必定**带着最后一段产出回到对话里 | release 的 `async_delegation.py:952` 已写 `status='interrupted'`，但快照原话是「因为父代理也被中断，结果常常到不了用户面前」→ 未发布 |
+| 9 | `delegation` | 新增 `delegation.oneshot_max_children`（默认 2） | release **0 命中** → 未发布 |
+| 10 | `context-files` | 自己写的 `SOUL.md` 命中只警告、照常加载（`user_authored`）；`/context` 显示 `⚠ … loaded` | release 的 `prompt_builder.py` **0 命中** `user_authored` → 未发布（**「整份被拦」那条是 release 行为，已改课**） |
+| 11 | `checkpoints` | 新增「Container Backends」：容器终端后端不拍检查点、`/rollback` 拒绝 diff/恢复 | release **0 命中** `unsupported_backend_reason` → 未发布 |
+| 12 | `browser` | 「真 profile 会话前要退出浏览器」从 Windows 专属改成跨平台结论（认证库写锁 + 5 秒预算） | release 里搜不到那条跨平台表述（快照说 macOS/Linux 通常可在浏览器运行时复制） → 未发布 |
+| 13 | `env-vars` | 「任何 `UPPER_SNAKE` 名字只进 `.env`、永不写进 `config.yaml`」+ 写入器黑名单 | release 的 `config.py` 已有 env 写入器黑名单，而快照本就写「env 变量进 `.env`、点号路径进 `config.yaml`」→ 只是措辞更硬 → **不动课程** |
+| 14 | `pipe-script-output` / `deliverable-mode` | `hermes send` 的 home 解析与 `not configured` 逐文件清单；示例路径 `/tmp/...` → `~/.hermes/cache/scratch/...` | 提示文案与示例路径，不是行为反转 → **不动课程** |
+
+> 过程留痕（值得记）：本次先按「本机 main 源码里有 → 改课程」应用了 20 处改动（覆盖 12 课），
+> 随后用 release tag 三路探针逐条核验，**全部回滚**，只留 L14 那一处。教训写进 `.hermes.md` 与
+> `source-drift-review` 技能：**先确认本机跟的是 release 还是 main，再决定判据**。
+
+**为什么这次不重刷快照**：`sync_sources.py` 读的是本机安装树（现在是 main），刷下去会把「未发布」的
+文档内容变成课程出处，直接违反 R3（读者要能反查到**自己装得到的**版本）。所以基线继续钉在 release 态
+（`05fac10a` / hermes v0.21.3），等下一个 release 出来再一次性刷快照 + 改课。代价是漂移哨兵会继续报
+（本地哨兵比「本机 main vs 快照」，CI 哨兵比「上游 main vs 快照」）—— 这是设计，不是坏掉；
+见到 issue 时按本节的判据重跑一遍即可。
+
+**诚实边界**：定版粒度是「页面级 + 与本课相关的那几句」，不是逐句；59 页里 8 页无课程引用，只做了
+「是否与课程有关」的扫描；第 13/14 条是措辞与示例，未逐句定版；release 探针只比了 `v2026.9.14`
+这一个 tag，**没有追溯每条改动的引入时间**（所以「未发布」= 「这个 tag 里没有」，不等于「下个 release 一定有」）。
+
+**重放方法**：① `hermes --version` 看本机跟踪的是 release 还是 main；② 逐页按 LF 归一化算 `sha256`
+与 `sources/cache/<id>.md` 比对，先剥掉链接重写（把 `](...)` 归一化后再 diff）；③ 对每条「要改课程」
+的结论，按 tag 取原始文件 grep 关键符号（`curl -s https://raw.githubusercontent.com/NousResearch/hermes-agent/v<tag>/<path>`），
+再拿本机源码交叉验证；④ 产物（逐页 diff、release 探针文件）放 `$LOCALAPPDATA/Temp`，**不进仓库**。
+
 - [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 - [x] 新增 **L55「换一台电脑：把记忆、技能和会话带走」**（阶段 5，25 分钟）—— 换电脑/多机场景的完整路线：
       习惯层文件清单、`hermes backup`/`import` 整机搬（本机实测 748 → 745 文件）、`hermes profile export`

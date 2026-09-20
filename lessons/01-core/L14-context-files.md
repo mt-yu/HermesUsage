@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L03, L12]
 tags: [".hermes.md", "AGENTS.md", "SOUL.md", "@引用", "项目规则"]
 sources: [context-files, context-references, personality, slash-commands]
-updated: 2026-09-16
+updated: 2026-09-20
 ---
 
 # L14 · 上下文文件：你怎么给它下规矩
@@ -80,9 +80,10 @@ hermes chat -q "你在当前项目里读到了什么规则？一句话说"
 
 ### 安全扫描
 
-所有上下文文件在进入系统提示前会过一遍威胁模式扫描：匹配到提示注入 / promptware 的片段
-会被替换成 `[BLOCKED: ...]` 占位符 —— 是**内容**被拦，不是整个文件被拦，
-所以文件其余部分照常加载。[[src:context-files]]
+上下文文件在进入系统提示前会过一遍威胁模式扫描：命中提示注入 / promptware 时**整个文件**被顶掉，
+内容一条都不进系统提示 —— `/context` 里显示成 `[BLOCKED: … Content not loaded.]`，
+而不是「文件照常加载、只把可疑那句话换掉」。换句话说，**一份被污染的规则文件会整份失效**，
+不是只损失那一行。[[src:context-files]]
 
 ### `@` 引用：把内容精确塞进「这一条消息」
 
