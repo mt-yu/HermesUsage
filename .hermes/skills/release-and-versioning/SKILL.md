@@ -21,7 +21,7 @@ metadata:
 
 | 动词 | 干什么 |
 |---|---|
-| `notes --tag <tag>` | 按「上一个 tag..这个 tag」的提交、按前缀分类，渲染发布说明（离线） |
+| `notes --tag <tag>` | 按「上一个 tag..这个 tag」的提交、按前缀分类，渲染发布说明（离线；**本地得先有那个 tag**，否则报「未知 tag」，所以想预览就先 `git tag -a` 再推） |
 | `changelog [--write [--assume-tag T] \| --check]` | 生成 / 校验 `CHANGELOG.md` |
 | `artifact --tag <tag>` | 打包**确定性** zip + `SHA256SUMS` + 构建回执（落 `dist/`，不进 git） |
 | `create --tag <tag>` | 幂等建/更新 release：草稿 → 传资产 → 转正 → 读回核验 |
@@ -36,8 +36,10 @@ python scripts/check.py                                          # ① 全绿才
 python scripts/journal.py commit --kind stage --title "阶段X 完成"  # ② 归档
 python scripts/release.py changelog --write --assume-tag v3.5-x   # ③ 本版那一节先写进 CHANGELOG
 git commit -am "changelog: 收进 v3.5-x 这一节"                      #    ← 前缀必须是 changelog:
-git tag -a v3.5-x -m "<release 标题的副题>" && git push origin v3.5-x   # ④ 打注释 tag、推 tag
-git push origin main                                             # ⑤ 再推 main（它的 CI 也要看得到 tag）
+git tag -a v3.5-x -m "<release 标题的副题>"                           # ④ 打注释 tag（先本地建：`notes` 要用它）
+python scripts/release.py notes --tag v3.5-x                      #    预览发布说明（离线），不满意就删 tag 重打（没推之前删是安全的）
+python scripts/release.py create --tag v3.5-x --dry-run            #    预览将发出的请求（离线）
+git push origin v3.5-x && git push origin main                    # ⑤ 推 tag（CI 建 release）+ 再推 main
 python scripts/release.py audit --check                          # ⑥ 事后 0 差异
 ```
 
@@ -69,6 +71,8 @@ python scripts/release.py audit --check                          # ⑥ 事后 0 
 | 两次 `artifact` 的 zip 哈希不同 | 没走 `zip_dir`（条目顺序 / `date_time=(1980,1,1,0,0,0)` / Unix `create_system`），或用了系统 `zip` | 只用 `release.py artifact`；用 `--out A` / `--out B` 两次比 sha256 自证 |
 | 读者 `sha256sum -c SHA256SUMS` 报 FAILED | 传的是累积清单 `dist/SHA256SUMS`（含别的版本的行） | 脚本上传的是 `dist/<tag>-SHA256SUMS`（只含本版一行） |
 | `notes` / release 正文里少了归档提交 | `journal:`、`session: 自动归档 …`、`changelog:` 是噪声，只在统计行计数 | 这是设计；想让某条提交出现在正文里就换前缀，别改脚本 |
+| `artifact` 跑完，`dist/<tag>-SHA256SUMS` 却**不存在**，看着像构建失败 | 那个「只含本版一行」的清单是 **`create`（上传）那一步才写**的（`release.py` 的 `upload_files`）；`artifact` 只写 zip + `<tag>-build.json` + **累积**的 `dist/SHA256SUMS`（audit 用来比哈希） | 本地验哈希看 `dist/SHA256SUMS` 里那一行或 `build.json` 的 `sha256`；要拿到那 100 字节的单版本清单就跑 `create`（或从远端 release 下回来 `sha256sum -c`） |
+| `artifact --out` 传了 MSYS 路径（`/tmp/…`、`$TMPDIR/…`）后又「找不到文件」 | 落盘的是**原生** Python，`/tmp` 这类路径它当盘符相对路径解释，写到别处去了 | 给 `--out` 传原生路径（`C:/Users/<你>/…`）；同理 `git -C` / `node` 的参数也不能用 MSYS 路径 |
 
 ## 环境事实
 
