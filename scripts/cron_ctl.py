@@ -112,7 +112,8 @@ JOBS: tuple[Job, ...] = (
         script="scripts/drift_watch.py",
         args=("--quiet",),
         shim="hu-drift.py",
-        note="每天 09:00：官方文档漂移了就开 issue；无漂移时零输出（不打扰）",
+        note="每天 09:00：上游发了比基线更新的 release 就开 issue；"
+             "基线写在 sources/registry.yaml 的 # baseline-release:，没有新 release 时零输出（不打扰）",
     ),
     Job(
         slug="links",

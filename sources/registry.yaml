@@ -9,6 +9,12 @@
 #
 # 校验：python scripts/sync_sources.py --check   （发现官方文档漂移）
 #       python scripts/verify.py                 （发现课程里悬空的引用 id）
+#
+# 快照基线：本仓库的快照取自主机安装树（跟踪 main），**不等于**任何单个 release 的文档 ——
+# 实测 95 页里有 48 页比 v2026.9.14 的文档多出正文。所以下面这行记的是「复核时上游最新
+# release 是哪个」，由 scripts/release_probe.py 读取：它一出现更新的 release，哨兵就会响，
+# 提醒你按 ROADMAP「官方文档漂移复核」的流程走一遍（复核完记得把它改成新的 release）。
+# baseline-release: v2026.9.14
 
 getting-started:
   quickstart: getting-started/quickstart.md

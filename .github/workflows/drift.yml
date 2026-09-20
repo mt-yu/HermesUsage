@@ -1,14 +1,18 @@
 name: drift
 
-# 官方文档漂移哨兵 —— CI 版。
+# 文档漂移哨兵 —— CI 版。
 #
-# 为什么需要它：scripts/drift_watch.py 是拿「本机装的 Hermes 源码里的 website/docs」
-# 跟我们的快照比哈希；CI 里没有 Hermes 安装，那条路跑不起来（退出码 2）。
-# 所以这里先把**上游** docs 仓库按默认分支稀疏克隆下来当“官方文档”，
-# 再把同一个哨兵原样交给它 —— 不新增脚本，行为与本地那份完全一致。
+# 课程的判据是「读者装得到的那个 release」，所以哨兵只问一句：
+# **上游有没有发比基线更新的 release？**（scripts/release_probe.py 的 watch 模式）
+# 有 → 开一条 issue 提醒做复核；没有 → 安静。
 #
-# 有漂移 → 开一条 issue（标题前缀去重，不会每次刷屏）；漂移**不算失败**，
-# 只有「检查本身跑不起来」才让这次运行变红。每天 09:00（北京）跑一次。
+# 为什么不再比「上游 main 的 docs」：main 永远领先于最新 release，那种比法每天都会报
+# 几十页漂移，而 2026-09-20 逐页定版后「课程写错了」的是 0 条 —— 那是噪音不是信号。
+# 结论与判据见 ROADMAP「官方文档漂移复核（2026-09-20 第二次）」。
+#
+# 基线写在 sources/registry.yaml 顶部的 `# baseline-release:`；复核完记得更新它。
+# 有新 release → 开一条 issue（标题前缀去重，不会每天刷屏）；只有「检查本身跑不起来」
+# 才让这次运行变红。每天 09:00（北京）跑一次。
 
 on:
   schedule:
@@ -32,26 +36,17 @@ jobs:
 
       - run: python -m pip install -r requirements.txt
 
-      - name: 取上游官方文档（浅克隆 + 稀疏，只拿 website/docs）
-        run: |
-          git clone --depth 1 --filter=blob:none --sparse \
-            https://github.com/NousResearch/hermes-agent.git "$RUNNER_TEMP/hermes-agent"
-          git -C "$RUNNER_TEMP/hermes-agent" sparse-checkout set website/docs
-          echo "上游 docs 提交：$(git -C "$RUNNER_TEMP/hermes-agent" rev-parse HEAD)"
-          ls "$RUNNER_TEMP/hermes-agent/website/docs" | head -5
-
-      - name: 跑漂移哨兵（有漂移就开 issue）
+      - name: 跑漂移哨兵（有新 release 就开 issue）
         env:
-          HERMES_AGENT_HOME: ${{ runner.temp }}/hermes-agent
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          python scripts/drift_watch.py
+          python scripts/drift_watch.py --source release
           code=$?
           set -e
           case "$code" in
-            0) echo "::notice::无漂移 —— 快照仍与官方文档一致" ;;
-            1) echo "::warning::检测到漂移（issue 已新建或已存在同前缀 issue）" ;;
-            *) echo "::error::漂移检查本身跑不起来（退出码 $code）：先看上面 sync_sources 的输出"; exit "$code" ;;
+            0) echo "::notice::无需行动 —— 本仓库基线仍是最新 release" ;;
+            1) echo "::warning::上游有新 release（issue 已新建或已存在同前缀 issue）" ;;
+            *) echo "::error::哨兵本身跑不起来（退出码 $code）：先看上面 release_probe 的输出"; exit "$code" ;;
           esac
-          echo "漂移哨兵退出码：$code（0=无漂移 1=有漂移）"
+          echo "哨兵退出码：$code（0=无需行动 1=该复核了）"

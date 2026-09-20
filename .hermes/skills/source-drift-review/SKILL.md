@@ -80,7 +80,12 @@ git -C hermes-docs-probe rev-parse HEAD      # 记下这个 sha，写进 ROADMAP
 curl -s --noproxy '*' --max-time 60 \
   https://raw.githubusercontent.com/NousResearch/hermes-agent/v2026.9.14/hermes_cli/config_defaults.py \
   | grep -n 'failure_repeat_alert_hours'     # 0 命中 = release 里没有 → 按「未发布」登记
-# 文档侧同理：release tag 的文档 == 我们的快照，直接 grep sources/cache/<id>.md 里那句话在不在
+# 文档侧同理：**别拿快照当 release 文档** —— 快照取自主机安装树（跟踪 main），实测 95 页里
+# 有 48 页比 v2026.9.14 的文档多出正文。要比 release 的文档就按 tag 取那一页：
+#   curl -s --noproxy '*' --max-time 60 \
+#     https://raw.githubusercontent.com/NousResearch/hermes-agent/v2026.9.14/website/docs/<rel> \
+#     | diff - sources/cache/<id>.md
+#   （`python scripts/release_probe.py --docs` 会一次性把 95 页全比一遍）
 
 cd "$LOCALAPPDATA/hermes/hermes-agent"      # 本机安装树（先按第 1 步确认它跟的是 release 还是 main）
 # ① 存在性：有没有这个常量/键（0 命中 = 未发布）

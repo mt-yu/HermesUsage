@@ -141,7 +141,7 @@ class TestDryRunSafety(unittest.TestCase):
 
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            rc = dw.main(["--dry-run"])
+            rc = dw.main(["--source", "tree", "--dry-run"])
         out = buf.getvalue()
         self.assertEqual(rc, 1)
         self.assertIn(dw.ISSUE_PREFIX, out)
@@ -154,7 +154,7 @@ class TestDryRunSafety(unittest.TestCase):
 
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            dw.main(["--dry-run", "--json"])
+            dw.main(["--source", "tree", "--dry-run", "--json"])
         payload = json.loads(buf.getvalue())
         self.assertEqual(payload["action"], "dry-run")
         self.assertTrue(payload["has_drift"])
@@ -193,7 +193,7 @@ class TestIssueFlow(unittest.TestCase):
         return rc, buf.getvalue()
 
     def test_creates_issue_when_none_exists(self):
-        rc, out = self._run(["--json"])
+        rc, out = self._run(["--source", "tree", "--json"])
         payload = json.loads(out)
         self.assertEqual(rc, 1)
         self.assertEqual(payload["action"], "created")
@@ -208,7 +208,7 @@ class TestIssueFlow(unittest.TestCase):
             "title": dw.ISSUE_PREFIX + "旧的一条",
             "html_url": "https://github.com/mt-yu/HermesUsage/issues/9",
         }]
-        rc, out = self._run(["--json"])
+        rc, out = self._run(["--source", "tree", "--json"])
         payload = json.loads(out)
         self.assertEqual(rc, 1)
         self.assertEqual(payload["action"], "skipped-existing")
@@ -223,8 +223,78 @@ class TestIssueFlow(unittest.TestCase):
             "html_url": "https://github.com/mt-yu/HermesUsage/pull/11",
             "pull_request": {"url": "https://api.github.com/repos/mt-yu/HermesUsage/pulls/11"},
         }]
-        rc, out = self._run(["--json"])
+        rc, out = self._run(["--source", "tree", "--json"])
         self.assertEqual(json.loads(out)["action"], "created")
+
+
+class TestReleaseSource(unittest.TestCase):
+    """默认来源：只看「上游有没有发比基线更新的 release」——不发请求就该有结论。
+
+    这是现在 cron / CI 每天跑的路径：安静（没有新 release）是它的正常状态。
+    """
+
+    def setUp(self):
+        self._saved = (dw.release_watch, dw.get_token, dw._api, dw._git_remote)
+        dw.get_token = lambda: None          # 没令牌也不该崩：只打印正文
+        dw._git_remote = lambda: "https://github.com/mt-yu/HermesUsage.git"
+        dw._api = lambda *a, **k: (200, [])
+
+    def tearDown(self):
+        dw.release_watch, dw.get_token, dw._api, dw._git_remote = self._saved
+
+    def _fake(self, baseline, latest, has_new):
+        return {"baseline": baseline, "latest": latest, "has_new_release": has_new, "note": ""}
+
+    def _run(self, argv):
+        import contextlib
+        import io
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = dw.main(argv)
+        return rc, buf.getvalue()
+
+    def test_no_new_release_is_quiet_and_exit_0(self):
+        dw.release_watch = lambda baseline=None: self._fake("v2026.9.14", "v2026.9.14", False)
+        rc, out = self._run(["--quiet"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(out, "")
+
+    def test_no_new_release_says_so_when_not_quiet(self):
+        dw.release_watch = lambda baseline=None: self._fake("v2026.9.14", "v2026.9.14", False)
+        rc, out = self._run([])
+        self.assertEqual(rc, 0)
+        self.assertIn("v2026.9.14", out)
+
+    def test_new_release_reports_and_keeps_prefix(self):
+        dw.release_watch = lambda baseline=None: self._fake("v2026.9.14", "v2026.10.1", True)
+        rc, out = self._run(["--quiet"])
+        self.assertEqual(rc, 1)
+        self.assertIn("v2026.10.1", out)
+        self.assertIn("baseline-release", out)
+
+    def test_new_release_json_shape(self):
+        dw.release_watch = lambda baseline=None: self._fake("v2026.9.14", "v2026.10.1", True)
+        rc, out = self._run(["--json"])
+        payload = json.loads(out)
+        self.assertEqual(payload["source"], "release")
+        self.assertTrue(payload["has_drift"])
+        self.assertTrue(payload["title"].startswith(dw.ISSUE_PREFIX))
+        self.assertIn("v2026.10.1", payload["title"])
+
+    def test_watch_failure_is_exit_2_not_silence(self):
+        def boom(baseline=None):
+            raise RuntimeError("解析不出上游最新的 release tag")
+
+        dw.release_watch = boom
+        import contextlib
+        import io
+
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = dw.main([])
+        self.assertEqual(rc, 2)
+        self.assertIn("跑不起来", err.getvalue())
 
 
 if __name__ == "__main__":
@@ -239,5 +309,5 @@ class TestQuiet(unittest.TestCase):
 
     def test_non_quiet_mentions_no_drift(self):
         msg = dw.no_drift_message(False)
-        self.assertIn("无漂移", msg)
+        self.assertIn("无需行动", msg)
         self.assertIn("不开 issue", msg)

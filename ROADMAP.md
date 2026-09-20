@@ -142,14 +142,14 @@ python scripts/progress.py next   # 下一课学什么
 
 - [x] 把带「官方文档表述（未本机实测）」说明的段落补全 —— 已完成，见 v1.4（L44 的 API Server 段已本机复现）
 - [x] 给 `sources/registry.yaml` 补登记 `browser` / `web-search` —— 已完成，见 v1.4（出处 89 → 91）
-> **常驻流程（不是待办）**：官方文档漂移后跑 `python scripts/sync_sources.py`，并复核受影响课程的表述；
-> 漂移检测已自动化两处：本机 cron 的「漂移哨兵」（`scripts/drift_watch.py`，比的是**本机装的**
-> Hermes 源码）+ CI 的 `.github/workflows/drift.yml`（每天 09:00，稀疏克隆**上游** docs 再比快照哈希，
-> 有漂移就开 issue，标题前缀去重）。**2026-09-16 首次运行即发现 37 页正文已变**（基线 `05fac10a`
-> → 上游 `816cb379`），见 issue #1 —— **2026-09-17 完成首次人工复核并关闭该 issue**（复核时上游已走到
-> `36842e63`：39 页 / 486 增 94 删）。**2026-09-18 CI 又开了 issue #2（45 项）—— 2026-09-20 完成第二次
-> 复核并关闭**，结论见下一小节：86 页漂移里只有 1 处该改课程，其余 14 条是「上游已写、release 里还没有」，
-> 按规矩只登记。
+> **常驻流程（不是待办）**：官方文档变了就跑 `python scripts/sync_sources.py` 刷新快照，并复核受影响课程的表述；
+> **判据是「读者装得到的那个 release」**（见下面两小节）。哨兵（本机 cron + CI 的 `.github/workflows/drift.yml`）
+> **2026-09-20 换过判据**：以前比「上游/本机 main 的 docs vs 快照」—— main 永远领先于最新 release，
+> 所以天天报几十页；现在只问一句 **「上游有没有发比基线更新的 release？」**
+> （`scripts/release_probe.py` 的 watch 模式；基线写在 `sources/registry.yaml` 的 `# baseline-release:`）。
+> 历史：**2026-09-16 首次运行即发现 37 页正文已变**（基线 `05fac10a` → 上游 `816cb379`），见 issue #1，
+> **2026-09-17 首次复核并关闭**（上游已走到 `36842e63`：39 页 / 486 增 94 删）；**2026-09-18 CI 又开
+> issue #2（45 项），2026-09-20 第二次复核并关闭** —— 结论见下一小节：86 页漂移里只有 1 处该改课程。
 
 ### 官方文档漂移复核（2026-09-17 首次，issue #1 已关闭）
 
@@ -210,13 +210,37 @@ python scripts/progress.py next   # 下一课学什么
 > `source-drift-review` 技能：**先确认本机跟的是 release 还是 main，再决定判据**。
 
 **为什么这次不重刷快照**：`sync_sources.py` 读的是本机安装树（现在是 main），刷下去会把「未发布」的
-文档内容变成课程出处，直接违反 R3（读者要能反查到**自己装得到的**版本）。所以基线继续钉在 release 态
-（`05fac10a` / hermes v0.21.3），等下一个 release 出来再一次性刷快照 + 改课。代价是漂移哨兵会继续报
-（本地哨兵比「本机 main vs 快照」，CI 哨兵比「上游 main vs 快照」）—— 这是设计，不是坏掉；
-见到 issue 时按本节的判据重跑一遍即可。
+文档内容变成课程出处，直接违反 R3（读者要能反查到**自己装得到的**版本）。所以基线继续钉在
+`05fac10a` / hermes v0.21.3，等下一个 release 出来再一次性刷快照 + 改课。
+（哨兵已于同日换成 release 判据 —— 见下面的「这次还发现一个更重要的事实」，所以它不会再天天刷屏。）
 
-**诚实边界**：定版粒度是「页面级 + 与本课相关的那几句」，不是逐句；59 页里 8 页无课程引用，只做了
-「是否与课程有关」的扫描；第 13/14 条是措辞与示例，未逐句定版；release 探针只比了 `v2026.9.14`
+**这次还发现一个更重要的事实**：本仓库的快照（`05fac10a`，2026-09-15）是**跟踪 main 的一次提交，
+比 `v2026.9.14` 这个 release 还新** —— 与 release tag 的文档逐页比，**95 页里有 48 页不同，
+且都是快照那边多出来的正文**（`session-storage` 的家目录隔离一节、`cli` 的 `skills.auto_load` 一节、
+`toolsets-reference` 的 `connections` 行…，见 `python scripts/release_probe.py --docs`）。
+也就是说 **「快照 == 读者装得到的那个 release」这个假设从来不成立**；`.hermes.md` 原来写的
+「出处快照基线：hermes v0.21.3，文档提交 05fac10a」把它当成了 release 的文档，是错的（已改）。
+判据因此拆成两条互不替代的问题：
+
+| 问题 | 判据 | 工具 |
+|---|---|---|
+| 这句话该不该进课程？ | 那个行为在**最新 release** 的源码/文档里有没有 | 按 tag grep（`curl raw.githubusercontent.com/…/v<tag>/<path>`） |
+| 快照该不该刷、该不该复核？ | 上游有没有发**比基线更新的 release** | `python scripts/release_probe.py`（watch 模式） |
+
+**落地的四处改动**（都用单测钉住了）：
+- 新增 `scripts/release_probe.py`：`--watch` 只做一次 `git ls-remote --tags`（便宜、可每天跑），
+  `--docs` 逐页抓 release 的文档比哈希；基线名从 `sources/registry.yaml` 的 `# baseline-release:` 读。
+- `scripts/drift_watch.py` 的默认来源从「比 docs 目录」改成「比 release」（`--source tree` 留作调试），
+  于是 cron 与 CI 只有在**上游真发新版**时才响；
+- `.github/workflows/drift.yml` 不再稀疏克隆上游 docs（少一个失败面），只跑一次 release 比对；
+- 基线的 release 名进了 `sources/registry.yaml`（`# baseline-release: v2026.9.14`），复核完要一起更新。
+
+**这次踩到的另一个坑（已修）**：`git ls-remote` 会走本机 git 配置里那个常挂的代理
+（`http.proxy=127.0.0.1:7897`）—— 代理端口开着但不响应，于是哨兵随机报「跑不起来」。
+`release_probe.py` 现在显式 `git -c http.proxy= -c https.proxy=` 并带重试（连跑三次 0 退出）。
+
+**诚实边界（这一批的）**：定版粒度是「页面级 + 与本课相关的那几句」，不是逐句；59 页里 8 页无课程引用，
+只做了「是否与课程有关」的扫描；第 13/14 条是措辞与示例，未逐句定版；release 探针只比了 `v2026.9.14`
 这一个 tag，**没有追溯每条改动的引入时间**（所以「未发布」= 「这个 tag 里没有」，不等于「下个 release 一定有」）。
 
 **重放方法**：① `hermes --version` 看本机跟踪的是 release 还是 main；② 逐页按 LF 归一化算 `sha256`
@@ -234,11 +258,22 @@ python scripts/progress.py next   # 下一课学什么
 
 ## 维护待办（系统层）
 
+- [ ] **审计：课程里有没有引用「release 里还没有的行为」**（2026-09-20 发现快照领先 release 48/95 页的后果）。
+      方法与起点：`python scripts/release_probe.py --docs` 列出「快照 != release 文档」的页
+      （本批 48 页），与 `lessons/` 里的 `[[src:id]]` 取交集 → 对交集里的页按 tag 取原文 diff
+      （`curl -s --noproxy '*' https://raw.githubusercontent.com/NousResearch/hermes-agent/v<tag>/website/docs/<rel> | diff - sources/cache/<id>.md`）
+      → **只定版课程实际引用的那几句**：release 里没有这句/行为不同 → 改课程；
+      只是快照多讲了一节、课程没引用 → 登记。做完把结论写进本节并给 `updated` 打新日期。
+      **注意**：这是「查课程有没有超前」，与上面那次「查课程有没有过时」是两件事，别混成一次跑。
 - [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
 - [x] journal 自动归档 —— 已完成，见 v1.5；cron 任务 `c2e058a277da` 每小时跑，**实测 17:00 真的自动提交了一条**（前提是网关在跑，见「需要人工决策」）
 - [x] 用 SVG 替换 README 的 ASCII 路线图 —— 已完成：`scripts/build_roadmap_svg.py` 从课程 frontmatter 生成
   `docs/roadmap.svg`（1200×1518 / 22859 字节 / 纯标准库 / 字节可重现），已接进 `check.py`（第 6 项）与 19 条单测。
   **不装 Graphviz**：手绘感用确定性几何实现，零新增依赖
+- [x] 哨兵判据换成 release —— 已完成（2026-09-20）：新增 `scripts/release_probe.py`（watch/docs 两模式，
+  19 条单测），`drift_watch.py` 默认改走它，CI 的 `drift.yml` 不再克隆上游 docs；基线名在
+  `sources/registry.yaml` 的 `# baseline-release:`。**实测**：`drift_watch.py --quiet` 零输出退出 0
+  （上游没有更新的 release → 不打扰），模拟「基线 v2026.8.1」时退出 1 并打印复核四步。
 
 ## 站点（前端）
 
@@ -265,10 +300,11 @@ python scripts/check.py          # 全量检查，含站点构建自检与站内
 
 ---
 
-## 下一阶段路线图（v1.2 → v3.1）
+## 阶段路线图（v1.2 → v3.5，全部完成）
 
-现状（2026-09-18 实测）：内容 41 课全部就绪、门禁 12 条 + `check.py` 七项（含「变更日志同步」）、
-CI 与 Pages 双绿、发布体系落地（14 个 tag 各有 release，页脚显示当前版本）、站点已公开。
+现状（2026-09-20 实测）：内容 **41 课**全部就绪、门禁 12 条 + `check.py` 七项（含「变更日志同步」）、
+CI / Docker / Pages 三绿、发布体系落地（**15 个 tag 各有 release**，最新 `v3.5-release` 不可变、
+页脚显示当前版本）、站点已公开、漂移哨兵判据换成「上游有没有新 release」。
 下面各条**都必须能用一条命令验收**，否则不许进这个列表。
 
 ### v1.2 · 让公开站点能被搜到、能被分享（约半天，优先做）

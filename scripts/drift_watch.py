@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""scripts/drift_watch.py —— 官方文档漂移哨兵：漂了就开一个 GitHub issue。
+"""scripts/drift_watch.py —— 文档漂移哨兵：该复核了就开一个 GitHub issue。
 
 为什么存在
 ----------
-scripts/sync_sources.py --check 会告诉你"官方文档和本仓库快照对不上了"，
-但它是**只在有人想起来跑的时候**才有用：一份没人读的退出码等于没有。
-本脚本把它接到可见的地方 —— 仓库的 issue 列表：
+课程的判据是**读者装得到的那个 release**（见 ROADMAP「官方文档漂移复核（2026-09-20 第二次）」），
+所以哨兵要问的不是「哈希一样吗」，而是**上游是不是发了比基线更新的 release**：
 
-  sync_sources.py --check  →  parse_drift()  →  GitHub issue
+  release_probe.watch()  →  GitHub issue（标题前缀去重）
 
-这样漂移从"下次谁跑谁发现"变成"每周自动出现一条待办"。issue 是去重的
-（标题前缀 官方文档漂移：），所以不会每次定时任务都刷一条新 issue。
+两种来源：
+  * `--source release`（**默认**）：只做一次 `git ls-remote --tags`，比较
+    `sources/registry.yaml` 顶部的 `# baseline-release:` 与上游最新 release。便宜、安静，
+    **只有真的发新版才响** —— 这正是「该复核了」的那一刻。
+  * `--source tree`（调试用）：老的比法 —— 跑 `sync_sources.py --check`，比手上那个 docs 目录
+    （本机安装树 / 上游 main）与快照。本机跟踪 main 时它**永远**报漂移（实测 86 页里
+    「课程写错了」的是 0 条），所以不再当默认。
 
 怎么跑
 ------
   python scripts/drift_watch.py --dry-run     # 只打印会开什么 issue，绝不发请求
-  python scripts/drift_watch.py               # 漂移就开 issue（无漂移则什么都不做）
+  python scripts/drift_watch.py               # 需要行动就开 issue（没问题则什么都不做）
   python scripts/drift_watch.py --json        # 机器可读结果
 
 令牌
@@ -27,14 +31,14 @@ Manager，scope 含 repo）。**令牌是敏感值：不打印、不写文件、
 
 退出码
 ------
-  0   无漂移
-  1   有漂移（无论 issue 是新建、已存在被跳过、还是没令牌只打印）
-  2   漂移检查本身跑不起来（sync_sources.py 找不到官方文档源码目录等）
+  0   无需行动（没有新 release / 没有漂移）
+  1   需要行动（无论 issue 是新建、已存在被跳过、还是没令牌只打印）
+  2   检查本身跑不起来（解析不出上游 tag / sync_sources.py 找不到官方文档源码目录等）
 
 已知限制
 --------
-  * 只认 sync_sources.py --check 的那三种行（`~ id old -> new` / `新增未登记快照` /
-    `路径失效`）。上游改输出格式时 parse_drift 会静默返回空 → 哨兵哑火，
+  * `--source tree` 只认 sync_sources.py --check 的那三种行（`~ id old -> new` /
+    `新增未登记快照` / `路径失效`）。上游改输出格式时 parse_drift 会静默返回空 → 哨兵哑火，
     所以 tests/test_drift_watch.py 用真实输出样本钉住格式。
   * 去重只按标题前缀，同一批漂移反复出现（比如上游长期不修）不会重复开 issue，
     但也意味着**不会提醒你"这条还挂着"** —— superseded 的旧 issue 需要人工关。
@@ -56,6 +60,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SYNC = REPO / "scripts" / "sync_sources.py"
+
+# 同目录的 release_probe：哨兵默认走它（比「上游有没有新 release」）
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import release_probe as RP  # noqa: E402
 
 ISSUE_PREFIX = "官方文档漂移："
 API = "https://api.github.com"
@@ -244,6 +252,32 @@ def create_issue(repo: str, token: str, title: str, body: str) -> dict:
     return created
 
 
+# --------------------------------------------------------------------------- 来源一：最新 release
+
+def release_watch(baseline: str | None = None) -> dict:
+    """上游有没有比基线更新的 release —— 转手 release_probe.watch()（只一次 ls-remote）。"""
+    return RP.watch(baseline=baseline)
+
+
+def release_issue_title(result: dict) -> str:
+    latest = result.get("latest") or "?"
+    base = result.get("baseline") or "（未写基线）"
+    return f"{ISSUE_PREFIX}上游发了新 release：{latest}（本仓库基线 {base}）"
+
+
+def release_issue_body(result: dict) -> str:
+    return f"""课程的判据是「读者装得到的那个 release」。本仓库基线是 `{result.get('baseline') or '（未写）'}`，
+上游已经发了 `{result.get('latest')}` —— 该做一次官方文档漂移复核了。
+
+> 自动生成，由 `scripts/drift_watch.py --source release` 创建。本 issue 只做提醒，处理完请手动关闭。
+
+{RP.render_watch(result)}
+
+---
+由 `scripts/drift_watch.py` 生成；标题前缀用于去重，改动时勿去掉 `{ISSUE_PREFIX}`。
+"""
+
+
 # --------------------------------------------------------------------------- 主流程
 
 def no_drift_message(quiet: bool) -> str:
@@ -254,34 +288,52 @@ def no_drift_message(quiet: bool) -> str:
     """
     if quiet:
         return ""
-    return "漂移哨兵：无漂移（sync_sources.py --check 无变化），不开 issue。"
+    return "漂移哨兵：无需行动（没有新 release，快照基线仍然有效），不开 issue。"
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="文档漂移哨兵：sync_sources --check + GitHub issue")
+    ap = argparse.ArgumentParser(description="文档漂移哨兵：有新 release（或漂移）就开 GitHub issue")
+    ap.add_argument("--source", choices=("release", "tree"), default="release",
+                    help="release=只看上游有没有新 release（默认）；tree=比手上那个 docs 目录（调试用）")
     ap.add_argument("--dry-run", action="store_true", help="只打印会做什么与 issue 内容，绝不发请求")
     ap.add_argument("--json", action="store_true", help="只输出 JSON")
     ap.add_argument("--quiet", action="store_true",
-                    help="静默：无漂移时不输出任何内容（给 cron 的 --no-agent 模式用，空输出=不投递）")
+                    help="静默：无需行动时不输出任何内容（给 cron 的 --no-agent 模式用，空输出=不投递）")
     args = ap.parse_args(argv)
 
-    rc, out, err = run_check()
-    if "漂移检查" not in out:
-        msg = "漂移检查本身没跑起来（sync_sources.py --check 没有输出预期内容）"
-        print(f"{msg}\n退出码 {rc}\nstderr:\n{err.strip()[:2000]}", file=sys.stderr)
-        return 2
+    if args.source == "release":
+        try:
+            watch_result = release_watch()
+        except RuntimeError as e:
+            print(f"release 哨兵跑不起来：{e}", file=sys.stderr)
+            return 2
+        needs_action = bool(watch_result.get("has_new_release"))
+        title = release_issue_title(watch_result)
+        body = release_issue_body(watch_result)
+        no_action_msg = (f"漂移哨兵：无需行动 —— 上游最新 release 仍是 {watch_result.get('latest')}"
+                         f"（本仓库基线 {watch_result.get('baseline') or '（未写）'}），不开 issue。")
+        result = {"source": "release", "watch": watch_result, "title": title,
+                  "has_drift": needs_action, "action": "none"}
+    else:
+        rc, out, err = run_check()
+        if "漂移检查" not in out:
+            msg = "漂移检查本身没跑起来（sync_sources.py --check 没有输出预期内容）"
+            print(f"{msg}\n退出码 {rc}\nstderr:\n{err.strip()[:2000]}", file=sys.stderr)
+            return 2
+        drift = parse_drift(out)
+        needs_action = has_drift(drift)
+        title = issue_title(drift)
+        body = issue_body(drift)
+        no_action_msg = None
+        result = {"source": "tree", "drift": drift, "title": title,
+                  "has_drift": needs_action, "action": "none"}
 
-    drift = parse_drift(out)
-    title = issue_title(drift)
-    body = issue_body(drift)
-    result = {"drift": drift, "title": title, "has_drift": has_drift(drift), "action": "none"}
-
-    if not has_drift(drift):
+    if not needs_action:
         result["action"] = "no-drift"
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
-            msg = no_drift_message(args.quiet)
+            msg = "" if args.quiet else (no_action_msg or no_drift_message(False))
             if msg:
                 print(msg)
         return 0
