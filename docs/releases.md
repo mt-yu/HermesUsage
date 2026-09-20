@@ -54,12 +54,12 @@ semver 形式，也不用日期。
 
 打 tag 之前，工作区必须是干净的，且 `python scripts/check.py` 退出 0（见下节第 1 步）。
 
-**当前 14 个 tag**（`git tag -l` 可直接列出）：
+**当前 15 个 tag**（`git tag -l` 可直接列出）：
 
 ```
 v0.2-orient  v0.3-core  v1.0-tutorial  v1.1-web  v1.2-seo  v1.3-site  v1.4-content
 v1.5-auto    v2.0-deliverable  v2.1-ops  v3.0-cases  v3.1-ui  v3.3-topbar
-v3.4-release
+v3.4-release  v3.5-release
 ```
 
 **远端的 tag 必须与本地一致**：`git ls-remote --tags origin` 里多出任何一个名字（哪怕长得像
@@ -434,5 +434,5 @@ gh release verify-asset <tag> <文件路径>  # 确认本地文件与 release �
 | **`audit` 说某个 tag「缺 release」，但你在网页上明明见过它** | 那次发布**只建了草稿、没转正**（或转正后 `tag_name` 仍是占位名）。草稿既不在 `GET /releases` 里（公开视角），也不能用 `GET /releases/tags/<tag>` 找到 —— 只能用**带令牌**的 `GET /releases` 列表看 | `audit` 已把「只有草稿」单独标出来并给出 id；删掉重跑 `create` 即可（脚本现在会自动沿用旧草稿、发布成功后清掉多余草稿） |
 | 上传中途 TLS 断（`SSL: UNEXPECTED_EOF_WHILE_READING` / `远程主机强迫关闭了一个现有的连接`），重跑会不会残留垃圾 | 不会：`create` 在**建完草稿后任何一步失败**都会当场回滚自己刚建的那条草稿，并在输出里写「已删除本次新建的草稿（失败回滚）」 | 直接重跑同一条命令；本机 TLS 常抖，重跑两三次是常态（实测 v3.4-release 第一次就是抖掉的） |
 | `create` 报 `422 Latest release cannot be draft or prerelease.` | 给**草稿**发了 `make_latest`（GitHub 不允许草稿/prerelease 当 latest） | 脚本已把它挪到「转正」那一步（`publish_payload`），你不需要手动处理；自己写脚本时注意这条 |
-| 远端多出一个像 `untagged-e51889b73d0a…` 的 tag，CI 的 `changelog --check` 因此变红 | 那是「草稿被转正但 `tag_name` 没关联上」时 GitHub 建的占位 tag（转正时显式带上 `tag_name` 已能避免） | `git push origin --delete untagged-…` 删掉它，然后重跑同一次工作流；`git ls-remote --tags origin` 应与本地 14 个 tag 一致 |
+| 远端多出一个像 `untagged-e51889b73d0a…` 的 tag，CI 的 `changelog --check` 因此变红 | 那是「草稿被转正但 `tag_name` 没关联上」时 GitHub 建的占位 tag（转正时显式带上 `tag_name` 已能避免） | `git push origin --delete untagged-…` 删掉它，然后重跑同一次工作流；`git ls-remote --tags origin` 应与本地**全部** tag 一致 |
 | 打完 tag 后 `changelog --check` 报「首个不同行在 `## [未发布]` 附近」 | 打 tag 前没跑 `changelog --write --assume-tag <tag>`；或者那次提交的前缀不是 `changelog:` | 按「发布流程」第 3 步重来：`--write --assume-tag` → 用 `changelog:` 前缀提交 → 再打 tag |
