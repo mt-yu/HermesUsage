@@ -7,7 +7,7 @@ minutes: 10
 prereq: []
 tags: [心智模型, agent-loop, 自我改进, 多外壳]
 sources: [feat-overview, quickstart, arch]
-updated: 2026-09-16
+updated: 2026-09-20
 ---
 
 # L00 · Hermes 是什么：三个心智模型
@@ -25,7 +25,8 @@ updated: 2026-09-16
 
 ## 先动手
 
-打开终端（Windows 用 Git Bash），跑这两条：
+打开终端：**Windows 用 Git Bash**（开始菜单搜 `Git Bash`），macOS / Linux 用系统终端。
+本教程所有命令都是 bash 语法，PowerShell / cmd 里跑不了 —— 第 1 条常见坑就是这种报错。
 
 ```bash
 hermes --version
@@ -40,6 +41,27 @@ Install directory: C:\Users\28189\AppData\Local\hermes\hermes-agent
 Install method: git
 Python: 3.11.15
 OpenAI SDK: 2.24.0
+```
+
+`hermes --help` 的开头长这样（本机 v0.21.3 共 223 行；`| head -40` 只截前 40 行 —— 这就是管道的作用）：
+
+```
+usage: hermes [-h] [--version] [-z PROMPT] [--usage-file PATH] [-m MODEL]
+              [--provider PROVIDER] [--reasoning LEVEL] [-t TOOLSETS]
+              [--resume SESSION] [--no-restore-cwd] [--in DIR]
+              [--continue [SESSION_NAME]] [--worktree] [--accept-hooks]
+              [--skills SKILLS] [--yolo] [--pass-session-id]
+              [--ignore-user-config] [--ignore-rules] [--safe-mode] [--tui]
+              [--cli] [--dev]
+              <command> ...
+
+Hermes Agent - AI assistant with tool-calling capabilities
+
+positional arguments:
+  <command>             Command to run
+    chat                Interactive chat with the agent
+    model               Select default model and provider
+    moa                 Configure Mixture of Agents provider/model slots
 ```
 
 **注意第二行**：`Install directory` 里有 `hermes-agent` 这个 git 检出。
@@ -114,6 +136,7 @@ run_conversation()
 
 ```bash
 hermes --help | grep -E "desktop|dashboard|proxy|acp|gateway|tui"
+# PowerShell 等价写法：hermes --help | Select-String "desktop|dashboard|proxy|acp|gateway|tui"
 ```
 
 预期：你会看到 `desktop`、`dashboard`、`proxy`、`acp`、`gateway` 全是**同一个
@@ -134,6 +157,7 @@ cd "$HERMES_HOME/hermes-agent" && git log -1 --format="%h %ci"
 
 | 现象 | 真实原因 | 怎么解决 |
 |---|---|---|
+| `head : 无法将“head”项识别为 cmdlet、函数、脚本文件或可运行程序的名称`（`grep`、`wc` 同理） | 在 **PowerShell / cmd** 里跑了本教程的 bash 管道 —— `head`、`grep`、`wc` 都是 Git Bash 自带的外部命令，PowerShell 里不存在 | 换到 **Git Bash** 里跑（推荐，本教程全程用 bash）；非要留在 PowerShell 就把管道换掉：`| head -40` → `| Select-Object -First 40`，`| grep -E "a|b"` → `| Select-String "a|b"` |
 | `hermes: command not found` | 安装后没重载 shell | `source ~/.bashrc`（zsh 用 `~/.zshrc`）；Windows 重开 Git Bash |
 | 以为「换到桌面 App 就是另一个产品」 | 把外壳当内核 | 记住模型三：会话/技能/记忆是共享的 |
 | 以为装很多技能会拖慢对话 | 不了解渐进式披露 | 技能只在被用到时读全文，装多了不心疼 |
@@ -142,7 +166,7 @@ cd "$HERMES_HOME/hermes-agent" && git log -1 --format="%h %ci"
 ## 试一试
 
 - [ ] 跑一遍 `hermes --version`，把版本号和你安装目录记到 `journal/` 里（后面排查问题时用得上）
-- [ ] 用 `hermes --help | wc -l` 数一下有多少子命令，找出一个你没见过的，`--help` 它
+- [ ] 跑一遍 `hermes --help`，挑一个你没见过的子命令，给它加 `--help` 看看它能做什么
 - [ ] 用自己的话说一遍「agent loop」，写进 `journal/`，然后对照本节原理检查漏了什么
 
 ## 下一步

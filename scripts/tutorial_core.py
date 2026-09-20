@@ -195,6 +195,9 @@ SECTION_RE = re.compile(r"^##\s", re.M)
 # 分隔行：|---|---| / |:--|--:|。整行都是横线，没有任何内容。
 SEP_CELL_RE = re.compile(r"^:?-+:?$")
 PITFALL_HEADER = ("现象", "真实原因", "怎么解决")
+# 闭合成对的 code span（`` `…` ``）。只有成对时才保护里面的管道：
+# 写漏一个反引号的行，宁可切错一格，也不要让整行从坑表页上消失。
+_CODE_SPAN_RE = re.compile(r"`[^`]*`")
 
 
 def pitfall_section(body: str) -> str:
@@ -213,9 +216,32 @@ def pitfall_section(body: str) -> str:
 
 
 def _table_cells(line: str) -> list[str]:
-    """一行 markdown 表格 → 单元格列表（按未转义的 `|` 切，`\\|` 不是分隔符）。"""
+    """一行 markdown 表格 → 单元格列表。
+
+    只有「不在 code span 内、且没有被反斜杠转义」的 `|` 才算分隔符：
+
+    - `` `… | …` `` 里的管道是**命令本身的一部分**（`curl … | bash`、
+      `… | Select-Object -First 40`）。Python-Markdown 渲染时会保护它，
+      这里也必须保护 —— 否则这一行会被切成 4 格以上，整行被下面的
+      `len(cells) != 3` 直接丢掉（踩过：L01 的安装命令 `` `curl … \\| bash` ``，
+      旧写法用 `\\|` 转义能保住单元格，但站点上会显示出一个多余的反斜杠，
+      读者照着复制就得到一条跑不通的命令）。
+    - `\\|` 是显式转义，继续支持（按非分隔符处理，反斜杠原样保留）。
+    - 反引号不配对（写漏了）时不保护任何管道：宁可切错一格，也不要整行消失。
+    """
     inner = line.strip().strip("|")
-    return [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
+    spans = [m.span() for m in _CODE_SPAN_RE.finditer(inner)]
+    in_code = [any(s <= i < e for s, e in spans) for i in range(len(inner))]
+    cells: list[str] = []
+    buf: list[str] = []
+    for i, ch in enumerate(inner):
+        if ch == "|" and not in_code[i] and not (i and inner[i - 1] == "\\"):
+            cells.append("".join(buf))
+            buf = []
+            continue
+        buf.append(ch)
+    cells.append("".join(buf))
+    return [c.strip() for c in cells]
 
 
 def _is_separator_row(cells: list[str]) -> bool:
@@ -225,7 +251,7 @@ def _is_separator_row(cells: list[str]) -> bool:
 def pitfall_rows(lesson: dict[str, Any]) -> list[dict[str, str]]:
     """抽取该课 `## 常见坑` 小节里所有 markdown 表格的数据行 → [{symptom, cause, fix}]。
 
-    规则（站点「常见错误合集」页全部 253 行都从这里来，所以每条都要说清）：
+    规则（站点「常见错误合集」页全部 341 行都从这里来，所以每条都要说清）：
 
     - 只在该小节内找表格；「试一试」等别的小节里的表格不算；
     - 跳过表头行（紧挨着分隔行的那行）与 `|---|---|` 分隔行 ——

@@ -259,7 +259,7 @@ class TestPitfallRows(unittest.TestCase):
     """`## 常见坑` 表格 → 行数据：站点「常见错误合集」页的唯一数据来源。
 
     这一段的解析规则要写死在解析层（而不是渲染层）：
-    页面上的 340 行全部来自这里，解析口径一变，页面上就会多出表头、
+    页面上的 341 行全部来自这里，解析口径一变，页面上就会多出表头、
     少掉整张表，而那种错在浏览器里看着「也挺像表格」。
     """
 
@@ -304,6 +304,30 @@ class TestPitfallRows(unittest.TestCase):
     def test_section_without_table_returns_empty(self):
         self.assertEqual(core.pitfall_rows({"body": "## 常见坑\n\n这里只有一句话。\n"}), [])
 
+    def test_pipe_inside_code_span_is_not_a_separator(self):
+        """`` `curl … | bash` `` 是一格，不是两格。
+
+        管道写在 code span 里时是命令本身的一部分。按 `|` 一刀切会把这种行切成
+        4 格以上，然后被 `len(cells) != 3` 丢掉 —— 站点上表现为「这条坑凭空消失」，
+        而课程页看起来完全正常（踩过：L01 的安装命令）。
+        """
+        body = (
+            "## 常见坑\n\n"
+            "| 现象 | 真实原因 | 怎么解决 |\n|---|---|---|\n"
+            "| 装不上 | 下载被截断 | `curl -fsSL https://example.com/install.sh | bash` |\n"
+            "| 显示多出反斜杠 | 用了 `\\|` 转义 | `a \\| b` 照旧算一格 |\n"
+        )
+        rows = core.pitfall_rows({"body": body})
+        self.assertEqual([r["symptom"] for r in rows], ["装不上", "显示多出反斜杠"])
+        self.assertEqual(rows[0]["fix"], "`curl -fsSL https://example.com/install.sh | bash`")
+        self.assertEqual(rows[1]["fix"], "`a \\| b` 照旧算一格")
+
+    def test_unclosed_code_span_does_not_hide_a_separator(self):
+        """奇数个反引号时，后面的 `|` 仍然当分隔符（宁可切错，也不要整行消失）。"""
+        rows = core.pitfall_rows({"body": "## 常见坑\n\n| a | b | c |\n|---|---|---|\n| 尾 | 反引号 ` 没闭上 | 解决 |\n"})
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["cause"], "反引号 ` 没闭上")
+
     def test_missing_section_returns_empty(self):
         self.assertEqual(core.pitfall_rows({"body": "# L99\n\n## 试一试\n\n- 无\n"}), [])
 
@@ -319,15 +343,16 @@ class TestPitfallRows(unittest.TestCase):
             )
 
     def test_repo_total_rows(self):
-        # 阶段 6 六课加入后从 253 涨到 312，再加 L66 是 340；这个字面量是金丝雀：
+        # 阶段 6 六课加入后从 253 涨到 312，再加 L66 是 340，加 L00 的
+        # 「PowerShell 里没有 head」这一行是 341；这个字面量是金丝雀：
         # 内容大批增减时要有人来看一眼（每次新增/删课都要同步这里与 tests/test_build_site.py）
-        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 340)
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 341)
 
     def test_capstone_has_15_rows(self):
         self.assertEqual(len(self.repo_rows["L90"]), 15)
 
-    def test_first_lesson_has_4_rows(self):
-        self.assertEqual(len(self.repo_rows["L00"]), 4)
+    def test_first_lesson_has_5_rows(self):
+        self.assertEqual(len(self.repo_rows["L00"]), 5)
 
     def test_every_lesson_contributes_at_least_one_row(self):
         empty = [lid for lid, rows in self.repo_rows.items() if not rows]

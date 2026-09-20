@@ -35,7 +35,7 @@ hermes --version          # 有输出就不用装
 
 | 系统 | 命令 |
 |---|---|
-| Linux / macOS / WSL2 / Android(Termux) | `curl -fsSL https://hermes-agent.nousresearch.com/install.sh \| bash` |
+| Linux / macOS / WSL2 / Android(Termux) | `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash` |
 | Windows（原生） | 在 **PowerShell** 里跑 `iex (irm https://hermes-agent.nousresearch.com/install.ps1)` |
 | 想要图形界面 | 下载 [Hermes Desktop 安装包](https://hermes-agent.nousresearch.com/) 直接运行 |
 
