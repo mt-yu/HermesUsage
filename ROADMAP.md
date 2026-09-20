@@ -136,6 +136,7 @@ python scripts/progress.py next   # 下一课学什么
 | `v3.1-ui` | 设计对比页（10 方案 × 10 维度等权平均）+ 语义 token 视觉系统 + 主题三态 | ✅ |
 | `v3.3-topbar` | 顶栏 GitHub 入口（内联 SVG 标识，新标签页打开）+ 480px 以下收进度胶囊 | ✅ |
 | `v3.4-release` | 发布体系：14 个 tag 全部有 release（确定性资产 + CHANGELOG + 不可变发布 + CI 自动发版） | ✅ |
+| `v3.5-release` | 页脚显示当前版本（构建期从 CHANGELOG 现读）+ L66《给自己的项目发第一个 release》+ L00 命令的 shell 约定修复（41 课 / 95 出处） | ✅ |
 
 ## 维护待办（内容层）
 
