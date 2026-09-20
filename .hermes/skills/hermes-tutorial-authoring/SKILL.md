@@ -1,7 +1,7 @@
 ---
 name: hermes-tutorial-authoring
 description: "Use when adding or editing a lesson in the HermesUsage tutorial repo. Enforces the 8-section template, citation binding, and the verify gate before commit."
-version: 1.1.0
+version: 1.2.0
 author: HermesUsage
 license: MIT
 platforms: [linux, macos, windows]
@@ -124,6 +124,16 @@ python scripts/journal.py commit --kind docs --title "新增 L2x <标题>" \
 ```
 
 ## 坑
+
+- **命令块不写 shell 约定**：课程正文是 bash 语法，而 Windows 新手默认打开的是 PowerShell ——
+  它会报 `head : 无法将“head”项识别为 cmdlet、函数、脚本文件或可运行程序的名称`
+  （`head` / `grep` / `wc` 在这个 shell 里都不存在）。凡是要读者**动手跑**的命令块，前面
+  必须写明「Windows 用 Git Bash」；块里用了管道就顺带给 PowerShell 替代写法
+  （`| Select-Object -First N`、`| Select-String`）。踩过：L00 的 `hermes --help | head -40`。
+- **表格单元格里的管道用反斜杠转义**（`` `curl … \| bash` ``）：能保住单元格，但站点上会
+  **多显示一个反斜杠**，读者照着复制得到一条跑不通的命令（踩过：L01 的安装命令、L12 的
+  `/compress`）。管道写在 code span 内就直接写裸管道 —— `tutorial_core._table_cells` 按
+  code span 切格，裸管道不会切坏行；只有单元格散文里的管道才写 `\|`。
 
 - **前置行写成裸课号**（`**前置**：L02、L10`）：站点上它只是一段普通文字，点不动，
   而页面看起来完全正常。写 `[[L02]]`、`[[L10]]`（渲染期才变成链接），并且让 frontmatter
