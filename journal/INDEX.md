@@ -5,6 +5,7 @@
 
 | 日期 | 类型 | 范围 | 标题 | 提交 |
 |---|---|---|---|---|
+| 2026-09-20 | docs | release,docs | [docs/releases.md 的 tag 清单同步到 15（v3.5-release 已发）](2026-09-20-06-docs-releases.md-的-tag-清单同步到-15（v3.5-rel.md) | `fd1ecb2` |
 | 2026-09-20 | docs | release,skills | [发布技能补三条实测细节（notes 要本地 tag / 单版本 SHA256SUMS 由 create 写 / --out 用原生路径）](2026-09-20-05-发布技能补三条实测细节（notes-要本地-tag-单版本-SHA256SUMS.md) | `7a3eb50` |
 | 2026-09-20 | stage | release,L66,site | [v3.5 发布：页脚版本号 + L66 收官（41 课）](2026-09-20-04-v3.5-发布：页脚版本号-+-L66-收官（41-课）.md) | `394cf69` |
 | 2026-09-20 | docs | L00 | [L00 先动手附上 PowerShell 替代写法；顺手把 PowerShell 命令跑通验证](2026-09-20-03-L00-先动手附上-PowerShell-替代写法；顺手把-PowerShell.md) | `fd2046e` |
