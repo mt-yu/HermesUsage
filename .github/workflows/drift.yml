@@ -37,6 +37,7 @@ jobs:
       - run: python -m pip install -r requirements.txt
 
       - name: 跑漂移哨兵（有新 release 就开 issue）
+        id: sentinel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -45,8 +46,17 @@ jobs:
           code=$?
           set -e
           case "$code" in
-            0) echo "::notice::无需行动 —— 本仓库基线仍是最新 release" ;;
-            1) echo "::warning::上游有新 release（issue 已新建或已存在同前缀 issue）" ;;
+            0) echo "::notice::无需行动 —— 本仓库基线仍是最新 release"; echo "new_release=0" >> "$GITHUB_OUTPUT" ;;
+            1) echo "::warning::上游有新 release（issue 已新建或已存在同前缀 issue）"; echo "new_release=1" >> "$GITHUB_OUTPUT" ;;
             *) echo "::error::哨兵本身跑不起来（退出码 $code）：先看上面 release_probe 的输出"; exit "$code" ;;
           esac
           echo "哨兵退出码：$code（0=无需行动 1=该复核了）"
+
+      # 只有真的发了新 release 才跑：19 条「上游已写、上个 release 还没有」里哪几条落地了
+      - name: 有新 release → 列出哪几条待发布项已经落地
+        if: steps.sentinel.outputs.new_release == '1'
+        run: |
+          set +e
+          python scripts/pending_probe.py || true    # 不传 --tag：脚本自己取上游最新 release
+          set -e
+          echo "::notice::上面 ✅ 的条目就是该改课/恢复内容的清单（见 ROADMAP「待下一个 release 对照」）"

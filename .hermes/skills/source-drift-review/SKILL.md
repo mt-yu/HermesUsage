@@ -77,9 +77,12 @@ git -C hermes-docs-probe rev-parse HEAD      # 记下这个 sha，写进 ROADMAP
 
 ```bash
 # ⓪ 「这个 tag 里到底有没有」—— 判据探针，改课之前必须跑（本机没装 release 的树也能跑）
+#    整批 19 条「上游已写、release 里还没有」的清单有可执行版，优先用它：
+python scripts/pending_probe.py --tag v2026.9.14   # 逐条报「已经落地 / 仍未发布」
+python scripts/pending_probe.py --tag main         # 对照组：对着 main 跑应该 19 条全落地
 curl -s --noproxy '*' --max-time 60 \
   https://raw.githubusercontent.com/NousResearch/hermes-agent/v2026.9.14/hermes_cli/config_defaults.py \
-  | grep -n 'failure_repeat_alert_hours'     # 0 命中 = release 里没有 → 按「未发布」登记
+  | grep -n 'failure_repeat_alert_hours'     # 单条查法：0 命中 = release 里没有 → 按「未发布」登记
 # 文档侧同理：**别拿快照当 release 文档** —— 快照取自主机安装树（跟踪 main），实测 95 页里
 # 有 48 页比 v2026.9.14 的文档多出正文。要比 release 的文档就按 tag 取那一页：
 #   curl -s --noproxy '*' --max-time 60 \
@@ -115,6 +118,9 @@ python -c "import sys,os; sys.path.insert(0,os.getcwd()); from tools.bot_mode_pr
   报是预期行为，在 ROADMAP 里写明理由即可。
 - issue 评论分类结论后**手动关闭**（漂移哨兵只保证开一次，不会替你关）。
 - `python scripts/check.py` 全绿 → `python scripts/journal.py commit --kind session ...` → push。
+- **待发布清单别靠人记**：`python scripts/pending_probe.py --tag <新 tag>` 会逐条告诉你哪几条
+  「上游已写、上个 release 还没有」的东西已经落地（`#landed` 就是该改课/恢复内容的清单）。
+  数据表在脚本里的 `ITEMS`，改动它要同步改 ROADMAP（`tests/test_pending_probe.py` 会核对）。
 
 ## 坑
 

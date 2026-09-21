@@ -189,6 +189,10 @@ python scripts/progress.py next   # 下一课学什么
 **待下一个 release 对照的 14 条**（判据 = release tag 的源码/文档里 grep 不到 → 按「未发布」处理；
 **第 15-19 条见下一小节的审计表** —— 那批是「课程已经在讲、但 release 里还没有」，处置相反：已从课程里删掉）：
 
+> **可执行版**：`python scripts/pending_probe.py` —— 这两张表（14 + 5 = 19 条）都写进了
+> `scripts/pending_probe.py` 的 `ITEMS` 表，上游一发新 release 跑一次就知道哪几条落地了
+> （`--tag main` 是自检对照：对着 main 应该 19 条全落地）。CI 的 `drift.yml` 里也挂了这一步。
+
 | # | 页面 | 上游写了什么 | release 探针结果（`v2026.9.14`） |
 |---|---|---|---|
 | 1 | `profiles` | OAuth 登录「从不复制」+ 新增「Every profile owns its credentials」：命名 profile 只认自己的 `auth.json`，不再回落读根库 | `hermes_cli/auth.py` 里 `111724` **0 命中**；快照仍写 `shared, not copied` → 未发布 |

@@ -285,9 +285,9 @@ def latest_release_tag(timeout: float = 60.0, retries: int = 2) -> str | None:
     return None
 
 
-def fetch_doc(rel: str, tag: str, timeout: float = 45.0, retries: int = 2) -> bytes | None:
-    """取某一页在 tag 上的原文；404 → None；网络错误重试后仍失败 → 抛 RuntimeError。"""
-    url = f"{RAW_BASE}/{tag}/website/docs/{rel}"
+def fetch_path(rel: str, tag: str, timeout: float = 45.0, retries: int = 2) -> bytes | None:
+    """取仓库里任意一个文件在某个 tag 上的原文；404 → None；网络错误重试后仍失败 → 抛。"""
+    url = f"{RAW_BASE}/{tag}/{rel}"
     last = ""
     for attempt in range(retries + 1):
         try:
@@ -303,6 +303,11 @@ def fetch_doc(rel: str, tag: str, timeout: float = 45.0, retries: int = 2) -> by
         if attempt < retries:
             time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"{rel}: {last}")
+
+
+def fetch_doc(rel: str, tag: str, timeout: float = 45.0, retries: int = 2) -> bytes | None:
+    """取文档某一页在 tag 上的原文（`website/docs/` 下的相对路径）。"""
+    return fetch_path(f"website/docs/{rel}", tag, timeout=timeout, retries=retries)
 
 
 def probe(tag: str | None = None, ids: list[str] | None = None, retries: int = 2,
