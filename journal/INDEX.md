@@ -5,6 +5,7 @@
 
 | 日期 | 类型 | 范围 | 标题 | 提交 |
 |---|---|---|---|---|
+| 2026-09-21 | session | L12,L14,L31,L50,L51,ROADMAP | [审计「课程有没有超前」：5 处改成 release 行为（L12/L14/L31/L50×2/L51）](2026-09-21-01-审计「课程有没有超前」：5-处改成-release-行为（L12-L14-L31.md) | `135b4e5` |
 | 2026-09-20 | session | scripts,ROADMAP,sources | [漂移哨兵改成问正确的问题：上游有没有发新 release（release_probe.py + 基线）](2026-09-20-09-漂移哨兵改成问正确的问题：上游有没有发新-release（release_pro.md) | `ebb79cf` |
 | 2026-09-20 | fix | scripts,tests | [journal.py：summary 以数字开头会让归档崩掉（re.sub 替换串）](2026-09-20-08-journal.py：summary-以数字开头会让归档崩掉（re.sub-替换.md) | `7858685` |
 | 2026-09-20 | session | L14,ROADMAP,sources | [官方文档漂移第二次复核：86 页漂移 → 改课 1 处、登记 14 条（判据改成 release tag）](2026-09-20-07-官方文档漂移第二次复核：86-页漂移-→-改课-1-处、登记-14-条（判据改成.md) | `df8aed5` |
