@@ -11,6 +11,7 @@
 ## [未发布]
 
 ### 新增
+- session: 审计「课程有没有超前」：5 处改成 release 行为（L12/L14/L31/L50×2/L51）（`135b4e5`）
 - session: 漂移哨兵改成问正确的问题：上游有没有发新 release（release_probe.py + 基线）（`ebb79cf`）
 - session: 官方文档漂移第二次复核：86 页漂移 → 改课 1 处、登记 14 条（判据改成 release tag）（`df8aed5`）
 
