@@ -144,8 +144,9 @@ def render(results: list[dict], tag: str, quiet: bool = False) -> str:
     if s["errored_count"]:
         names = "、".join(f"#{r['n']}" for r in s["errored"])
         lines += ["", f"  ⚠ 没核成（网络抖动，重跑即可）：{names}"]
-    lines += ["", "下一步：改完课程后把 `sources/registry.yaml` 的 `# baseline-release:` 换成 "
-                  f"`{tag}`，并跑 `python scripts/check.py`。"]
+    if s["landed_count"]:
+        lines += ["", "下一步：改完课程后把 `sources/registry.yaml` 的 `# baseline-release:` 换成 "
+                      f"`{tag}`，并跑 `python scripts/check.py`。"]
     return "\n".join(lines)
 
 

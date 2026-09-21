@@ -55,6 +55,15 @@ class TestSummarizeAndRender(unittest.TestCase):
         self.assertIn("#1", out)
         self.assertIn("f.py:1 x", out)
         self.assertIn("v2026.10.1", out)
+        self.assertIn("baseline-release", out)     # 有落地才提示「换基线」
+
+    def test_render_omits_the_baseline_advice_when_nothing_landed(self):
+        rows = [{"n": 1, "claim": "甲", "course": "", "landed": False, "evidence": "-"},
+                {"n": 2, "claim": "乙", "course": "", "landed": False, "error": "boom",
+                 "evidence": "<没核成>"}]
+        out = P.render(rows, "v1")
+        self.assertNotIn("baseline-release", out)  # 一条都没落地：别叫人去改基线
+        self.assertIn("#2", out)                   # 没核成的要说出来
 
     def test_quiet_is_silent_only_when_nothing_landed(self):
         all_missing = [{"n": 1, "claim": "甲", "course": "", "landed": False, "evidence": "-"}]
