@@ -17,6 +17,7 @@
 - session: 官方文档漂移第二次复核：86 页漂移 → 改课 1 处、登记 14 条（判据改成 release tag）（`df8aed5`）
 
 ### 修复
+- fix: pending_probe 一条都没落地时不该提示改基线（顺手补一条断言）（`f148828`）
 - fix: journal.py 归档崩在 summary 以数字开头（re.sub 替换串别插用户文本）（`7858685`）
 
 ### 文档
