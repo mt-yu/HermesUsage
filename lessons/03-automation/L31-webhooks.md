@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L23, L30]
 tags: ["webhooks", "事件驱动", "HMAC", "GitHub"]
 sources: [webhooks, webhook-github-pr-review, pipe-script-output]
-updated: 2026-09-16
+updated: 2026-09-21
 ---
 
 # L31 · 事件驱动：webhooks 让外部事件触发 Hermes
@@ -145,7 +145,6 @@ hermes webhook subscribe demo-issues \
 | `deliver` | 结果去哪：`log`（默认）、`github_comment`、`telegram`、`discord`、`slack`、`email`… |
 | `deliver_only` | `true` 时跳过 agent，模板渲染出来就是最终消息 |
 | `cron_job` | 不新起会话，改为触发一个已存在的 cron job |
-| `coalesce` | 同一实体的连续事件去抖，合成一次运行 |
 | `skills` / `toolsets` | 这次运行要加载的技能 / 工具集 |
 
 模板只有 `{field}` 和 `{nested.field}` 两种替换，**没有** if/else 之类的条件语法；
@@ -291,12 +290,11 @@ curl -s -X POST http://localhost:8644/webhooks/github-pr-review \
 | `deliver: github_comment` 报 gh 相关错误 | 网关主机上 `gh` 没装或没登录 | `gh auth login`，并确认账号对该仓库有写权限 |
 | 每次事件都烧一次 token | 过滤写在了 prompt 里，而不是 `filters` 里 | 把条件挪到路由的 `filters:` |
 | 把 `INSECURE_NO_AUTH` 用在公网 | 只有绑定在 loopback 上时才接受；配成 `0.0.0.0` 会拒绝启动 | 只在本地测试用；上线必须配真实 secret |
-| 事件密集时一个实体被跑了 5 次 | 上游连续推送，每个事件都有新的 delivery id | 给路由加 `coalesce`，按实体去抖 |
 
 ## 试一试
 
 - [ ] 建一条 `deliver_only: true` 的路由，用 `curl` 打一次，确认在 `~/.hermes/logs/gateway.log` 里**没有**模型调用
-- [ ] 给一条路由加 `coalesce: {key: "{repository.full_name}#{pull_request.number}", window_seconds: 30}`，快速连打三次同一个 PR，观察只跑一轮
+- [ ] 用**同一个** `X-GitHub-Delivery` 头把同一份 payload 打两次，确认第二次被幂等缓存吃掉（网关日志里没有第二次 agent 运行）—— 这就是上游重复推送时保护你的那一层
 - [ ] 复制官方 GitHub PR 审查示例，把它改成你仓库的；github.com 上填的 Payload URL 用 `ngrok http 8644` 给的地址（免费版每次重启都会换域名，记得同步改）[[src:webhook-github-pr-review]]
 - [ ] 写一个脚本，用 `hermes send --to <平台名>` 把当天构建结果推到 Slack 或 Telegram（注意 `--to` 只接平台名或频道，不是文件路径）[[src:pipe-script-output]]
 - [ ] 给一条路由加上 `- field: "action"` 的 `filters`，然后对比加过滤前后网关日志里 agent 运行的次数

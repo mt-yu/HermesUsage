@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L03, L10]
 tags: ["密钥", "凭证池", "profile", "HERMES_HOME", "密钥管理器"]
 sources: [secrets, credential-pools, profiles, env-vars]
-updated: 2026-09-16
+updated: 2026-09-21
 ---
 
 # L51 · 密钥、凭证池与多 profile
@@ -84,7 +84,7 @@ Hermes 从**进程环境**和 `~/.hermes/.env` 读取变量；密钥、bot token
 
 凭证池（credential pool）给同一个 provider 注册多把钥匙，一把撞上限流或额度就自动轮换到下一把健康的，会话不至于中断。它和 fallback provider 不是一回事：**池是同一家内部轮换，fallback 是换一家**；池里的钥匙全用光了才轮到 fallback。[[src:credential-pools]]
 
-- 三种典型路径：`hermes auth add <provider> --api-key ...`、`--type oauth`（浏览器登录）、编号环境变量（`OPENROUTER_API_KEY_2`、`_3` …）—— 编号的兄弟变量会被自动发现成池条目，不写进 `auth.json`。[[src:credential-pools]]
+- 两条典型路径：`hermes auth add <provider> --api-key ...`（静态 key）与 `--type oauth`（浏览器登录）。[[src:credential-pools]]
 - 轮换策略：`fill_first`（默认，按 `priority` 用第一把健康的）、`round_robin`、`least_used`、`random`，写在 `credential_pool_strategies` 里。[[src:credential-pools]]
 - 错误处理：402 额度立刻轮换（1 小时冷却）；429 先重试同一把一次，连续第二次 429 才轮换；401 先试刷新 OAuth，刷新失败才轮换。[[src:credential-pools]]
 - **轮换会让 prompt 缓存失效**：provider 侧的缓存在服务请求的模型**和账号/API key** 上记账，换 key 就等于下一次要按全价重读整段对话。长会话里每次轮换都是一次全价通行。[[src:credential-pools]]

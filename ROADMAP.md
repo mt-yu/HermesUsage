@@ -186,7 +186,8 @@ python scripts/progress.py next   # 下一课学什么
 | ↳ 上游已写、release 里**还**没有 → 只登记 | 14 条 | 见下表，等下一个 release 一次性刷快照 + 改课 |
 | ↳ 课程未涉及 / 纯措辞与示例 | 其余 | 不动 |
 
-**待下一个 release 对照的 14 条**（判据 = release tag 的源码/文档里 grep 不到 → 按「未发布」处理）：
+**待下一个 release 对照的 14 条**（判据 = release tag 的源码/文档里 grep 不到 → 按「未发布」处理；
+**第 15-19 条见下一小节的审计表** —— 那批是「课程已经在讲、但 release 里还没有」，处置相反：已从课程里删掉）：
 
 | # | 页面 | 上游写了什么 | release 探针结果（`v2026.9.14`） |
 |---|---|---|---|
@@ -248,6 +249,40 @@ python scripts/progress.py next   # 下一课学什么
 的结论，按 tag 取原始文件 grep 关键符号（`curl -s https://raw.githubusercontent.com/NousResearch/hermes-agent/v<tag>/<path>`），
 再拿本机源码交叉验证；④ 产物（逐页 diff、release 探针文件）放 `$LOCALAPPDATA/Temp`，**不进仓库**。
 
+### 审计：课程有没有引用 release 里还没有的行为（2026-09-21）
+
+上一次复核问的是「课程有没有**过时**」；这一次问的是反过来那一半 —— **课程有没有超前**。
+起因是发现「快照领先 release」（上一小节）：快照里有 **624 行正文是 release 文档没有的**，
+分布在 48 页里，其中 **43 页被课程引用**。如果某句课程正文的依据只存在于这些「快照独有行」里，
+那句就在讲读者装不到的版本。
+
+**方法**：5 波子代理逐页判定「课程引用句的依据在 release 版里有没有」→ 我按 `v2026.9.14` 的
+**源码**逐条复核（文档缺一句话不等于功能不存在 —— 反过来也一样：文档里的功能可能还没进代码）。
+
+| 桶 | 数量 | 处置 |
+|---|---|---|
+| 只在 release 之后才有 → **改成 release 行为** | **5 处 / 4 课** | 见下表 |
+| 文档后写、但 release 的**代码里已经有** | 5 处（不改课程） | `kanban` 的 `non-spawnable` 桶（tag `hermes_cli/kanban_db.py` 有 `skipped_nonspawnable`）、`security` 引号解析失败也 fail-closed（tag `tools/approval_detection.py:611`）、`browser.use_real_profile`（tag `hermes_cli/config_defaults.py:410`）、`/learn`（tag `hermes_cli/cli_commands_mixin.py:1881`）、委派契约不达标仍是 `completed`（tag `tools/delegate_tool_child_run.py:547` 写 `entry["schema_valid"]`，状态不降级） |
+| 快照多出来的内容课程**没引用** | 其余 34 页 | 不动 |
+
+**改成 release 行为的 5 处**（每处都核过「tag 的源码里确实没有」）：
+
+| # | 课 | 原来写的 | tag 源码探针 |
+|---|---|---|---|
+| 15 | L31 三处（路由字段表 / 常见坑 / 试一试） | `coalesce` 事件去抖、字段与示例 | `gateway/platforms/webhook_coalesce.py` **在 tag 上不存在**，tag 的 `webhook.py` 里 `coalesce` **0 命中**（main 里有 11 处） → 整个功能是后加的 |
+| 16 | L50「文件写入」 | 项目 `.env` / `.env.local` / `.envrc`「可以写，但读不回来」 | **反了**：tag 的 `agent/file_safety.py:188` 把它们列进 `_BLOCKED_PROJECT_ENV_BASENAMES`（**写被拦**）；「读拒绝、可写」是 main 的语义（`#45947`） |
+| 17 | L50「approvals suggest」 | 「命令里出现的凭据会被打码」 | tag 的 `hermes_cli/approvals_suggest.py` 里 `mask` / `redact` **0 命中**（main 有 5 处） |
+| 18 | L51「凭证池」 | 第三条路径「编号环境变量（`OPENROUTER_API_KEY_2`、`_3`…）会被自动发现成池条目」 | tag 的 `agent/credential_pool.py` 里 `numbered` **0 命中**（main 在 2618 行有） |
+| 19 | L12 / L14 | `/context` 输出末尾的**逐文件** `Context files` 清单（loaded / truncated / shadowed / blocked / install-tree guard） | tag 的 `gateway/slash_commands_status.py` 里 `Context files` / `shadowed` / `install` 全 **0 命中**；`agent/context_file_sources.py` **在 tag 上不存在**。tag 的 `/context` 只给类别构成表 + 压缩阈值/余量 |
+
+处置写法：**删掉/改成 release 能做的事**，不写「以后会有」的版本注脚（初学者课程里那种注脚只会干扰）；
+被删掉的内容登记在这里，**下一个 release 出来时按上表的探针复核一遍，命中就恢复**。
+
+**诚实边界**：定版粒度是「页面级 + 课程实际引用句」；只比了 `v2026.9.14` 一个 tag，没有追溯引入时间
+（「release 里没有」= 这个 tag 里没有，不等于下个 release 一定有）；L31 那处删掉了一道**练习题**
+（第 2 道，不是末尾）—— 按 `.hermes.md` 的约定，这意味着那一课读者的已存打勾可能错位一位，
+所以是**就地替换**成一道 release 可做的幂等重放练习题，而不是删掉留个空位。
+
 - [x] 「常见错误合集」页 —— 已完成，见 v1.4（`/pitfalls.html`，253 行坑表）
 - [x] 新增 **L55「换一台电脑：把记忆、技能和会话带走」**（阶段 5，25 分钟）—— 换电脑/多机场景的完整路线：
       习惯层文件清单、`hermes backup`/`import` 整机搬（本机实测 748 → 745 文件）、`hermes profile export`
@@ -258,13 +293,10 @@ python scripts/progress.py next   # 下一课学什么
 
 ## 维护待办（系统层）
 
-- [ ] **审计：课程里有没有引用「release 里还没有的行为」**（2026-09-20 发现快照领先 release 48/95 页的后果）。
-      方法与起点：`python scripts/release_probe.py --docs` 列出「快照 != release 文档」的页
-      （本批 48 页），与 `lessons/` 里的 `[[src:id]]` 取交集 → 对交集里的页按 tag 取原文 diff
-      （`curl -s --noproxy '*' https://raw.githubusercontent.com/NousResearch/hermes-agent/v<tag>/website/docs/<rel> | diff - sources/cache/<id>.md`）
-      → **只定版课程实际引用的那几句**：release 里没有这句/行为不同 → 改课程；
-      只是快照多讲了一节、课程没引用 → 登记。做完把结论写进本节并给 `updated` 打新日期。
-      **注意**：这是「查课程有没有超前」，与上面那次「查课程有没有过时」是两件事，别混成一次跑。
+- [x] **审计：课程里有没有引用「release 里还没有的行为」** —— 已完成（2026-09-21），结论见
+      「审计：课程有没有引用 release 里还没有的行为」小节：43 页被引用的快照独有内容里，
+      **5 处要改成 release 行为**（已改：L12 / L14 / L31 / L50 ×2 / L51）、5 处经源码复核确认
+      release 里就有（不改）、其余 34 页课程没引用。
 - [x] 给 `scripts/verify.py` 加 CI（已由 `.github/workflows/ci.yml` 落地：push / PR 跑 `python scripts/check.py`，全绿才允许合并）
 - [x] journal 自动归档 —— 已完成，见 v1.5；cron 任务 `c2e058a277da` 每小时跑，**实测 17:00 真的自动提交了一条**（前提是网关在跑，见「需要人工决策」）
 - [x] 用 SVG 替换 README 的 ASCII 路线图 —— 已完成：`scripts/build_roadmap_svg.py` 从课程 frontmatter 生成

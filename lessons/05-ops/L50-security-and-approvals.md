@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L11, L14]
 tags: ["安全", "审批", "approvals", "hardline-blocklist", "密码保管箱"]
 sources: [security, secure-work-machine, credential-vault]
-updated: 2026-09-16
+updated: 2026-09-21
 ---
 
 # L50 · 安全模型与审批：危险命令怎么拦住
@@ -109,7 +109,7 @@ approvals:
 
 ### 文件写入：立刻报错，没有弹窗
 
-`write_file` / `patch` 在落盘前检查目标路径，命中就立刻返回错误，**不给审批弹窗**，也无法从聊天界面覆盖。永久拒绝的类别包括：`~/.ssh/`、`~/.aws/`、`~/.kube/`、`/etc/sudoers`、`~/.netrc`，以及 Hermes 自己的凭证存储（`.env`、`auth.json`、`vault/`、`pairing/` 等）。项目里的 `.env` / `.env.local` / `.envrc` 是「可以写，但读不回来」。[[src:security]]
+`write_file` / `patch` 在落盘前检查目标路径，命中就立刻返回错误，**不给审批弹窗**，也无法从聊天界面覆盖。永久拒绝的类别包括：`~/.ssh/`、`~/.aws/`、`~/.kube/`、`/etc/sudoers`、`~/.netrc`，以及 Hermes 自己的凭证存储（`.env`、`auth.json`、`vault/`、`pairing/` 等）。项目里的 `.env` / `.env.local` / `.envrc`（不管在哪个目录）也一样在名单里 —— agent 写不进去。[[src:security]]
 
 可选的写沙箱用一个环境变量就能开：`HERMES_WRITE_SAFE_ROOT`。设了它，`write_file` / `patch` 只能写列出的路径前缀，其他一律硬拦（不经过审批层）。Windows 上多个根用 `;` 分隔，Unix 用 `:`。**别顺手把它塞进 `.env`**：沙箱一旦只指向项目目录，agent 就写不了 `~/.hermes/` 下的状态文件了。[[src:security]] [[src:secure-work-machine]]
 
@@ -176,7 +176,7 @@ Nothing has been changed. Apply selected entries with:
   hermes approvals suggest --apply 1,3
 ```
 
-它是**只读**的：默认什么都不改，只有你显式 `--apply N` 才写进 `command_allowlist`；而且递归删除、`sudo`、磁盘写入、凭据与系统配置编辑、管道到 shell、SQL DROP 这些破坏类**永不**被提议，命令里出现的凭据会被打码。[[src:security]]
+它是**只读**的：默认什么都不改，只有你显式 `--apply N` 才写进 `command_allowlist`；而且递归删除、`sudo`、磁盘写入、凭据与系统配置编辑、管道到 shell、SQL DROP 这些破坏类**永不**被提议。[[src:security]]
 
 | 你观察到的 | 说明什么 |
 |---|---|

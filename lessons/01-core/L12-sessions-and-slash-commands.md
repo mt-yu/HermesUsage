@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L02, L11]
 tags: [会话, 斜杠命令, 上下文, state.db]
 sources: [sessions, slash-commands, cli]
-updated: 2026-09-16
+updated: 2026-09-21
 ---
 
 # L12 · 会话与斜杠命令：一次对话的边界
@@ -38,10 +38,7 @@ token 总量、agent 是否在跑，然后附一段**本地计算的 Session rec
 且不花一次 LLM 调用。[[src:slash-commands]]
 
 `/context` 会给你一张上下文构成表：系统提示、工具定义、规则、技能索引、MCP、子代理、
-记忆、对话各占多少，以及**每个上下文文件的加载情况**（`.hermes.md` / `AGENTS.md` /
-CLAUDE.md / `.cursorrules` / `SOUL.md` 各自多少 token、是否加载、是否被截断、
-是否被更高优先级类型遮蔽、是否被安全扫描拦下）。这是回答「我的规则文件为什么没生效」
-的官方手段。[[src:slash-commands]]
+记忆、对话各占多少，还能看到自动压缩的阈值与余量。[[src:slash-commands]]
 
 ## 原理
 

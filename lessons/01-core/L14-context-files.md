@@ -7,7 +7,7 @@ minutes: 20
 prereq: [L03, L12]
 tags: [".hermes.md", "AGENTS.md", "SOUL.md", "@引用", "项目规则"]
 sources: [context-files, context-references, personality, slash-commands]
-updated: 2026-09-20
+updated: 2026-09-21
 ---
 
 # L14 · 上下文文件：你怎么给它下规矩
@@ -106,17 +106,16 @@ hermes chat -q "你在当前项目里读到了什么规则？一句话说"
 
 ## 亲手验证
 
-### 验证一：`/context` 直接告诉你规则文件为什么没生效
+### 验证一：`/context` 告诉你上下文被谁占了
 
 ```bash
 hermes -c
 #   ❯ /context
 ```
 
-输出末尾的 **Context files** 清单会逐个列出候选文件及其状态：
-loaded / truncated over `context_file_max_chars` / shadowed（被更高优先级遮蔽）/
-blocked by the injection scan / empty or unreadable / suppressed by the install-tree guard。
-这**就是**「我的 CLAUDE.md 为什么被忽略」的官方答案。[[src:slash-commands]]
+它按类别列出这一轮上下文的构成 —— 系统提示、工具定义、规则文件、技能索引、MCP、
+子代理、记忆、对话各占多少 token，以及自动压缩的阈值与余量。规则那一类的数字是 0，
+就说明这一轮一个规则文件都没加载（目录不对，或被更高优先级的文件遮蔽）。[[src:slash-commands]]
 
 ### 验证二：亲手制造「首个命中者胜出」
 

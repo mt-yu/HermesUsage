@@ -259,7 +259,7 @@ class TestPitfallRows(unittest.TestCase):
     """`## 常见坑` 表格 → 行数据：站点「常见错误合集」页的唯一数据来源。
 
     这一段的解析规则要写死在解析层（而不是渲染层）：
-    页面上的 341 行全部来自这里，解析口径一变，页面上就会多出表头、
+    页面上的 340 行全部来自这里，解析口径一变，页面上就会多出表头、
     少掉整张表，而那种错在浏览器里看着「也挺像表格」。
     """
 
@@ -344,9 +344,11 @@ class TestPitfallRows(unittest.TestCase):
 
     def test_repo_total_rows(self):
         # 阶段 6 六课加入后从 253 涨到 312，再加 L66 是 340，加 L00 的
-        # 「PowerShell 里没有 head」这一行是 341；这个字面量是金丝雀：
-        # 内容大批增减时要有人来看一眼（每次新增/删课都要同步这里与 tests/test_build_site.py）
-        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 341)
+        # 「PowerShell 里没有 head」这一行是 341，减去 L31 的「coalesce 去抖」
+        # （2026-09-21 审计：该功能 release 里还没有，已从课程删掉）是 340；
+        # 这个字面量是金丝雀：内容大批增减时要有人来看一眼（每次新增/删课都要同步
+        # 这里与 tests/test_build_site.py）
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 340)
 
     def test_capstone_has_15_rows(self):
         self.assertEqual(len(self.repo_rows["L90"]), 15)
