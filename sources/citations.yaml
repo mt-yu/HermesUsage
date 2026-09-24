@@ -387,6 +387,30 @@
   bytes: 101663
   retrieved_at: '2026-09-17'
   local: sources/cache/env-vars.md
+- id: extending-the-cli
+  title: Extending the CLI
+  url: https://hermes-agent.nousresearch.com/docs/developer-guide/extending-the-cli
+  source_path: website/docs/developer-guide/extending-the-cli.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 3adc178718fdb259b757b50233f941ecef337a9d
+  source_date: '2026-09-19'
+  hermes_version: 0.21.3
+  sha256: 9da292027408e09589ea8b22d4a73020b32b2797e8b1ca878baf08cbe80ee5f7
+  bytes: 7287
+  retrieved_at: '2026-09-24'
+  local: sources/cache/extending-the-cli.md
+- id: extending-the-dashboard
+  title: Extending the Dashboard
+  url: https://hermes-agent.nousresearch.com/docs/user-guide/features/extending-the-dashboard
+  source_path: website/docs/user-guide/features/extending-the-dashboard.md
+  source_repo: https://github.com/NousResearch/hermes-agent
+  source_commit: 3adc178718fdb259b757b50233f941ecef337a9d
+  source_date: '2026-09-19'
+  hermes_version: 0.21.3
+  sha256: 08a9c66e82393803d30f5bb451d4ae6240cc0397e01a9b203ec7a71318baecfb
+  bytes: 41422
+  retrieved_at: '2026-09-24'
+  local: sources/cache/extending-the-dashboard.md
 - id: fallback-providers
   title: Fallback Providers
   url: https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers

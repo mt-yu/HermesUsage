@@ -87,6 +87,8 @@ extend:
   mcp: user-guide/features/mcp.md
   mcp-config: reference/mcp-config-reference.md
   desktop-plugin-sdk: developer-guide/desktop-plugin-sdk.md
+  extending-the-cli: developer-guide/extending-the-cli.md
+  extending-the-dashboard: user-guide/features/extending-the-dashboard.md
   adding-tools: developer-guide/adding-tools.md
   middleware: developer-guide/middleware.md
   skins: user-guide/features/skins.md

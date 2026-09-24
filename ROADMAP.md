@@ -77,9 +77,11 @@ python scripts/progress.py next   # 下一课学什么
 |---|---|---|---|---|
 | ✅ | L40 | 写一个技能：SKILL.md 规范与实战 | 25 | 最低成本的扩展 |
 | ✅ | L41 | 写一个插件：工具 / 钩子 / 中间件 | 30 | 真正扩展内核的方式 |
-| ✅ | L42 | 桌面插件 / TUI 部件 / 皮肤 | 25 | 改外观与交互 |
+| ✅ | L42 | 终端外观：皮肤 / TUI 部件 / 宠物 | 30 | 终端侧：YAML 皮肤 + 子类化 HermesCLI 注入 widget |
 | ✅ | L43 | MCP 集成：接上外部工具服务器 | 25 | 零核心足迹地接工具 |
 | ✅ | L44 | 当作库来用：Python / ACP / API Server | 25 | 把 Hermes 嵌进你的程序 |
+| ✅ | L45 | 魔改 Web 面板：主题与插件 | 30 | `dashboard-themes/*.yaml` + `plugins/<id>/dashboard/`（tab / shell slot / plugin_api.py） |
+| ✅ | L46 | 魔改桌面端：主题、命令与 plugin.js | 30 | 桌面插件不编译、保存即热重载；CDP 调试的硬门 |
 
 ## 阶段 5 · 运维与安全（进阶）
 
@@ -582,6 +584,49 @@ Python 测试 45 → 59 条。
   历史 tag 缺 CHANGELOG 时不显示也不报错、`manifest.json` 记录 release。
 - 诚实边界：**顶栏不放版本号** —— 顶栏是一行 flex，多一枚控件会把站名在窄屏挤折行（见 `.hermes.md` 坑表）；
   版本号放在页脚，信息一样可达，代价只是一行。
+
+### v3.6 · DIY 界面三课（2026-09-24）
+
+起因是用户问「教程里是不是缺了 Hermes 的 DIY UI 界面方法」。调研（按 tag 抓官方文档）结论：
+**Hermes 的界面扩展有四套互不相通的系统**，而教程当时只覆盖了终端外观的一部分，且 L42 的标题
+写着「TUI 部件」正文却一条都没有。于是三件事一起做：
+
+- [x] **L42 重写**（25 → 30 分钟，标题改「终端外观：皮肤 / TUI 部件 / 宠物」）：补齐
+      `developer-guide/extending-the-cli.md` 的五个扩展缝（`_get_extra_tui_widgets()` /
+      `_register_extra_tui_keybindings()` / `_build_tui_layout_children()` / `process_command()` /
+      `_build_tui_style_dict()`）、wrapper CLI 写法、以及「四套系统互不相通」的对照表
+- [x] **新增 L45《魔改 Web 面板：主题与插件》**（30 分钟）：`~/.hermes/dashboard-themes/*.yaml`
+      三层主题（palette / typography / layout / componentStyles / customCSS）、
+      `~/.hermes/plugins/<name>/dashboard/`（`manifest.json` + IIFE bundle + `plugin_api.py`）、
+      10 个 shell slot + 18 个页内 slot、`plugins.enabled` 这道门、以及 401/404 排错
+- [x] **新增 L46《魔改桌面端：主题、命令与 plugin.js》**（30 分钟）：`$HERMES_HOME/desktop-plugins/<id>/plugin.js`、
+      九类注册区、主题贡献与 `useTheme()`、Capabilities → Plugins 的开关与删除、CDP 调试的硬门
+- [x] 出处 **95 → 97**（新增 `extending-the-cli` / `extending-the-dashboard` 两份快照）
+
+**本批的「文档 vs 实测」六条差异**（都以源码 + `v2026.9.21` + 本机实测定版，写进了课程常见坑）：
+
+| # | 官方文档说 | 实测 / 源码 |
+|---|---|---|
+| 1 | 插件加完直接 `curl …/api/dashboard/plugins/rescan` | **必然 401**：它不在 `PUBLIC_API_PATHS` 那 8 条白名单里，必须带 `X-Hermes-Session-Token`（`?token=` 只对 `/api/files/download` 有效） |
+| 2 | 主题 YAML 解析失败会记进 `~/.hermes/logs/errors.log` | 本 release 是 `except Exception: continue` —— **静默跳过、零日志** |
+| 3 | 插件丢进 `plugins/<name>/dashboard/` 即可 | `user` 源插件必须出现在 `plugins.enabled` 才被列出/伺服（`_plugin_activated()`），而 `hermes plugins enable <手放插件>` 会报 `No plugin named` |
+| 4 | `Window(..., filter=Condition(...))` | 在钉死的 `prompt_toolkit==3.0.52` 上直接 `TypeError`，要用 `ConditionalContainer` |
+| 5 | `hermes dashboard` 伺服 web 面板 | 环境里有 `HERMES_WEB_DIST` 时会伺服**别的 dist**（本机指向桌面端 → 页面变成桌面 UI、插件全不出现） |
+| 6 | 构建产物在 `web/dist`（`--skip-build` 提示也这么写） | 真实产物在 `hermes_cli/web_dist` |
+
+**实测证据**：Web 面板在一个**隔离的 `HERMES_HOME`** + 端口 `9120` 的实例上跑通（插件被列出 /
+`plugin_api.py` 返回 `{"pong":true}` / 静态资产 200 / rescan 401→200 对照 / 界面切主题后
+computed style 与 `style[data-hermes-theme-css]` 都变），并用**真实浏览器**核对（tab、shell slot
+注入、插件 CSS 的 `border-left: 4px rgb(255,0,255)`）；TUI 部件用 wrapper CLI 在 pty 里跑出
+`L42-PANEL-STATE: visible` 且面板文本渲染在状态栏正上方。
+
+**诚实边界（不改口）**：L46 的 **CDP 调试端口在本机没绑上**（三次尝试：不带/带 `--no-sandbox`、
+不重建主进程——应用日志打印了 `renderer debugging on http://127.0.0.1:9333`，但 `netstat` 0 行、
+`/dev/tcp` 连接被拒），所以 **L46 的 DOM 级验证（插件真出现在界面上、热重载耗时）本机未完成**，
+正文里已如实标注「未本机复现」而不是写「实测通过」。溯源：`templates`-级证据见 L46 的「验证三」。
+
+**计数**：课程 41 → **43**，出处 95 → **97**；`check.py` 7 项全绿（Python 445 条、前端 75 条），
+站点自检 43 课 / 55 页 / 73 文件 / 4271 KB。
 
 ### v2.0 · 让「学过」变成可交付（按需启动）
 

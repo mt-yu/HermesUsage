@@ -2,7 +2,7 @@
 
 > 一份可考证、可自维护、可回滚的 Hermes Agent 教程系统。每条事实性陈述都带 [[src:id]] 出处标记，可在 sources/citations.yaml 反查到官方文档 URL、版本与内容哈希。
 
-课程总数：41 课（入门 10 课 / 进阶 31 课），合计约 1025 分钟。
+课程总数：43 课（入门 10 课 / 进阶 33 课），合计约 1090 分钟。
 
 ## 怎么读这份索引（给 AI 维护者）
 
@@ -45,9 +45,11 @@
 
 - [L40 写一个技能：SKILL.md 规范与实战](lessons/04-extend/L40-authoring-skills.md) — [进阶] 25 分钟 · 标签：技能、SKILL.md、frontmatter、platforms · 出处 3 条
 - [L41 写一个插件：工具 / 钩子 / 中间件](lessons/04-extend/L41-authoring-plugins.md) — [进阶] 30 分钟 · 标签：插件、plugin.yaml、register、hooks · 出处 4 条
-- [L42 桌面插件 / TUI 部件 / 皮肤](lessons/04-extend/L42-desktop-tui-skins.md) — [进阶] 25 分钟 · 标签：皮肤、TUI、桌面插件、petdex · 出处 4 条
+- [L42 终端外观：皮肤 / TUI 部件 / 宠物](lessons/04-extend/L42-desktop-tui-skins.md) — [进阶] 30 分钟 · 标签：皮肤、TUI、TUI 部件、宠物 · 出处 4 条
 - [L43 MCP 集成：接上外部工具服务器](lessons/04-extend/L43-mcp.md) — [进阶] 25 分钟 · 标签：MCP、工具、外部集成、工具过滤 · 出处 4 条
 - [L44 当作库来用：Python / ACP / API Server](lessons/04-extend/L44-as-a-library.md) — [进阶] 25 分钟 · 标签：Python 库、AIAgent、ACP、API Server · 出处 4 条
+- [L45 魔改 Web 面板：主题与插件](lessons/04-extend/L45-dashboard-themes-and-plugins.md) — [进阶] 30 分钟 · 标签：Web 面板、dashboard、主题、插件 · 出处 2 条
+- [L46 魔改桌面端：主题、命令与 plugin.js](lessons/04-extend/L46-desktop-app-diy.md) — [进阶] 30 分钟 · 标签：桌面端、plugin.js、主题、CDP · 出处 2 条
 ## 阶段 5 · 运维与安全（进阶）
 
 - [L50 安全模型与审批：危险命令怎么拦住](lessons/05-ops/L50-security-and-approvals.md) — [进阶] 20 分钟 · 标签：安全、审批、approvals、hardline-blocklist · 出处 3 条

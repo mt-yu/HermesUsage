@@ -89,7 +89,7 @@ class TestLoadLessonsOnRealRepo(unittest.TestCase):
         cls.lessons = core.load_lessons(REPO)
 
     def test_count_matches_repo(self):
-        self.assertEqual(len(self.lessons), 41)
+        self.assertEqual(len(self.lessons), 43)
 
     def test_sorted_by_stage_then_id(self):
         keys = [(l["stage"], l["id"]) for l in self.lessons]
@@ -192,7 +192,7 @@ class TestMapRows(unittest.TestCase):
 
     def test_row_count_matches_lessons(self):
         self.assertEqual(len(self.rows), len(self.lessons))
-        self.assertEqual(len(self.rows), 41)
+        self.assertEqual(len(self.rows), 43)
 
     def test_row_shape(self):
         for row in self.rows:
@@ -348,7 +348,7 @@ class TestPitfallRows(unittest.TestCase):
         # （2026-09-21 审计：该功能 release 里还没有，已从课程删掉）是 340；
         # 这个字面量是金丝雀：内容大批增减时要有人来看一眼（每次新增/删课都要同步
         # 这里与 tests/test_build_site.py）
-        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 340)
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 365)
 
     def test_capstone_has_15_rows(self):
         self.assertEqual(len(self.repo_rows["L90"]), 15)
@@ -371,7 +371,7 @@ class TestGrouping(unittest.TestCase):
     def test_groups_cover_all_stages(self):
         groups = core.group_by_stage(core.load_lessons(REPO))
         self.assertEqual([g["stage"] for g in groups], [0, 1, 2, 3, 4, 5, 6, 9])
-        self.assertEqual(sum(len(g["lessons"]) for g in groups), 41)
+        self.assertEqual(sum(len(g["lessons"]) for g in groups), 43)
         self.assertEqual(groups[-1]["name"], "毕业项目")
 
     def test_group_keeps_lesson_order(self):
