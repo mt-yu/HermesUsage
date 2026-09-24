@@ -10,7 +10,12 @@
 
 ## [未发布]
 
+无
+
+## [v3.6-ui-diy] - 2026-09-24
+
 ### 新增
+- session: DIY 界面三课：L42 重写 + L45 Web 面板 + L46 桌面端（`ed5d321`）
 - session: 待发布清单做成可执行脚本：pending_probe.py（19 条，一条命令回答「落地了吗」）（`5dddbbd`）
 - session: 审计「课程有没有超前」：5 处改成 release 行为（L12/L14/L31/L50×2/L51）（`135b4e5`）
 - session: 漂移哨兵改成问正确的问题：上游有没有发新 release（release_probe.py + 基线）（`ebb79cf`）
