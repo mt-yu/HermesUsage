@@ -14,7 +14,8 @@
 
 ## [v3.6.1-ui-diy] - 2026-09-24
 
-无
+### 修复
+- fix: L46 的 CDP 路径真复现：显式 --remote-debugging-port + 四条实测回填（`6ba79cd`）
 
 ## [v3.6-ui-diy] - 2026-09-24
 
