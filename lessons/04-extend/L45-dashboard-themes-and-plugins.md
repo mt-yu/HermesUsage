@@ -334,7 +334,7 @@ typeof window.__HERMES_PLUGINS__      // "object"
 | 手放的插件不出现在面板里 | `user` 源插件必须出现在 `config.yaml` 的 `plugins.enabled` 里才会被列出/伺服（源码 `_plugin_activated()`）；`hermes plugins enable <name>` 对手放插件会报 `No plugin named '<name>'` | 手写 `plugins:` 下的 `enabled: [<name>]` 到 config.yaml，然后刷新页面 |
 | `GET /api/plugins/<name>/ping` 404 | 两种可能：① 插件没启用（见上一条）；② `plugin_api.py` **只在 dashboard 进程启动时挂载**，进程先起、插件后加就是永远 404 | 先确认 `plugins.enabled`，再重启 `hermes dashboard` |
 | 页面标题变成桌面应用的样子、插件全不出现、`window.__HERMES_PLUGIN_SDK__` 是 `undefined` | 环境里有 `HERMES_WEB_DIST` 指向别处的 dist：本机实测指向桌面端的 dist 时，`hermes dashboard` 会伺服**桌面端 UI**，启动日志打印 `→ Using web dist from HERMES_WEB_DIST: …` | `unset HERMES_WEB_DIST` 再启动（读者自己机器上一般没有这个变量） |
-| 按文档写 `PUT /api/dashboard/themes` 得到 404 | **读接口是复数、写接口是单数**：`GET /api/dashboard/themes` 但 `PUT /api/dashboard/theme` [[src:extending-the-dashboard]] | 写改用单数路径，body `{"name": "<主题名>"}` |
+| 把写接口写成复数（`PUT /api/dashboard/themes`）得到 404 | **读接口是复数、写接口是单数**：`GET /api/dashboard/themes` 但 `PUT /api/dashboard/theme` —— 官方文档这一对本来就是对的，容易写反的是我们（本课草稿第一版就写成了复数）[[src:extending-the-dashboard]] | 写改用单数路径，body `{"name": "<主题名>"}` |
 | `customCSS` 写了一大段，界面上只生效一半 | 上限 32 KiB，**超长是静默截断**（源码 `custom_css_val[:_THEME_CUSTOM_CSS_MAX]`），不是报错 —— 官方 troubleshooting 只说 "capped at 32 KiB" | 别把整张样式表塞进主题；拆成多个主题，或改用插件的 `css` 字段（那条没有大小上限） [[src:extending-the-dashboard]] |
 | 切到另一个主题后，我调过的颜色没了 | `colorOverrides` 只作用于当前主题，切主题即清空（官方说 by design） [[src:extending-the-dashboard]] | 要持久就写进主题 YAML，别用运行时的临时覆盖 |
 | 插件里登记的 `sidebar` slot 什么都不渲染 | `sidebar` 只在 `layoutVariant: cockpit` 下渲染 [[src:extending-the-dashboard]] | 主题 YAML 里加 `layoutVariant: cockpit` |

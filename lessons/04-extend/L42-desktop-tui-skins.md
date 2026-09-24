@@ -198,7 +198,19 @@ L42-PANEL-VISIBLE
 
 再输入一次 `/panel`，打印 `L42-PANEL-STATE: hidden`，面板整行消失。钩子确实被调用的另一个证据：调试时把面板内容写错，traceback 的调用栈里会出现 `hermes_cli/cli_tui_mixin.py:403` 的 `*self._get_extra_tui_widgets(),` —— 本机读安装树源码确认，这一行就排在 `status_bar` 之前，与「extra widgets 在状态栏正上方」一致。
 
-> 一个精确度说明：本机安装树（跟踪 main）的源码里，extra widgets 与状态栏之间还夹着三个**条件性** widget —— `_pet_widget` / `_stash_panel_widget` / `_subagent_dock_widget`（`cli_tui_mixin.py:404-406`，没装宠物、没有子代理时它们是 `None`）。所以「紧贴状态栏」在没有它们时成立；官方文档给的是简化后的顺序。
+
+精确一点说，你交出来的 widget 并不总是**紧贴**状态栏 —— 读者装得到的这个版本里 `hermes_cli/cli_tui_mixin.py` 那段是：
+
+```python
+*self._get_extra_tui_widgets(),
+getattr(self, "_pet_widget", None),
+getattr(self, "_stash_panel_widget", None),
+getattr(self, "_subagent_dock_widget", None),
+status_bar,
+```
+
+后面三个是**条件性** widget（没装宠物、没有子代理在跑时就是 `None`，不占位置）。所以「你的面板紧贴状态栏」在没有它们时成立，官方文档给的是简化后的顺序。
+
 
 最小可跑版本（**用 `ConditionalContainer` 包一层**，不要给 `Window` 传 `filter=`，原因见「常见坑」）：
 
