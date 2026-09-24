@@ -206,7 +206,7 @@ HERMES_DESKTOP_CDP_PORT=9333 node scripts/eval.mjs   'JSON.stringify({ chip: (do
 | 隔离实例起不来，或你的窗口被顶掉 | 两个 Electron 实例共用同一个 `--user-data-dir`，撞上单实例锁 | 给隔离实例单独一个 `--user-data-dir` [[src:desktop-plugin-sdk]] |
 | 隔离实例的窗口几秒后自己消失 | 临时 `HERMES_HOME` 没有可用后端（`ECONNREFUSED`），应用自行退出 | 端口一开就抓紧读 DOM；或先把那个 home 的 provider 配好 [[src:desktop-plugin-sdk]] |
 | 端口自称开着，实际连不上 | 应用自己 append switch 那条路在本机没生效（见「验证三」） | 启动时显式带上 `--remote-debugging-port=<端口>`；并先用 `netstat` 验端口是否真在监听，别只看日志 [[src:desktop-plugin-sdk]] |
-| 用 `sed -i` 改 `plugin.js` 后界面没变 | 实测：`sed -i` 那种「重写文件」的方式**不触发**热重载（本机实测 80 秒没动静）；换普通覆写（编辑器保存、或脚本里 `write_text`）后 **3 秒**就生效 | 用编辑器保存或直接覆写文件；改完仍没反应就用命令面板的 **Reload desktop plugins** |
+| 用 `sed -i` 改 `plugin.js` 后界面没变 | 实测：`sed -i` 那种「重写文件」的方式**不触发**热重载（本机观察窗口 45 秒，界面始终没变）；同一份文件改成普通覆写（编辑器保存、或脚本里 `write_text`）后 **3 秒**就生效 | 用编辑器保存或直接覆写文件；改完仍没反应就用命令面板的 **Reload desktop plugins** |
 | 改了插件的后端路由没生效 | `plugin_api.py` 这类后端路由在**进程启动时**挂载 | 重启应用或后端；只改前端 `plugin.js` 才享受热重载 [[src:desktop-plugin-sdk]] |
 | 切 profile 后面板不见了 | 桌面半区是**应用级**的，不该随 profile 变化 | 排查是不是把桌面半区装进了 profile 的 `plugins/`；桌面代码只从本机 `desktop-plugins/` 加载 [[src:desktop-plugin-sdk]] |
 

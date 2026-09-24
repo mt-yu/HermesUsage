@@ -142,6 +142,7 @@ python scripts/progress.py next   # 下一课学什么
 | `v3.6-ui-diy` | DIY 界面三课：L42 重写（终端外观 + TUI 部件钩子）、L45（Web 面板主题与插件）、L46（桌面端 plugin.js）；六条「文档 vs 实测」差异入库（43 课 / 97 出处） | ✅ |
 | `v3.6.1-ui-diy` | L46 的 CDP 调试路径真复现（根因：应用自己 append switch 不生效，显式 `--remote-debugging-port` 即可）+ 加载 8 秒 / 热重载 3 秒 / 异常隔离 / 删除恢复四条实测回填；补 `sed -i` 不触发热重载的坑 | ✅ || `v3.6.1-ui-diy` | L46 的 CDP 调试路径真复现（根因：应用自己 append switch 不生效，显式 `--remote-debugging-port` 即可）+ 加载 8 秒 / 热重载 3 秒 / 异常隔离 / 删除恢复四条实测回填；补 `sed -i` 不触发热重载的坑 | ✅ |
 | `v3.6.2-ui-diy` | 两处引用精度按 release v2026.9.21 复核修正：L42 的「extra widget 与状态栏之间」改成代码引用（v0.21.3 里是 408-412，非 main 的 404-406）；L45 的 `PUT` 坑纠正误归（官方文档本就写单数 `/api/dashboard/theme`） | ✅ |
+| `v3.6.3-ui-diy` | L46 坑表里 `sed -i` 那条的观察口径改成实测值（45 秒观察窗口，不是 80 秒 —— 80 秒是探针循环上界，被误当实测） | ✅ |
 
 ## 维护待办（内容层）
 
