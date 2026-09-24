@@ -140,6 +140,7 @@ python scripts/progress.py next   # 下一课学什么
 | `v3.4-release` | 发布体系：14 个 tag 全部有 release（确定性资产 + CHANGELOG + 不可变发布 + CI 自动发版） | ✅ |
 | `v3.5-release` | 页脚显示当前版本（构建期从 CHANGELOG 现读）+ L66《给自己的项目发第一个 release》+ L00 命令的 shell 约定修复（41 课 / 95 出处） | ✅ |
 | `v3.6-ui-diy` | DIY 界面三课：L42 重写（终端外观 + TUI 部件钩子）、L45（Web 面板主题与插件）、L46（桌面端 plugin.js）；六条「文档 vs 实测」差异入库（43 课 / 97 出处） | ✅ |
+| `v3.6.1-ui-diy` | L46 的 CDP 调试路径真复现（根因：应用自己 append switch 不生效，显式 `--remote-debugging-port` 即可）+ 加载 8 秒 / 热重载 3 秒 / 异常隔离 / 删除恢复四条实测回填；补 `sed -i` 不触发热重载的坑 | ✅ |
 
 ## 维护待办（内容层）
 
@@ -622,10 +623,13 @@ computed style 与 `style[data-hermes-theme-css]` 都变），并用**真实浏�
 注入、插件 CSS 的 `border-left: 4px rgb(255,0,255)`）；TUI 部件用 wrapper CLI 在 pty 里跑出
 `L42-PANEL-STATE: visible` 且面板文本渲染在状态栏正上方。
 
-**诚实边界（不改口）**：L46 的 **CDP 调试端口在本机没绑上**（三次尝试：不带/带 `--no-sandbox`、
-不重建主进程——应用日志打印了 `renderer debugging on http://127.0.0.1:9333`，但 `netstat` 0 行、
-`/dev/tcp` 连接被拒），所以 **L46 的 DOM 级验证（插件真出现在界面上、热重载耗时）本机未完成**，
-正文里已如实标注「未本机复现」而不是写「实测通过」。溯源：`templates`-级证据见 L46 的「验证三」。
+**诚实边界与一次真复现（2026-09-24 追加）**：L46 的 CDP 调试端口最初在本机**绑不上**（三次尝试：默认、加
+`--no-sandbox`、不重建主进程；应用日志打印了 `renderer debugging on http://127.0.0.1:9333`，但 `netstat` 0 行、
+`/dev/tcp` 被拒）。定位后的结论是：**应用自己 append switch 那条路在本机没生效，显式传
+`--remote-debugging-port=9333` 就立刻绑上**。补上这一条后 L46 的六项全部真验完（隔离 `HERMES_HOME` +
+独立 `--user-data-dir` + vite dev server）：端口 1 秒可用、**插件加载 8 秒**、**改文件热重载 3 秒**、
+插件写错时应用不崩且旧组件仍在（错误隔离）、删除插件目录后组件消失。另一个实测坑：**`sed -i` 那种重写
+文件的方式不触发热重载**（80 秒无反应），换成普通覆写 3 秒生效 —— 两条都写进了 L46 的常见坑。
 
 **计数**：课程 41 → **43**，出处 95 → **97**；`check.py` 7 项全绿（Python 445 条、前端 75 条），
 站点自检 43 课 / 55 页 / 73 文件 / 4271 KB。

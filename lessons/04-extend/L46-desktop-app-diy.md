@@ -136,48 +136,63 @@ curl -s --max-time 3 http://127.0.0.1:9222/json/version
 
 端口只绑 loopback，地址故意不可配置。
 
-### 验证二：起一个**隔离实例**，别碰你正在用的那个
+### 验证二：起一个**隔离实例**，把活体 DOM 读出来
 
-要在开发态看 DOM，必须同时满足两件事：主进程带 `--dev` 构建、且设了 dev server 环境变量。本机实测的一串命令（在安装树的 `apps/desktop` 下跑）[[src:desktop-plugin-sdk]]：
+要在开发态读 DOM，必须同时满足两件事：主进程带 `--dev` 构建、且设了 dev server 环境变量；本机实测**还要显式把调试端口当 Chromium 参数传进去**（原因见「验证三」）。完整配方（在安装树的 `apps/desktop` 下跑）[[src:desktop-plugin-sdk]]：
 
 ```bash
 cd ~/.hermes/hermes-agent/apps/desktop
-node scripts/bundle-electron-main.mjs --dev          # 不带 --dev 时，调试端口不会开
-HERMES_HOME=~/tmp-home \
-HERMES_DESKTOP_DEV_SERVER=http://127.0.0.1:5174 \
-HERMES_DESKTOP_CDP_PORT=9333 \
-  ./node_modules/.bin/electron . --user-data-dir=~/tmp-ud
+npm run dev:renderer &                     # vite dev server，监听 127.0.0.1:5174
+node scripts/bundle-electron-main.mjs --dev # 不带 --dev 时，应用那条开端口的路不会走
+
+HERMES_HOME=~/tmp-home HERMES_DESKTOP_DEV_SERVER=http://127.0.0.1:5174 HERMES_DESKTOP_CDP_PORT=9333   ./node_modules/.bin/electron . --remote-debugging-port=9333 --user-data-dir=~/tmp-ud
 ```
 
 ```bash
 # 另开一个终端：读活体 DOM（仓库自带的一行脚本）
 cd ~/.hermes/hermes-agent/apps/desktop
-HERMES_DESKTOP_CDP_PORT=9333 node scripts/eval.mjs \
-  'JSON.stringify({ title: document.title, chip: (document.querySelector("[data-l46=chip]")||{}).textContent || null })'
+HERMES_DESKTOP_CDP_PORT=9333 node scripts/eval.mjs   'JSON.stringify({ chip: (document.querySelector("[data-l46=chip]")||{}).textContent || null })'
 ```
 
-**为什么必须隔离**：`--user-data-dir` 单独给一个，是为了绕开 Electron 的单实例锁（否则第二个实例要么起不来、要么把你正在用的窗口顶掉）；单独一个 `HERMES_HOME` 是为了不让试验插件的崩溃或日志污染你的日常环境 [[src:desktop-plugin-sdk]]。
+**为什么必须隔离**：`--user-data-dir` 单独给一个，是为了绕开 Electron 的单实例锁（否则第二个实例要么起不来、要么把你正在用的窗口顶掉）；单独一个 `HERMES_HOME` 是为了不让试验插件污染你的日常环境 [[src:desktop-plugin-sdk]]。
+
+**本机实测结果**（Windows 11 + 隔离 `HERMES_HOME` + 独立 `--user-data-dir` + 端口 9333，插件就是「先动手」那个 `statusBar.right` 按钮）：
+
+| 测什么 | 本机实测 |
+|---|---|
+| 调试端口何时可用 | 应用启动后 **1 秒**（`curl 127.0.0.1:9333/json/version` 成功） |
+| 插件加载 | 应用启动后 **8 秒**，DOM 里出现 `[data-l46=chip]` 且文本是插件里写的那串 |
+| 改插件文件后热重载 | **3 秒**后 DOM 里的文本从 `L46-DEMO-A` 变成 `L46-DEMO-B`（就地覆写文件） |
+| 插件写错（用一个不允许的 import） | 应用**不崩**、页面照常，之前已加载的那个组件**仍在**（错误隔离，不是把界面弄坏） |
+| 删掉 `desktop-plugins/l46-demo/` 整个目录 | 几秒后 DOM 里的 chip **消失**，界面其余部分不受影响 |
+| 打包版（你正在用的那个应用） | `curl 127.0.0.1:9222/json/version` 空 —— 打包构建永远不开端口 |
+
+### 验证三：调试端口怎么才开得起来（本机踩过的坑）
+
+应用启动时会打印一行「决定开端口」的日志：
+
+```
+[hermes] renderer debugging on http://127.0.0.1:9333 — anything that can reach it can run code in the renderer.
+```
+
+但**这行日志不等于端口真的绑上了**。本机实测：只靠那三个环境变量启动时（不带 `--remote-debugging-port`），`netstat -ano | grep 9333` **0 行**、`/dev/tcp` 连接被拒、仓库的 `eval.mjs` 报 `no renderer debugging port` —— 试了三种组合（默认、加 `--no-sandbox`、不重建主进程）都一样。**补上显式参数 `--remote-debugging-port=9333` 之后，1 秒内就绑上了**，上面那张表的所有 DOM 证据都是这么取到的。
 
 | 你观察到的 | 说明什么 |
 |---|---|
-| 启动日志里有 `renderer debugging on http://127.0.0.1:9333` | 应用**决定**开端口（决策日志） |
-| 隔离实例里窗口可能很快自己退出 | 一个临时 `HERMES_HOME` 没有配好的后端，应用连不上 `hermes:api` 时会退出 —— DOM 要在端口一开就抓紧读 |
+| 只有环境变量、没有显式参数 → 日志说开了但连不上 | 应用自己 append switch 那条路在本机没生效；**日志是决策、不是结果** |
+| 显式 `--remote-debugging-port=<port>` → 立刻可连 | 这条是 Chromium 自己的参数，不经过应用那条路 |
 
-### 验证三：诚实标注 —— 「端口说开了但没监听」（本机未解决）
+源码 `apps/desktop/electron/dev-cdp.ts` 里的判据（本机读源码）[[src:desktop-plugin-sdk]]：
 
-本机在这台 Windows 上连续三次尝试（不开 `--no-sandbox`、开 `--no-sandbox`、以及不重建主进程），现象都一样：
+| 条件 | 结果 |
+|---|---|
+| 打包构建 | **永远关闭**，任何环境变量都不能打开 |
+| 没设 `HERMES_DESKTOP_DEV_SERVER` | 关闭（用 `electron .` 跑 `dist/` 属于「打包版冒烟测试」，行为与打包版一致） |
+| 设了 dev server | 应用会在 `9222`（或用 `HERMES_DESKTOP_CDP_PORT` 指定的端口）上尝试开端口 |
+| `HERMES_DESKTOP_CDP_PORT=off`（或 `0`/`false`/`no`） | 关闭 |
+| 端口 <1024 或 >65535 | 关闭（判为非法） |
 
-```bash
-netstat -ano | grep 9333          # 本机实测：0 行（没有任何进程监听 9333）
-timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9333'   # 本机实测：Connection refused
-```
-
-而应用日志里**已经有**那一行 `renderer debugging on http://127.0.0.1:9333`。也就是说：**日志里的「已开启」是决策，不等于端口真的绑上了**。本机没能把这条路径跑通，所以：
-
-- 本课关于 `plugin.js` 能被加载、能改 DOM、热重载需要多久、插件报错时的表现、删除插件后的恢复 —— **这些仍只有官方文档与 SDK 源码作为依据，本机没有跑出「肉眼看到插件出现在界面上」的证据**。
-- 上面的隔离实例命令是本机真跑过的（应用确实启动了、日志确实打印了那两行），**但因为端口没绑上，DOM 读取这一步本机没成功**。你如果在自己的机器上把端口跑通了，可以用第二步的命令自行核对。
-
-> 这一节故意留下「没验证成」的记录，而不是写一句「实测通过」：调试端口能不能开，取决于你的 Electron/系统组合，本机这一台没开成。
+端口只绑 loopback，地址故意不可配置。
 
 ## 常见坑
 
@@ -190,7 +205,8 @@ timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9333'   # 本机实测：Connectio
 | `curl http://127.0.0.1:9222/json/version` 一片空白 | 你跑的是打包版：**打包构建永远不开调试端口** | 这是设计；要读 DOM 就按「验证二」起带 dev server 的隔离实例 [[src:desktop-plugin-sdk]] |
 | 隔离实例起不来，或你的窗口被顶掉 | 两个 Electron 实例共用同一个 `--user-data-dir`，撞上单实例锁 | 给隔离实例单独一个 `--user-data-dir` [[src:desktop-plugin-sdk]] |
 | 隔离实例的窗口几秒后自己消失 | 临时 `HERMES_HOME` 没有可用后端（`ECONNREFUSED`），应用自行退出 | 端口一开就抓紧读 DOM；或先把那个 home 的 provider 配好 [[src:desktop-plugin-sdk]] |
-| 端口自称开着，实际连不上 | 本机实测到的现象（见「验证三」），原因未定 | 先用 `netstat` 验端口是否真在监听，别只看应用日志 [[src:desktop-plugin-sdk]] |
+| 端口自称开着，实际连不上 | 应用自己 append switch 那条路在本机没生效（见「验证三」） | 启动时显式带上 `--remote-debugging-port=<端口>`；并先用 `netstat` 验端口是否真在监听，别只看日志 [[src:desktop-plugin-sdk]] |
+| 用 `sed -i` 改 `plugin.js` 后界面没变 | 实测：`sed -i` 那种「重写文件」的方式**不触发**热重载（本机实测 80 秒没动静）；换普通覆写（编辑器保存、或脚本里 `write_text`）后 **3 秒**就生效 | 用编辑器保存或直接覆写文件；改完仍没反应就用命令面板的 **Reload desktop plugins** |
 | 改了插件的后端路由没生效 | `plugin_api.py` 这类后端路由在**进程启动时**挂载 | 重启应用或后端；只改前端 `plugin.js` 才享受热重载 [[src:desktop-plugin-sdk]] |
 | 切 profile 后面板不见了 | 桌面半区是**应用级**的，不该随 profile 变化 | 排查是不是把桌面半区装进了 profile 的 `plugins/`；桌面代码只从本机 `desktop-plugins/` 加载 [[src:desktop-plugin-sdk]] |
 
@@ -201,6 +217,7 @@ timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9333'   # 本机实测：Connectio
 - [ ] 用 `useTheme()` 写出一个能列出 `availableThemes` 并在点击时 `setTheme` 的面板组件
 - [ ] 判断该用哪条路径改下面三件事：① 把界面字体换成 Atkinson Hyperlegible ② 让状态栏常驻一个「重启网关」按钮 ③ 让整站换成 VS Code 里的某个配色主题
 - [ ] 写一个**故意坏的**插件（用一个不在允许清单里的 import），记录应用给什么反馈、坏插件会不会影响别的插件
+- [ ] 量一次自己的热重载耗时：改插件里的一行文字，用 `watch` 或秒表看界面几秒后变（本机是 3 秒；用 `sed -i` 改会量不出来）
 - [ ] 把结果记到 `journal/` 里并提交
 
 ## 下一步

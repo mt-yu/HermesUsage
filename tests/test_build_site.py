@@ -574,9 +574,9 @@ class TestPitfallsPage(unittest.TestCase):
 
         # 数据行 = `<tr>` 后面直接跟着 `<td>` 的行；表头行是 `<th>`，天然被排除。
         data_rows = re.findall(r"<tr>\s*<td>", self.main)
-        self.assertEqual(len(data_rows), 365)
+        self.assertEqual(len(data_rows), 366)
         # 与解析层对账（**不是**数 `[[src:` 的出现次数：一个单元格里可能有两个标记）
-        self.assertEqual(self.expected_rows, 365)
+        self.assertEqual(self.expected_rows, 366)
         self.assertEqual(len(data_rows), self.expected_rows)
         # 表头行另算：每个阶段一张表 → 一行 `<th>`
         self.assertEqual(len(re.findall(r"<tr>", self.main)), len(data_rows) + len(self.groups))
@@ -609,7 +609,7 @@ class TestPitfallsPage(unittest.TestCase):
         self.assertEqual(len(markers), 13)          # 格子正文里自带的交叉引用（如「见 [[L24]]」）
 
         hrefs = re.findall(r'<a class="xref" href="([^"]+)"', self.main)
-        self.assertEqual(len(hrefs), 365 + len(markers))   # 每行「课」列一个 + 格子里的
+        self.assertEqual(len(hrefs), 366 + len(markers))   # 每行「课」列一个 + 格子里的
         self.assertEqual(set(hrefs), {l["url"] for l in self.lessons})   # 只指向目录里现有的课程页
         for href in hrefs:
             self.assertTrue(href.startswith("lessons/"), f"合集页在站点根目录，课号必须带前缀：{href}")

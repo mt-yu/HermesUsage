@@ -348,7 +348,7 @@ class TestPitfallRows(unittest.TestCase):
         # （2026-09-21 审计：该功能 release 里还没有，已从课程删掉）是 340；
         # 这个字面量是金丝雀：内容大批增减时要有人来看一眼（每次新增/删课都要同步
         # 这里与 tests/test_build_site.py）
-        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 365)
+        self.assertEqual(sum(len(rows) for rows in self.repo_rows.values()), 366)
 
     def test_capstone_has_15_rows(self):
         self.assertEqual(len(self.repo_rows["L90"]), 15)
