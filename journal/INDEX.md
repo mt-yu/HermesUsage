@@ -5,6 +5,7 @@
 
 | 日期 | 类型 | 范围 | 标题 | 提交 |
 |---|---|---|---|---|
+| 2026-09-24 | fix | L46 | [L46 的 CDP 路径真复现：显式 --remote-debugging-port + 四条实测回填](2026-09-24-02-L46-的-CDP-路径真复现：显式-remote-debugging-port.md) | `6ba79cd` |
 | 2026-09-24 | session | L42,L45,L46 | [DIY 界面三课：L42 重写 + L45 Web 面板 + L46 桌面端](2026-09-24-01-DIY-界面三课：L42-重写-+-L45-Web-面板-+-L46-桌面端.md) | `ed5d321` |
 | 2026-09-21 | docs | ROADMAP,docs | [ROADMAP 记下「为什么不开未发布功能预告课」的决定](2026-09-21-03-ROADMAP-记下「为什么不开未发布功能预告课」的决定.md) | `342e185` |
 | 2026-09-21 | session | scripts,ROADMAP,docs | [待发布清单做成可执行脚本：pending_probe.py（19 条，一条命令回答「落地了吗」）](2026-09-21-02-待发布清单做成可执行脚本：pending_probe.py（19-条，一条命令回.md) | `5dddbbd` |
